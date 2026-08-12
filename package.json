@@ -1,0 +1,20 @@
+{
+  "name": "order-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de pedidos MVP para food truck de pastéis",
+  "scripts": {
+    "dev:backend": "pnpm --filter @order-system/backend dev",
+    "dev:web": "pnpm --filter @order-system/web dev",
+    "dev:mobile": "pnpm --filter @order-system/mobile start",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

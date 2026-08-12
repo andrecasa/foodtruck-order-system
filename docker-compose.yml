@@ -1,0 +1,195 @@
+services:
+  # ===========================================
+  # PostgreSQL - Banco de dados principal
+  # ===========================================
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-order_system}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-order_system}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - order-system-network
+
+  # ===========================================
+  # Supabase Auth (GoTrue) - Autenticação JWT
+  # ===========================================
+  auth:
+    image: supabase/gotrue:v2.151.0
+    restart: unless-stopped
+    ports:
+      - "${GOTRUE_PORT:-9999}:9999"
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-order_system}?sslmode=disable&search_path=auth
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-28800}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMS_AUTOCONFIRM: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - order-system-network
+
+  # ===========================================
+  # Supabase Realtime - WebSocket events
+  # ===========================================
+  realtime:
+    image: supabase/realtime:v2.28.32
+    restart: unless-stopped
+    ports:
+      - "${REALTIME_PORT:-4001}:4000"
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${POSTGRES_DB:-order_system}
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:-supabaserealtime}
+      API_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      FLY_ALLOC_ID: fly123
+      FLY_APP_NAME: realtime
+      SECRET_KEY_BASE: ${REALTIME_SECRET_KEY_BASE:-UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      ENABLE_TAILSCALE: "false"
+      DNS_NODES: "''"
+      REPLICATION_MODE: RLS
+      REPLICATION_POLL_INTERVAL: 100
+      SECURE_CHANNELS: "true"
+      SLOT_NAME: supabase_realtime_rls
+      TEMPORARY_SLOT: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - order-system-network
+
+  # ===========================================
+  # Kong - API Gateway (Supabase)
+  # ===========================================
+  kong:
+    image: kong:3-alpine
+    restart: unless-stopped
+    ports:
+      - "${KONG_HTTP_PORT:-8000}:8000"
+      - "${KONG_HTTPS_PORT:-8443}:8443"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.example}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.example}
+    volumes:
+      - ./kong.yml:/var/lib/kong/kong.yml:ro
+    depends_on:
+      auth:
+        condition: service_started
+      realtime:
+        condition: service_started
+    networks:
+      - order-system-network
+
+  # ===========================================
+  # Evolution API - WhatsApp Integration
+  # ===========================================
+  evolution-api:
+    image: atendai/evolution-api:latest
+    restart: unless-stopped
+    ports:
+      - "${EVOLUTION_API_PORT:-8080}:8080"
+    environment:
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-change-me-evolution-api-key}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8080}
+      SERVER_PORT: 8080
+      DATABASE_ENABLED: "false"
+      DATABASE_CONNECTION_URI: ""
+      DATABASE_CONNECTION_DB_PREFIX_NAME: evolution
+      RABBITMQ_ENABLED: "false"
+      WEBSOCKET_ENABLED: "false"
+      LOG_LEVEL: WARN
+    volumes:
+      - evolution_data:/evolution/instances
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - order-system-network
+
+  # ===========================================
+  # Backend - Node.js + Express
+  # ===========================================
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      BACKEND_PORT: 4000
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-order_system}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.example}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.example}
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-change-me-evolution-api-key}
+      TZ: ${TZ:-America/Sao_Paulo}
+    depends_on:
+      db:
+        condition: service_healthy
+      auth:
+        condition: service_started
+      realtime:
+        condition: service_started
+    networks:
+      - order-system-network
+
+# ===========================================
+# Volumes - Persistência de dados
+# ===========================================
+volumes:
+  pgdata:
+    driver: local
+  evolution_data:
+    driver: local
+
+# ===========================================
+# Rede Docker interna
+# ===========================================
+networks:
+  order-system-network:
+    driver: bridge

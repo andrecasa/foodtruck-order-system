@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Penpot Design Sync Validator",
+  "description": "After editing a component file, validates visual properties against Penpot source of truth. Checks badge colors, button alignment, theme tokens, and component specs.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "apps/*/src/components/*.tsx",
+      "apps/*/src/screens/*.tsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A component or screen file was just edited. Read the file and validate against Penpot specs (from .kiro/steering/penpot-to-code.md):\n\nCRITICAL CHECKS:\n1. Badge text color: Status badges (aguardando/preparando/pronto) MUST use '#FFFFFF'. NEVER calculate dynamically.\n2. Badge fontWeight: ALWAYS '400' for ALL sizes. NEVER '500' or '600'.\n3. Button alignSelf: MUST be 'center' (centered in card). NEVER 'flex-start'.\n4. Button sm fontWeight: MUST be '400'. NEVER '500'.\n5. Button color for aguardando: MUST use primary (#7B2D2D), NOT the status color.\n6. Card gradient: Status cards MUST have LinearGradient overlay (transparent→10% status color).\n7. Card stroke opacity: MUST use 30% (hex suffix '4D').\n8. Origin display: MUST use tinted badge (View with bg + styled Text), NOT plain Text component.\n9. Price text: MUST be fontSize 18, fontWeight '600'.\n10. RN ROTATION POSITIONING: Penpot coordinates do NOT translate 1:1 to React Native for rotated elements. RN rotates around the element center AFTER layout, so positions must be empirically adjusted. For the PrototypeBanner ribbon (111×18, rotate 45°, clip box 80×80 positioned at top:56 right:0 — below AppBar): the correct RN values are clip top: 56, ribbon top: 23, left: -8 (NOT the raw Penpot coords). NEVER change these values based on Penpot coordinate math alone.\n\nIf ANY deviations found, fix them immediately. Reference .kiro/steering/penpot-to-code.md for the full spec."
+  },
+  "workspaceFolderName": "order-system",
+  "shortName": "penpot-design-sync"
+}

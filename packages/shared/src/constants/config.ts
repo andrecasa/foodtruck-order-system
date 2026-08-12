@@ -1,0 +1,11 @@
+export const MAX_QUANTITY = 99;
+export const MIN_PRICE = 1;
+export const MAX_PRICE = 999999;
+export const MAX_NAME_LENGTH = 100;
+
+export const RATE_LIMIT_MAX_ATTEMPTS = 5;
+export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+export const SESSION_DURATION_HOURS = 8;
+export const WHATSAPP_SESSION_TIMEOUT_MS = 10 * 60 * 1000;
+export const REALTIME_RECONNECT_INTERVAL_MS = 5000;

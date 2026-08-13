@@ -17,3 +17,5 @@ export { Text, Heading } from './Typography';
 export type { TextProps, HeadingProps, TextSize, TextWeight, TextAlign, HeadingLevel } from './Typography';
 export { FilterChips } from './FilterChips';
 export type { FilterChipsProps, FilterChipOption } from './FilterChips';
+export { ConnectionBanner } from './ConnectionBanner';
+export type { ConnectionBannerProps } from './ConnectionBanner';

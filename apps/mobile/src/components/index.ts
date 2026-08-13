@@ -19,3 +19,5 @@ export type { TextProps, HeadingProps, TextSize, TextWeight, TextAlign, HeadingL
 export { PrototypeBanner } from './PrototypeBanner';
 export { FilterChips } from './FilterChips';
 export type { FilterChipsProps, FilterChipOption } from './FilterChips';
+export { ToggleSwitch } from './ToggleSwitch';
+export { BottomNav } from './BottomNav';

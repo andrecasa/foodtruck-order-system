@@ -7,6 +7,23 @@ _transform: true
 ###
 
 services:
+  ## Supabase REST (PostgREST)
+  - name: rest-v1
+    _comment: "PostgREST: /rest/v1/* -> http://rest:3000/*"
+    url: http://rest:3000/
+    routes:
+      - name: rest-v1
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+          key_names:
+            - apikey
+
   ## Supabase Auth (GoTrue)
   - name: auth-v1-open
     url: http://auth:9999/verify
@@ -69,7 +86,7 @@ services:
 consumers:
   - username: anon
     keyauth_credentials:
-      - key: ${SUPABASE_ANON_KEY}
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg2NTc1MDE0LCJleHAiOjIxMDE5MzUwMTR9.4MVKQHBjlGzYiZ6VEcRzr6EPs-AOsdZAJkoTivAe0jU
   - username: service_role
     keyauth_credentials:
-      - key: ${SUPABASE_SERVICE_KEY}
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODY1NzUwMTQsImV4cCI6MjEwMTkzNTAxNH0.HRh_z2QAR0jsd1svge3ujYmGjaVsOnF9DPOMtCIST2o

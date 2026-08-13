@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
-import { apiClient } from '../services/api-client';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * Login screen — pixel-perfect match to Penpot design.
@@ -21,6 +21,7 @@ import { apiClient } from '../services/api-client';
 export function LoginScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,7 +60,7 @@ export function LoginScreen() {
     setLoading(true);
 
     try {
-      await apiClient.login(email.trim(), password);
+      await login(email.trim(), password);
       router.replace('/(tabs)');
     } catch {
       setLoginError('E-mail ou senha incorretos');
@@ -74,13 +75,13 @@ export function LoginScreen() {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    gap: 24,
     backgroundColor: theme.colors.background,
   };
 
   const headerStyle: ViewStyle = {
     alignItems: 'center',
-    marginBottom: 24,
     gap: 8,
   };
 
@@ -112,10 +113,6 @@ export function LoginScreen() {
     gap: 16,
     boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
     elevation: 2,
-  };
-
-  const inputContainerStyle: ViewStyle = {
-    marginBottom: 0,
   };
 
   const errorContainerStyle: ViewStyle = {
@@ -156,32 +153,29 @@ export function LoginScreen() {
             </View>
           ) : null}
 
-          <View style={inputContainerStyle}>
-            <Input
-              accessibilityLabel="E-mail"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="seu@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              icon="mail"
-              error={emailError}
-              testID="login-email-input"
-            />
-          </View>
+          <Input
+            accessibilityLabel="E-mail"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="seu@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            icon="mail"
+            error={emailError}
+            testID="login-email-input"
+          />
 
-          <View style={inputContainerStyle}>
-            <Input
-              accessibilityLabel="Senha"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Sua senha"
-              secureTextEntry
-              icon="lock"
-              error={passwordError}
-              testID="login-password-input"
-            />
-          </View>
+          <Input
+            accessibilityLabel="Senha"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Sua senha"
+            secureTextEntry
+            icon="lock"
+            error={passwordError}
+            testID="login-password-input"
+            showPasswordToggle
+          />
 
           <Button
             title="Entrar"

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, type ViewStyle } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { PaymentScreen } from '../src/screens/PaymentScreen';
-import { Screen, Text } from '../src/components';
-import { useTheme } from '../src/theme/ThemeProvider';
-import { apiClient } from '../src/services/api-client';
+import { PaymentScreen } from '../../src/screens/PaymentScreen';
+import { Screen, Text } from '../../src/components';
+import { useTheme } from '../../src/theme/ThemeProvider';
+import { apiClient } from '../../src/services/api-client';
 import type { Order } from '@order-system/shared';
 
 /**

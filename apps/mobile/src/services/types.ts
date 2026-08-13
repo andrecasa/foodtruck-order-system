@@ -17,6 +17,7 @@ export interface ApiClient {
 
   // Menu
   getMenu(): Promise<MenuItem[]>;
+  getAllMenuItems(): Promise<MenuItem[]>;
   createMenuItem(data: CreateMenuItemRequest): Promise<MenuItem>;
   updateMenuItem(id: string, data: UpdateMenuItemRequest): Promise<MenuItem>;
   toggleMenuItemStatus(id: string): Promise<MenuItem>;

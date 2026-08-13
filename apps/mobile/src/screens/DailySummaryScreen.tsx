@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -14,6 +14,7 @@ import { Text } from '../components/Typography';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
+import { useRealtime } from '../hooks/useRealtime';
 
 /** Formats price in centavos to R$ X,XX */
 function formatPrice(priceInCentavos: number): string {
@@ -55,6 +56,20 @@ export function DailySummaryScreen() {
       setError(err instanceof Error ? err.message : 'Erro ao carregar resumo');
     }
   }, []);
+
+  // Realtime: refresh summary when orders change
+  const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
+
+  useRealtime({
+    channels: realtimeChannels,
+    onEvent: useCallback((_event) => {
+      // Refetch summary on any order event
+      fetchSummary();
+    }, [fetchSummary]),
+    onReconnect: useCallback(() => {
+      fetchSummary();
+    }, [fetchSummary]),
+  });
 
   // Initial load
   useEffect(() => {

@@ -135,7 +135,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     color: theme.colors.text,
     marginBottom: 8,
   };
@@ -164,7 +164,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
 
   const itemQuantityStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '400',
     color: '#8B6B5A',
   };
@@ -360,14 +360,20 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           </RNText>
         </TouchableOpacity>
 
-        {/* Navigate to New Order */}
+        {/* "+ Adicionar Item" button — Penpot specs:
+         * height: 44, borderRadius: 22, bg: #FFFFFF, border: 1px #E8DDD5 inner
+         * text: "+" 16px + "Adicionar Item" 14px, weight 400, color #3D2020
+         * layout: row, gap 6, alignItems center, justifyContent center
+         * horizontalSizing: fill (full width) */}
         <TouchableOpacity
           style={{
             height: 44,
             borderRadius: 22,
-            backgroundColor: 'transparent',
+            backgroundColor: '#FFFFFF',
             borderWidth: 1,
-            borderColor: '#8B6B5A',
+            borderColor: '#E8DDD5',
+            flexDirection: 'row',
+            gap: 6,
             alignItems: 'center',
             justifyContent: 'center',
             alignSelf: 'stretch',
@@ -375,18 +381,28 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           onPress={() => router.replace('/(tabs)/new-order')}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Adicionar Itens"
+          accessibilityLabel="Adicionar Item"
           testID="add-items-button-main"
         >
           <RNText
             style={{
               fontFamily: theme.typography.fontFamily,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: '400',
-              color: '#8B6B5A',
+              color: theme.colors.text,
             }}
           >
-            Adicionar Itens
+            +
+          </RNText>
+          <RNText
+            style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: 14,
+              fontWeight: '400',
+              color: theme.colors.text,
+            }}
+          >
+            Adicionar Item
           </RNText>
         </TouchableOpacity>
 

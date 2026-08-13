@@ -1,0 +1,559 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text as RNText,
+  TouchableOpacity,
+  Pressable,
+  TextInput,
+  type ViewStyle,
+  type TextStyle,
+  type TextInputProps,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useTheme } from '../theme/ThemeProvider';
+import { Screen, ScrollContainer } from '../components/Layout';
+import { Button } from '../components/Button';
+import { apiClient } from '../services/api-client';
+import { CATEGORIES } from '../mocks/menu-data';
+
+/**
+ * Parses a formatted currency string (R$ X,XX) to centavos (integer).
+ * Returns 0 if the string is empty or invalid.
+ */
+function parseCurrencyToCentavos(formatted: string): number {
+  const digits = formatted.replace(/\D/g, '');
+  if (digits.length === 0) return 0;
+  return parseInt(digits, 10);
+}
+
+/**
+ * Formats a raw digit string as Brazilian Real currency (R$ X,XX).
+ */
+function formatCurrency(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  const padded = digits.padStart(3, '0');
+  const integerPart = padded.slice(0, padded.length - 2);
+  const decimalPart = padded.slice(padded.length - 2);
+  const trimmedInteger = integerPart.replace(/^0+/, '') || '0';
+  return `R$ ${trimmedInteger},${decimalPart}`;
+}
+
+/**
+ * Formats centavos (integer) to display currency string without prefix.
+ * E.g., 1200 → "12,00"
+ */
+function formatCentavosToDisplay(centavos: number): string {
+  const str = String(centavos).padStart(3, '0');
+  const integerPart = str.slice(0, str.length - 2);
+  const decimalPart = str.slice(str.length - 2);
+  const trimmedInteger = integerPart.replace(/^0+/, '') || '0';
+  return `${trimmedInteger},${decimalPart}`;
+}
+
+export interface EditMenuItemScreenProps {
+  id: string;
+  name: string;
+  price: number; // centavos
+  category: string;
+}
+
+/**
+ * Editar Item (Edit Menu Item) Screen — pixel-perfect match to Penpot design.
+ *
+ * Penpot specs (same as "Novo Item Cardápio" board, with title/button text changes):
+ * - Screen: flex column
+ * - AppBar: height 56, bg #FFFFFF, shadow 0 1px 3px rgba(0,0,0,0.06)
+ *   - Back Icon: Material Symbols "arrow_back" 24px, color #8B6B5A
+ *   - Title: "Editar Item" Inter 18px weight 400, color #3D2020
+ *   - Spacer for symmetry
+ * - Content: flex column, gap 20, padding 16 (top, left, right), paddingBottom 24
+ *   - Field order: Categoria → Nome → Preço
+ *   - Each field: flex column, gap 8
+ *     - Label: Inter 12px weight 400, color #3D2020
+ *     - Input: bg #FFFFFF, height 52, borderRadius 24, border 1px #E8DDD5, paddingHorizontal 16
+ *   - Categoria: dropdown with selected value pre-filled
+ *   - Nome: pre-filled with item name
+ *   - Preço: prefix "R$" + formatted value pre-filled
+ *   - Confirm Button: height 44, borderRadius 22, bg #7B2D2D, text "Salvar" white 14px
+ *   - Cancel Button: height 44, borderRadius 22, bg #FFFFFF, border 1px #E8DDD5, text "Cancelar" #3D2020 14px
+ */
+export function EditMenuItemScreen({ id, name: initialName, price: initialPrice, category: initialCategory }: EditMenuItemScreenProps) {
+  const theme = useTheme();
+  const router = useRouter();
+
+  // Form state — pre-filled with existing item data
+  const [name, setName] = useState(initialName);
+  const [price, setPrice] = useState(formatCurrency(String(initialPrice)));
+  const [category, setCategory] = useState<string>(initialCategory);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [priceError, setPriceError] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+  const [apiError, setApiError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  // Price input handler — keeps only digits and reformats
+  const handlePriceChange = (text: string) => {
+    const digits = text.replace(/\D/g, '');
+    if (digits.length === 0) {
+      setPrice('');
+    } else {
+      setPrice(formatCurrency(digits));
+    }
+    if (priceError) setPriceError('');
+  };
+
+  // Validation
+  const validate = (): boolean => {
+    let isValid = true;
+
+    if (!category) {
+      setCategoryError('Selecione uma categoria');
+      isValid = false;
+    } else {
+      setCategoryError('');
+    }
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setNameError('Informe o nome do item');
+      isValid = false;
+    } else if (trimmedName.length > 100) {
+      setNameError('Nome deve ter no máximo 100 caracteres');
+      isValid = false;
+    } else {
+      setNameError('');
+    }
+
+    const centavos = parseCurrencyToCentavos(price);
+    if (centavos <= 0) {
+      setPriceError('Informe um preço válido');
+      isValid = false;
+    } else if (centavos > 999999) {
+      setPriceError('Preço máximo é R$ 9.999,99');
+      isValid = false;
+    } else {
+      setPriceError('');
+    }
+
+    return isValid;
+  };
+
+  // Submit — only send changed fields
+  const handleSubmit = async () => {
+    setApiError('');
+    if (!validate()) return;
+
+    const centavos = parseCurrencyToCentavos(price);
+    const trimmedName = name.trim();
+
+    // Build update payload with only changed fields
+    const updates: { name?: string; price?: number; category?: string } = {};
+    if (trimmedName !== initialName) updates.name = trimmedName;
+    if (centavos !== initialPrice) updates.price = centavos;
+    if (category !== initialCategory) updates.category = category;
+
+    try {
+      setLoading(true);
+      await apiClient.updateMenuItem(id, updates);
+      setSuccess(true);
+      setTimeout(() => {
+        router.back();
+      }, 1500);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar item';
+      if (message.includes('409')) {
+        setApiError('Já existe um item com este nome');
+      } else {
+        setApiError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Styles (Penpot-aligned) ────────────────────────────────────────────────
+
+  const appBarStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    height: 56,
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  };
+
+  const backIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 24,
+    fontWeight: '400',
+    color: '#8B6B5A',
+  };
+
+  const titleStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 18,
+    fontWeight: '400',
+    color: theme.colors.text,
+    flex: 1,
+    textAlign: 'center',
+  };
+
+  const contentStyle: ViewStyle = {
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    gap: 20,
+  };
+
+  const labelStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.text,
+    marginBottom: 8,
+  };
+
+  const inputContainerStyle: ViewStyle = {
+    height: 52,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8DDD5',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  };
+
+  const inputContainerErrorStyle: ViewStyle = {
+    ...inputContainerStyle,
+    borderColor: theme.colors.error,
+  };
+
+  const placeholderTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(139, 107, 90, 0.6)',
+    flex: 1,
+  };
+
+  const inputValueStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '400',
+    color: theme.colors.text,
+    flex: 1,
+  };
+
+  const prefixStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '400',
+    color: theme.colors.text,
+    marginRight: 8,
+  };
+
+  const arrowIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 20,
+    fontWeight: '400',
+    color: '#8B6B5A',
+  };
+
+  const cancelButtonStyle: ViewStyle = {
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8DDD5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const cancelButtonTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '400',
+    color: theme.colors.text,
+  };
+
+  const errorTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.error,
+    marginTop: 4,
+  };
+
+  const categoryDropdownStyle: ViewStyle = {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8DDD5',
+    marginTop: 4,
+    overflow: 'hidden',
+  };
+
+  const categoryOptionStyle: ViewStyle = {
+    height: 44,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F0EB',
+  };
+
+  const categoryOptionTextStyle = (selected: boolean): TextStyle => ({
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '400',
+    color: selected ? theme.colors.primary : theme.colors.text,
+  });
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
+  // Success state
+  if (success) {
+    return (
+      <Screen padding={false}>
+        <View style={appBarStyle} accessibilityRole="header">
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
+          >
+            <RNText style={backIconStyle}>arrow_back</RNText>
+          </Pressable>
+          <RNText style={titleStyle}>Editar Item</RNText>
+          <View style={{ width: 24 }} />
+        </View>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 32,
+            gap: 12,
+          }}
+        >
+          <RNText
+            style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: 18,
+              fontWeight: '500',
+              color: theme.colors.text,
+              textAlign: 'center',
+            }}
+          >
+            Item atualizado com sucesso!
+          </RNText>
+          <RNText
+            style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: 14,
+              fontWeight: '400',
+              color: '#8B6B5A',
+              textAlign: 'center',
+              marginTop: 8,
+            }}
+          >
+            Voltando ao cardápio...
+          </RNText>
+        </View>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen padding={false}>
+      {/* AppBar — arrow_back + "Editar Item" + spacer */}
+      <View style={appBarStyle} accessibilityRole="header">
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
+        >
+          <RNText style={backIconStyle}>arrow_back</RNText>
+        </Pressable>
+        <RNText style={titleStyle}>Editar Item</RNText>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollContainer padding={false} style={contentStyle}>
+        {/* 1. Categoria Field (first per Penpot order) */}
+        <View>
+          <RNText style={labelStyle}>Categoria</RNText>
+          <TouchableOpacity
+            style={categoryError ? inputContainerErrorStyle : inputContainerStyle}
+            onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={category || 'Selecione uma categoria'}
+            accessibilityHint="Toque para selecionar a categoria"
+            testID="select-category"
+          >
+            <RNText style={category ? inputValueStyle : placeholderTextStyle}>
+              {category || 'Selecione...'}
+            </RNText>
+            <RNText style={arrowIconStyle}>expand_more</RNText>
+          </TouchableOpacity>
+          {showCategoryPicker && (
+            <View style={categoryDropdownStyle}>
+              {CATEGORIES.map((cat, index) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    categoryOptionStyle,
+                    index === CATEGORIES.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                  onPress={() => {
+                    setCategory(cat);
+                    setShowCategoryPicker(false);
+                    if (categoryError) setCategoryError('');
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: category === cat }}
+                  accessibilityLabel={cat}
+                  testID={`category-${cat.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <RNText style={categoryOptionTextStyle(category === cat)}>
+                    {cat}
+                  </RNText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {categoryError ? (
+            <RNText style={errorTextStyle}>{categoryError}</RNText>
+          ) : null}
+        </View>
+
+        {/* 2. Nome Field */}
+        <View>
+          <RNText style={labelStyle}>Nome do item</RNText>
+          <View style={nameError ? inputContainerErrorStyle : inputContainerStyle}>
+            <InputInline
+              value={name}
+              onChangeText={(text) => {
+                setName(text.slice(0, 100));
+                if (nameError) setNameError('');
+                if (apiError) setApiError('');
+              }}
+              placeholder="Ex: Pastel de Frango"
+              testID="input-item-name"
+              accessibilityLabel="Nome do item"
+            />
+          </View>
+          {nameError ? (
+            <RNText style={errorTextStyle}>{nameError}</RNText>
+          ) : null}
+        </View>
+
+        {/* 3. Preço Field */}
+        <View>
+          <RNText style={labelStyle}>Preço</RNText>
+          <View style={priceError ? inputContainerErrorStyle : inputContainerStyle}>
+            <RNText style={prefixStyle}>R$</RNText>
+            <InputInline
+              value={price ? price.replace('R$ ', '') : ''}
+              onChangeText={handlePriceChange}
+              placeholder="0,00"
+              keyboardType="numeric"
+              testID="input-item-price"
+              accessibilityLabel="Preço"
+            />
+          </View>
+          {priceError ? (
+            <RNText style={errorTextStyle}>{priceError}</RNText>
+          ) : null}
+        </View>
+
+        {/* API Error */}
+        {apiError ? (
+          <RNText style={errorTextStyle}>{apiError}</RNText>
+        ) : null}
+
+        {/* Confirm Button */}
+        <Button
+          title="Salvar"
+          variant="primary"
+          size="lg"
+          fullWidth
+          onPress={handleSubmit}
+          loading={loading}
+          disabled={loading}
+          testID="submit-menu-item"
+        />
+
+        {/* Cancel Button */}
+        <TouchableOpacity
+          style={cancelButtonStyle}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Cancelar"
+          testID="cancel-menu-item"
+        >
+          <RNText style={cancelButtonTextStyle}>Cancelar</RNText>
+        </TouchableOpacity>
+      </ScrollContainer>
+    </Screen>
+  );
+}
+
+// ─── InputInline ──────────────────────────────────────────────────────────────
+
+interface InputInlineProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  keyboardType?: TextInputProps['keyboardType'];
+  testID?: string;
+  accessibilityLabel?: string;
+}
+
+/**
+ * Minimal inline TextInput that matches Penpot field specs:
+ * - No extra wrapper/padding (parent container handles it)
+ * - Inter 14px weight 400, color #3D2020
+ * - Placeholder color rgba(139,107,90,0.6)
+ */
+function InputInline({
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType = 'default',
+  testID,
+  accessibilityLabel,
+}: InputInlineProps) {
+  return (
+    <TextInput
+      style={{
+        flex: 1,
+        fontFamily: 'Inter',
+        fontSize: 14,
+        fontWeight: '400',
+        color: '#3D2020',
+        paddingVertical: 0,
+        height: 52,
+      }}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="rgba(139, 107, 90, 0.6)"
+      keyboardType={keyboardType}
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+    />
+  );
+}

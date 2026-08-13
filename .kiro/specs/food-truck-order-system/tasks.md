@@ -76,6 +76,10 @@ Plano de implementação do sistema de pedidos MVP para food truck, organizado e
   - [x] 6.10 Validar uso exclusivo de componentes do Design System
   - [x] 6.11 Adicionar filtro de status (FilterChips) no topo da tela de Fila de Pedidos com opções: aguardando, preparando, pronto, entregue
   - [x] 6.12 Implementar lógica de filtro: por padrão exibir aguardando/preparando/pronto; ocultar entregue até selecionado
+   - [x] 6.13 Criar tela de Criar Item do Cardápio (formulário com nome, preço, categoria) seguindo design Penpot
+  - [x] 6.14 Criar tela de Editar Item do Cardápio (formulário preenchido com dados do item existente) seguindo design Penpot
+  - [x] 6.15 Adicionar FAB "+ Novo Item" na tela de Cardápio para navegar à tela de criação
+  - [x] 6.16 Adicionar ação "Editar" nos itens da listagem do Cardápio para navegar à tela de edição
 
 - [x] 7. Protótipo - Tela do Preparador (Web) @requirements(2) @dependencies(4,5)
   - [x] 7.1 Criar tela de Login web usando Design System
@@ -126,130 +130,130 @@ Plano de implementação do sistema de pedidos MVP para food truck, organizado e
   - [x] 10.7 Criar rota de verificação de sessão
   - [x] 10.8 Adicionar testes unitários para rate limiting e JWT
 
-- [ ] 11. Backend - CRUD Cardápio @requirements(4) @dependencies(10)
-  - [ ] 11.1 Implementar GET /api/menu (ativos, agrupados por categoria, ordenados)
-  - [ ] 11.2 Implementar POST /api/menu com validação Zod
-  - [ ] 11.3 Implementar PUT /api/menu/:id com validação de colisão de nome
-  - [ ] 11.4 Implementar PATCH /api/menu/:id/status (ativar/desativar)
-  - [ ] 11.5 Validar unicidade case-insensitive (HTTP 409)
-  - [ ] 11.6 Validar preço ≤ 0 (HTTP 422)
-  - [ ] 11.7 Validar categoria inexistente (HTTP 422)
-  - [ ] 11.8 Garantir update sem alterar ID
-  - [ ] 11.9 Adicionar testes unitários
+- [x] 11. Backend - CRUD Cardápio @requirements(4) @dependencies(10)
+  - [x] 11.1 Implementar GET /api/menu (ativos, agrupados por categoria, ordenados)
+  - [x] 11.2 Implementar POST /api/menu com validação Zod
+  - [x] 11.3 Implementar PUT /api/menu/:id com validação de colisão de nome
+  - [x] 11.4 Implementar PATCH /api/menu/:id/status (ativar/desativar)
+  - [x] 11.5 Validar unicidade case-insensitive (HTTP 409)
+  - [x] 11.6 Validar preço ≤ 0 (HTTP 422)
+  - [x] 11.7 Validar categoria inexistente (HTTP 422)
+  - [x] 11.8 Garantir update sem alterar ID
+  - [x] 11.9 Adicionar testes unitários
 
-- [ ] 12. Backend - Criação de Pedidos @requirements(5,12) @dependencies(11)
-  - [ ] 12.1 Implementar POST /api/orders com validação Zod
-  - [ ] 12.2 Integrar next_daily_number para número sequencial
-  - [ ] 12.3 Implementar snapshot de preço (unit_price_cents, item_name)
-  - [ ] 12.4 Implementar cálculo de total em centavos
-  - [ ] 12.5 Persistir em transação (orders + order_items) com rollback
-  - [ ] 12.6 Publicar evento new_order no Realtime orders:queue
-  - [ ] 12.7 Validar apenas itens ativos
-  - [ ] 12.8 Rejeitar origem inválida (HTTP 422)
-  - [ ] 12.9 Tratar conflito de número sequencial (HTTP 409)
-  - [ ] 12.10 Adicionar testes unitários
+- [x] 12. Backend - Criação de Pedidos @requirements(5,12) @dependencies(11)
+  - [x] 12.1 Implementar POST /api/orders com validação Zod
+  - [x] 12.2 Integrar next_daily_number para número sequencial
+  - [x] 12.3 Implementar snapshot de preço (unit_price_cents, item_name)
+  - [x] 12.4 Implementar cálculo de total em centavos
+  - [x] 12.5 Persistir em transação (orders + order_items) com rollback
+  - [x] 12.6 Publicar evento new_order no Realtime orders:queue
+  - [x] 12.7 Validar apenas itens ativos
+  - [x] 12.8 Rejeitar origem inválida (HTTP 422)
+  - [x] 12.9 Tratar conflito de número sequencial (HTTP 409)
+  - [x] 12.10 Adicionar testes unitários
 
-- [ ] 13. Backend - Status de Pedidos @requirements(7) @dependencies(12)
-  - [ ] 13.1 Implementar PATCH /api/orders/:id/status
-  - [ ] 13.2 Validar sequência de transição (HTTP 422 se inválida)
-  - [ ] 13.3 Registrar started_at (aguardando→preparando)
-  - [ ] 13.4 Registrar ready_at (preparando→pronto)
-  - [ ] 13.5 Registrar delivered_at (pronto→entregue)
-  - [ ] 13.6 Publicar evento no Realtime orders:queue
-  - [ ] 13.7 Retornar 404 se pedido não encontrado
-  - [ ] 13.8 Adicionar testes unitários para transições válidas e inválidas
+- [x] 13. Backend - Status de Pedidos @requirements(7) @dependencies(12)
+  - [x] 13.1 Implementar PATCH /api/orders/:id/status
+  - [x] 13.2 Validar sequência de transição (HTTP 422 se inválida)
+  - [x] 13.3 Registrar started_at (aguardando→preparando)
+  - [x] 13.4 Registrar ready_at (preparando→pronto)
+  - [x] 13.5 Registrar delivered_at (pronto→entregue)
+  - [x] 13.6 Publicar evento no Realtime orders:queue
+  - [x] 13.7 Retornar 404 se pedido não encontrado
+  - [x] 13.8 Adicionar testes unitários para transições válidas e inválidas
 
-- [ ] 14. Backend - Pagamento @requirements(8) @dependencies(12)
-  - [ ] 14.1 Implementar POST /api/orders/:id/payment com validação Zod
-  - [ ] 14.2 Atualizar payment_status, payment_method e paid_at
-  - [ ] 14.3 Rejeitar pagamento duplicado (HTTP 409)
-  - [ ] 14.4 Rejeitar forma de pagamento inválida (HTTP 422)
-  - [ ] 14.5 Publicar evento no Realtime orders:payment
-  - [ ] 14.6 Retornar 404 se pedido não encontrado
-  - [ ] 14.7 Adicionar testes unitários
+- [x] 14. Backend - Pagamento @requirements(8) @dependencies(12)
+  - [x] 14.1 Implementar POST /api/orders/:id/payment com validação Zod
+  - [x] 14.2 Atualizar payment_status, payment_method e paid_at
+  - [x] 14.3 Rejeitar pagamento duplicado (HTTP 409)
+  - [x] 14.4 Rejeitar forma de pagamento inválida (HTTP 422)
+  - [x] 14.5 Publicar evento no Realtime orders:payment
+  - [x] 14.6 Retornar 404 se pedido não encontrado
+  - [x] 14.7 Adicionar testes unitários
 
-- [ ] 15. Backend - Resumo do Dia @requirements(9) @dependencies(14)
-  - [ ] 15.1 Implementar GET /api/summary/today baseado em order_date (America/Sao_Paulo)
-  - [ ] 15.2 Retornar totalOrders, paidOrders, pendingOrders
-  - [ ] 15.3 Retornar paidTotal e pendingTotal em centavos
-  - [ ] 15.4 Retornar byPaymentMethod (dinheiro, pix, cartão)
-  - [ ] 15.5 Utilizar date-fns-tz para conversão de timezone
-  - [ ] 15.6 Garantir invariante: totalOrders = paidOrders + pendingOrders
-  - [ ] 15.7 Adicionar testes unitários para agregações e fronteira de meia-noite
+- [x] 15. Backend - Resumo do Dia @requirements(9) @dependencies(14)
+  - [x] 15.1 Implementar GET /api/summary/today baseado em order_date (America/Sao_Paulo)
+  - [x] 15.2 Retornar totalOrders, paidOrders, pendingOrders
+  - [x] 15.3 Retornar paidTotal e pendingTotal em centavos
+  - [x] 15.4 Retornar byPaymentMethod (dinheiro, pix, cartão)
+  - [x] 15.5 Utilizar date-fns-tz para conversão de timezone
+  - [x] 15.6 Garantir invariante: totalOrders = paidOrders + pendingOrders
+  - [x] 15.7 Adicionar testes unitários para agregações e fronteira de meia-noite
 
-- [ ] 16. Frontend - Integração Real (App Mobile) @requirements(3,4,5,6,7,8,9) @dependencies(6,10,11,12,13,14,15)
-  - [ ] 16.1 Criar real-client.ts com chamadas HTTP reais ao backend
-  - [ ] 16.2 Implementar fluxo de autenticação (login, token, logout, expiração)
-  - [ ] 16.3 Implementar hook useAuth() com estado de sessão
-  - [ ] 16.4 Implementar hook useRealtime() com Supabase Realtime (orders:queue, orders:payment)
-  - [ ] 16.5 Implementar reconexão automática com reload de dados
-  - [ ] 16.6 Integrar Resumo do Dia com atualização via Realtime
-  - [ ] 16.7 Implementar tratamento de erros de rede (retry, toast)
-  - [ ] 16.8 Garantir que PROTOTYPE_MODE=false conecta ao backend real
-  - [ ] 16.9 Testar fluxo completo end-to-end
-  - [ ] 16.10 Implementar filtro de status no topo da tela de fila (chips: aguardando, preparando, pronto, entregue)
-  - [ ] 16.11 Ocultar pedidos `entregue` por padrão; exibir somente quando filtro `entregue` está selecionado
-  - [ ] 16.12 Ao selecionar filtro `entregue`, listar pedidos do dia ordenados por `delivered_at` decrescente
+- [x] 16. Frontend - Integração Real (App Mobile) @requirements(3,4,5,6,7,8,9) @dependencies(6,10,11,12,13,14,15)
+  - [x] 16.1 Criar real-client.ts com chamadas HTTP reais ao backend
+  - [x] 16.2 Implementar fluxo de autenticação (login, token, logout, expiração)
+  - [x] 16.3 Implementar hook useAuth() com estado de sessão
+  - [x] 16.4 Implementar hook useRealtime() com Supabase Realtime (orders:queue, orders:payment)
+  - [x] 16.5 Implementar reconexão automática com reload de dados
+  - [x] 16.6 Integrar Resumo do Dia com atualização via Realtime
+  - [x] 16.7 Implementar tratamento de erros de rede (retry, toast)
+  - [x] 16.8 Garantir que PROTOTYPE_MODE=false conecta ao backend real
+  - [x] 16.9 Testar fluxo completo end-to-end
+  - [x] 16.10 Implementar filtro de status no topo da tela de fila (chips: aguardando, preparando, pronto, entregue)
+  - [x] 16.11 Ocultar pedidos `entregue` por padrão; exibir somente quando filtro `entregue` está selecionado
+  - [x] 16.12 Ao selecionar filtro `entregue`, listar pedidos do dia ordenados por `delivered_at` decrescente
 
-- [ ] 17. Frontend - Integração Real (Tela Preparador) @requirements(6,7,13) @dependencies(7,12,13)
-  - [ ] 17.1 Criar real-client.ts para web com chamadas HTTP reais
-  - [ ] 17.2 Implementar autenticação web (login, sessionStorage, logout)
-  - [ ] 17.3 Implementar hook useRealtime() para web (orders:queue)
-  - [ ] 17.4 Implementar indicador visual de "conexão perdida" (banner vermelho)
-  - [ ] 17.5 Implementar reconexão a cada 5s com reload de pedidos ativos
-  - [ ] 17.6 Marcar dados como desatualizados durante desconexão
-  - [ ] 17.7 Carregar estado completo na inicialização antes de ativar Realtime
-  - [ ] 17.8 Remover pedido da fila ao receber evento de status entregue
-  - [ ] 17.9 Testar fluxo: login → fila → novo pedido via Realtime → avançar status
-  - [ ] 17.10 Implementar filtro de status no topo da tela de fila (chips: aguardando, preparando, pronto, entregue)
-  - [ ] 17.11 Ocultar pedidos `entregue` por padrão; exibir somente quando filtro `entregue` está selecionado
-  - [ ] 17.12 Ao selecionar filtro `entregue`, listar pedidos do dia ordenados por `delivered_at` decrescente
+- [x] 17. Frontend - Integração Real (Tela Preparador) @requirements(6,7,13) @dependencies(7,12,13)
+  - [x] 17.1 Criar real-client.ts para web com chamadas HTTP reais
+  - [x] 17.2 Implementar autenticação web (login, sessionStorage, logout)
+  - [x] 17.3 Implementar hook useRealtime() para web (orders:queue)
+  - [x] 17.4 Implementar indicador visual de "conexão perdida" (banner vermelho)
+  - [x] 17.5 Implementar reconexão a cada 5s com reload de pedidos ativos
+  - [x] 17.6 Marcar dados como desatualizados durante desconexão
+  - [x] 17.7 Carregar estado completo na inicialização antes de ativar Realtime
+  - [x] 17.8 Remover pedido da fila ao receber evento de status entregue
+  - [x] 17.9 Testar fluxo: login → fila → novo pedido via Realtime → avançar status
+  - [x] 17.10 Implementar filtro de status no topo da tela de fila (chips: aguardando, preparando, pronto, entregue)
+  - [x] 17.11 Ocultar pedidos `entregue` por padrão; exibir somente quando filtro `entregue` está selecionado
+  - [x] 17.12 Ao selecionar filtro `entregue`, listar pedidos do dia ordenados por `delivered_at` decrescente
 
-- [ ] 18. Backend - Bot WhatsApp (Evolution API) @requirements(10,11) @dependencies(12)
-  - [ ] 18.1 Implementar POST /api/webhook/evolution (validação API Key)
-  - [ ] 18.2 Criar máquina de estados (saudacao, selecionando, resumo)
-  - [ ] 18.3 Implementar estado saudacao: saudação + cardápio formatado (R$ X,XX)
-  - [ ] 18.4 Implementar estado selecionando: acumular itens no carrinho JSONB
-  - [ ] 18.5 Implementar estado resumo: exibir lista, preços e total
-  - [ ] 18.6 Implementar confirmação: criar pedido (origin=whatsapp) e enviar número + total
-  - [ ] 18.7 Implementar gerenciamento de sessão (criar, retomar, encerrar)
-  - [ ] 18.8 Implementar timeout 10min: encerrar sessão e enviar mensagem
-  - [ ] 18.9 Implementar tratamento de mensagens inesperadas
-  - [ ] 18.10 Implementar caso de cardápio vazio (informar e encerrar)
-  - [ ] 18.11 Adicionar testes unitários para máquina de estados e carrinho
+- [x] 18. Backend - Bot WhatsApp (Evolution API) @requirements(10,11) @dependencies(12)
+  - [x] 18.1 Implementar POST /api/webhook/evolution (validação API Key)
+  - [x] 18.2 Criar máquina de estados (saudacao, selecionando, resumo)
+  - [x] 18.3 Implementar estado saudacao: saudação + cardápio formatado (R$ X,XX)
+  - [x] 18.4 Implementar estado selecionando: acumular itens no carrinho JSONB
+  - [x] 18.5 Implementar estado resumo: exibir lista, preços e total
+  - [x] 18.6 Implementar confirmação: criar pedido (origin=whatsapp) e enviar número + total
+  - [x] 18.7 Implementar gerenciamento de sessão (criar, retomar, encerrar)
+  - [x] 18.8 Implementar timeout 10min: encerrar sessão e enviar mensagem
+  - [x] 18.9 Implementar tratamento de mensagens inesperadas
+  - [x] 18.10 Implementar caso de cardápio vazio (informar e encerrar)
+  - [x] 18.11 Adicionar testes unitários para máquina de estados e carrinho
 
-- [ ] 19. Testes de Propriedade @requirements(1,2,3,4,5,6,7,8,9,10,11,12,13,14) @dependencies(11,12,13,14,15,18)
-  - [ ] 19.1 Configurar fast-check + Vitest no backend e frontends
-  - [ ] 19.2 Property 1: Contraste WCAG AA (ratio ≥ 4.5:1 e ≥ 3:1)
-  - [ ] 19.3 Property 2: Criação de item válido retorna status ativo
-  - [ ] 19.4 Property 3: Unicidade case-insensitive rejeita com 409
-  - [ ] 19.5 Property 4: Update preserva ID e altera apenas campos informados
-  - [ ] 19.6 Property 5: Cardápio ordenado por categoria e nome
-  - [ ] 19.7 Property 6: Apenas itens ativos na seleção e bot
-  - [ ] 19.8 Property 7: Pedido criado com status aguardando e pagamento pendente
-  - [ ] 19.9 Property 8: Total = Σ(preço × quantidade)
-  - [ ] 19.10 Property 9: Fila ordenada por created_at crescente
-  - [ ] 19.11 Property 10: Card contém número, nome, origem, itens, status
-  - [ ] 19.12 Property 11: Transições válidas registram timestamps
-  - [ ] 19.13 Property 12: Transições inválidas rejeitadas com 422
-  - [ ] 19.14 Property 13: Pagamento válido atualiza para pago
-  - [ ] 19.15 Property 14: Pagamento duplicado rejeitado com 409
-  - [ ] 19.16 Property 15: Fronteira de data por fuso horário
-  - [ ] 19.17 Property 16: Invariante de agregação do resumo
-  - [ ] 19.18 Property 17: Acumulação correta do carrinho do bot
-  - [ ] 19.19 Property 18: Formatação do cardápio (R$ X,XX, agrupado)
-  - [ ] 19.20 Property 19: Numeração sequencial sem lacunas/duplicatas
+- [x] 19. Testes de Propriedade @requirements(1,2,3,4,5,6,7,8,9,10,11,12,13,14) @dependencies(11,12,13,14,15,18)
+  - [x] 19.1 Configurar fast-check + Vitest no backend e frontends
+  - [x] 19.2 Property 1: Contraste WCAG AA (ratio ≥ 4.5:1 e ≥ 3:1)
+  - [x] 19.3 Property 2: Criação de item válido retorna status ativo
+  - [x] 19.4 Property 3: Unicidade case-insensitive rejeita com 409
+  - [x] 19.5 Property 4: Update preserva ID e altera apenas campos informados
+  - [x] 19.6 Property 5: Cardápio ordenado por categoria e nome
+  - [x] 19.7 Property 6: Apenas itens ativos na seleção e bot
+  - [x] 19.8 Property 7: Pedido criado com status aguardando e pagamento pendente
+  - [x] 19.9 Property 8: Total = Σ(preço × quantidade)
+  - [x] 19.10 Property 9: Fila ordenada por created_at crescente
+  - [x] 19.11 Property 10: Card contém número, nome, origem, itens, status
+  - [x] 19.12 Property 11: Transições válidas registram timestamps
+  - [x] 19.13 Property 12: Transições inválidas rejeitadas com 422
+  - [x] 19.14 Property 13: Pagamento válido atualiza para pago
+  - [x] 19.15 Property 14: Pagamento duplicado rejeitado com 409
+  - [x] 19.16 Property 15: Fronteira de data por fuso horário
+  - [x] 19.17 Property 16: Invariante de agregação do resumo
+  - [x] 19.18 Property 17: Acumulação correta do carrinho do bot
+  - [x] 19.19 Property 18: Formatação do cardápio (R$ X,XX, agrupado)
+  - [x] 19.20 Property 19: Numeração sequencial sem lacunas/duplicatas
 
-- [ ] 20. Finalização e Documentação @requirements(14) @dependencies(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
-  - [ ] 20.1 Validar docker compose up inicializa todos os serviços em < 5 minutos
-  - [ ] 20.2 Validar migrations automáticas na inicialização
-  - [ ] 20.3 Validar seed inicial popula cardápio
-  - [ ] 20.4 Verificar .env.example com TODAS as variáveis e valores padrão
-  - [ ] 20.5 Criar README.md com pré-requisitos, instalação e execução
-  - [ ] 20.6 Documentar configuração de tema (white label) no README
-  - [ ] 20.7 Documentar conexão WhatsApp via Evolution API (QR code) no README
-  - [ ] 20.8 Validar funcionamento sem internet (exceto WhatsApp)
-  - [ ] 20.9 Executar checklist final: telas acessíveis, fluxos completos, Realtime funcionando
+- [x] 20. Finalização e Documentação @requirements(14) @dependencies(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
+  - [x] 20.1 Validar docker compose up inicializa todos os serviços em < 5 minutos
+  - [x] 20.2 Validar migrations automáticas na inicialização
+  - [x] 20.3 Validar seed inicial popula cardápio
+  - [x] 20.4 Verificar .env.example com TODAS as variáveis e valores padrão
+  - [x] 20.5 Criar README.md com pré-requisitos, instalação e execução
+  - [x] 20.6 Documentar configuração de tema (white label) no README
+  - [x] 20.7 Documentar conexão WhatsApp via Evolution API (QR code) no README
+  - [x] 20.8 Validar funcionamento sem internet (exceto WhatsApp)
+  - [x] 20.9 Executar checklist final: telas acessíveis, fluxos completos, Realtime funcionando
 
 ## Task Dependency Graph
 

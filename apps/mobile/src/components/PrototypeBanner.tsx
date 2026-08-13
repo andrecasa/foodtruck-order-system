@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, type ViewStyle, type TextStyle } from 'react-native';
 import { useTheme } from '../theme';
 
-// TODO: Read from env when backend is available
-const IS_PROTOTYPE_MODE = true;
+const IS_PROTOTYPE_MODE = process.env.EXPO_PUBLIC_PROTOTYPE_MODE === 'true';
 
 export interface PrototypeBannerProps {
   /** Whether the screen has an AppBar (56px). Affects clip top position. Defaults to true. */

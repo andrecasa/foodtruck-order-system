@@ -66,7 +66,7 @@ Sistema de pedidos MVP para trailer de pastéis, projetado para substituir o con
 4. WHEN o Modo_Protótipo está ativo, THE Mock SHALL fornecer uma lista de pedidos com ao menos 3 pedidos em diferentes Status_do_Pedido (`aguardando`, `preparando`, `pronto`) e diferentes Status_de_Pagamento (`pendente`, `pago`), cobrindo todos os estados visuais do sistema.
 5. WHEN o atendente realiza uma ação no Modo_Protótipo (criar pedido, avançar status, registrar pagamento), THE Mock SHALL simular a resposta de sucesso e atualizar o estado local da interface como se a operação tivesse sido persistida, sem gravação real.
 6. WHEN o Modo_Protótipo está ativo, THE Tela_do_Preparador SHALL exibir a fila mockada com atualizações simuladas de status ao longo do tempo (ex.: um pedido `aguardando` avança para `preparando` após 10 segundos), permitindo validar o comportamento visual do Realtime.
-7. THE Modo_Protótipo SHALL cobrir todas as telas previstas no sistema, construídas exclusivamente com os componentes do Design_System (Requirement 1): login, cardápio, criação de pedido, fila do preparador, controle de status, tela de cobrança e resumo do dia.
+7. THE Modo_Protótipo SHALL cobrir todas as telas previstas no sistema, construídas exclusivamente com os componentes do Design_System (Requirement 1): login, cardápio (listagem, criação de item e edição de item), criação de pedido, fila do preparador, controle de status, tela de cobrança e resumo do dia.
 8. WHEN o Modo_Protótipo está desativado (`PROTOTYPE_MODE=false` ou variável ausente), THE Sistema SHALL operar normalmente conectado ao backend real, sem nenhum resquício de dados mockados.
 
 ---
@@ -100,6 +100,8 @@ Sistema de pedidos MVP para trailer de pastéis, projetado para substituir o con
 6. WHEN o atendente desativa um item ativo, THE Sistema SHALL marcar o item como `inativo` e ocultá-lo na seleção de novos pedidos e no cardápio exibido pelo Bot.
 7. WHEN o atendente reativa um item inativo, THE Sistema SHALL marcar o item como `ativo` e torná-lo disponível novamente na seleção de novos pedidos e no cardápio do Bot.
 8. THE App SHALL exibir a lista de itens do cardápio separada por categoria, ordenada alfabeticamente dentro de cada categoria.
+9. THE App SHALL disponibilizar na tela de cardápio um botão de ação para criar novo item, que navegue a um formulário com os campos nome, preço (com máscara monetária R$) e categoria (seletor entre categorias cadastradas).
+10. WHEN o atendente toca em um item existente na listagem do cardápio, THE App SHALL navegar ao formulário de edição pré-preenchido com os dados atuais do item (nome, preço, categoria).
 
 ---
 

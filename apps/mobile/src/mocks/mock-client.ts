@@ -53,6 +53,13 @@ export const mockClient: ApiClient = {
       .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
   },
 
+  async getAllMenuItems(): Promise<MenuItem[]> {
+    await delay();
+    return [...menuState].sort(
+      (a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name),
+    );
+  },
+
   async createMenuItem(data: CreateMenuItemRequest): Promise<MenuItem> {
     await delay();
     const duplicate = menuState.find(

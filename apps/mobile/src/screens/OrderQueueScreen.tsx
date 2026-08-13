@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { Order, OrderStatus } from '@order-system/shared';
@@ -15,8 +15,11 @@ import {
   type BadgeStatus,
   type FilterChipOption,
 } from '../components';
+import { Toast } from '../components/Toast';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
+import { useRealtime } from '../hooks/useRealtime';
+import { useNetworkError } from '../hooks/useNetworkError';
 
 /** Map current status to the next status in the workflow */
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -55,6 +58,7 @@ export function OrderQueueScreen() {
   const [loading, setLoading] = useState(true);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
+  const { error: networkError, dismiss: dismissError, withRetry } = useNetworkError();
 
   /** Filter chip options — colors match Penpot status palette */
   const filterOptions: FilterChipOption[] = [
@@ -69,9 +73,19 @@ export function OrderQueueScreen() {
       const data = await apiClient.getOrders({
         status: selectedFilters as OrderStatus[],
       });
+
+      // Sort delivered orders by deliveredAt descending
+      if (selectedFilters.includes('entregue') && selectedFilters.length === 1) {
+        data.sort((a, b) => {
+          const aTime = a.deliveredAt ? new Date(a.deliveredAt).getTime() : 0;
+          const bTime = b.deliveredAt ? new Date(b.deliveredAt).getTime() : 0;
+          return bTime - aTime;
+        });
+      }
+
       setOrders(data);
     } catch {
-      // Silently handle — in production, show a toast/error banner
+      // Silently handle — toast shown via withRetry when used
     } finally {
       setLoading(false);
     }
@@ -88,23 +102,38 @@ export function OrderQueueScreen() {
     }, [fetchOrders])
   );
 
+  // Realtime: subscribe to order events for live updates
+  const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
+
+  useRealtime({
+    channels: realtimeChannels,
+    onEvent: useCallback((_event) => {
+      // Refetch orders on any realtime event (new order, status change, payment)
+      fetchOrders();
+    }, [fetchOrders]),
+    onReconnect: useCallback(() => {
+      // Reload data after reconnection
+      fetchOrders();
+    }, [fetchOrders]),
+  });
+
   const handleAdvanceStatus = async (order: Order) => {
     const nextStatus = NEXT_STATUS[order.status];
     if (!nextStatus) return;
 
     setAdvancingId(order.id);
     try {
-      await apiClient.updateOrderStatus(order.id, { status: nextStatus });
+      await withRetry(() => apiClient.updateOrderStatus(order.id, { status: nextStatus }));
       await fetchOrders();
     } catch {
-      // Silently handle — in production, show error feedback
+      // Error shown via withRetry toast
     } finally {
       setAdvancingId(null);
     }
   };
 
   const handleCardPress = (order: Order) => {
-    router.push({ pathname: '/payment', params: { orderId: order.id } });
+    router.push({ pathname: '/(tabs)/payment', params: { orderId: order.id } });
   };
 
   const formatCurrency = (cents: number): string => {
@@ -154,6 +183,7 @@ export function OrderQueueScreen() {
     return (
       <Screen>
         <Header title="Fila de Pedidos" icon="receipt_long" />
+        <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
         <View style={loadingContainerStyle} accessibilityLabel="Carregando pedidos">
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text size="md" style={{ marginTop: theme.spacing.sm }}>
@@ -168,6 +198,7 @@ export function OrderQueueScreen() {
     return (
       <Screen padding={false}>
         <Header title="Fila de Pedidos" icon="receipt_long" />
+        <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
         <ScrollContainer style={contentGapStyle}>
           <FilterChips
             options={filterOptions}
@@ -188,6 +219,7 @@ export function OrderQueueScreen() {
   return (
     <Screen padding={false}>
       <Header title="Fila de Pedidos" icon="receipt_long" />
+      <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
       <ScrollContainer style={contentGapStyle}>
         {/* Status Filter (Penpot: row of tinted chips, gap 8px) */}
         <FilterChips

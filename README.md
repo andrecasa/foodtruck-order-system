@@ -43,9 +43,9 @@ Sistema de pedidos MVP para food truck, com app mobile para o operador, painel w
 ## Pré-requisitos
 
 - **Node.js** >= 20.0.0
-- **pnpm** >= 9.0.0
-- **Docker** e **Docker Compose** (para infra local)
-- **Expo CLI** (para desenvolvimento mobile)
+- **pnpm** >= 9.0.0 (`corepack enable` para ativar)
+- **Docker** e **Docker Compose** v2 (para infra local)
+- **Expo CLI** (para desenvolvimento mobile: `npx expo`)
 
 ## Instalação
 
@@ -54,11 +54,12 @@ Sistema de pedidos MVP para food truck, com app mobile para o operador, painel w
 git clone git@github.com:andrecasa/foodtruck-order-system.git
 cd foodtruck-order-system
 
-# Instalar dependências
+# Instalar dependências (usa pnpm workspaces)
 pnpm install
 
 # Configurar variáveis de ambiente
 cp .env.example .env
+# Edite o .env conforme necessário (valores padrão funcionam para dev local)
 ```
 
 ## Executando
@@ -84,18 +85,23 @@ pnpm dev:web
 # Subir serviços (PostgreSQL, Auth, Realtime, Kong, Evolution API)
 docker compose up -d
 
+# Aguardar serviços ficarem saudáveis (PostgreSQL healthcheck)
+docker compose ps
+
 # Executar migrations
 pnpm --filter @order-system/backend migrate
 
-# Backend
+# Backend (porta 4000)
 pnpm dev:backend
 
-# App mobile
+# App mobile (Expo)
 pnpm dev:mobile
 
-# Painel web
+# Painel web (porta 3000)
 pnpm dev:web
 ```
+
+> **Nota:** No modo completo, configure `PROTOTYPE_MODE=false` no `.env`. As variáveis de conexão com o banco e serviços já possuem valores padrão funcionais para desenvolvimento local.
 
 ## Scripts Disponíveis
 
@@ -115,40 +121,286 @@ pnpm dev:web
 .
 ├── apps/
 │   ├── backend/          # API REST (Express + TypeScript)
-│   │   ├── migrations/   # SQL migrations
+│   │   ├── migrations/   # SQL migrations (executadas na inicialização)
 │   │   └── src/
+│   │       ├── bot/          # WhatsApp bot (Evolution API)
+│   │       ├── config/       # Database e Supabase config
+│   │       ├── controllers/  # Route handlers
+│   │       ├── middleware/   # Auth e rate-limit
+│   │       ├── routes/       # Express routes
+│   │       └── __tests__/    # Unit + property-based tests
 │   ├── mobile/           # App operador (Expo + React Native)
 │   │   └── src/
+│   │       ├── components/   # Design System components
+│   │       ├── mocks/        # Dados mockados (modo protótipo)
+│   │       ├── screens/      # Telas da aplicação
+│   │       ├── services/     # API client (real + mock)
+│   │       └── theme/        # ThemeProvider e tokens
 │   └── web/              # Painel preparador (Vite + React)
 │       └── src/
+│           ├── components/   # Design System components
+│           ├── mocks/        # Dados mockados (modo protótipo)
+│           ├── services/     # API client (real + mock)
+│           └── theme/        # ThemeProvider e tokens
 ├── packages/
-│   └── shared/           # Tipos, validadores, constantes
-├── docker-compose.yml
-├── .env.example
-└── pnpm-workspace.yaml
+│   └── shared/           # Tipos, validadores Zod, constantes
+├── docker-compose.yml    # PostgreSQL, Auth, Realtime, Kong, Evolution API
+├── kong.yml              # Configuração do API Gateway
+├── .env.example          # Variáveis de ambiente com valores padrão
+└── pnpm-workspace.yaml   # Configuração do monorepo
 ```
 
 ## White Label / Temas
 
-O sistema suporta customização visual via tokens de tema. Para criar um novo tema:
+O sistema suporta customização visual completa via **design tokens**. Qualquer food truck pode personalizar cores, tipografia, espaçamentos e bordas sem alterar código-fonte — apenas fornecendo um JSON de override parcial. O tema é aplicado em runtime, sem necessidade de rebuild.
 
-1. Crie um arquivo JSON com os tokens que deseja sobrescrever
-2. Configure a variável de ambiente correspondente:
-   - **Web:** `VITE_THEME_CONFIG_PATH=./path/to/theme.json`
-   - **Mobile:** `EXPO_PUBLIC_THEME_CONFIG='{"colors":{"primary":"#FF6B00"}}'`
+### Tokens Configuráveis
 
-Tokens disponíveis: cores, tipografia, espaçamentos e border-radius. Veja `docs/design-system.md` para a lista completa.
+| Categoria | Tokens | Descrição |
+|---|---|---|
+| **colors** | `primary`, `secondary`, `background`, `text`, `success`, `warning`, `error`, `aguardando`, `preparando`, `pronto`, `textSecondary`, `surface`, `divider` | Paleta de cores da marca e status de pedidos |
+| **typography.fontFamily** | `fontFamily` | Família tipográfica (ex: `"Inter"`, `"Poppins"`) |
+| **typography.sizes** | `xs` (10), `sm` (12), `md` (14), `lg` (16), `xl` (20), `xxl` (32) | Escala tipográfica em px |
+| **typography.weights** | `regular` (400), `medium` (500), `bold` (600) | Pesos tipográficos |
+| **spacing** | `xs` (4), `sm` (8), `md` (16), `lg` (24), `xl` (32) | Espaçamentos em px |
+| **borderRadius** | `sm` (8), `md` (12), `lg` (24), `full` (9999) | Raios de borda em px |
+
+Além dos tokens visuais, você pode definir `businessName` (nome exibido na interface) e `logo` (URL do logotipo).
+
+### Exemplo de Tema Customizado
+
+```json
+{
+  "businessName": "Taco Loco",
+  "logo": "/assets/taco-loco-logo.png",
+  "colors": {
+    "primary": "#E65100",
+    "secondary": "#BF360C",
+    "background": "#FFF8E1",
+    "text": "#3E2723",
+    "success": "#2E7D32",
+    "warning": "#F9A825",
+    "error": "#C62828",
+    "aguardando": "#F9A825",
+    "preparando": "#1565C0",
+    "pronto": "#2E7D32",
+    "textSecondary": "#795548",
+    "surface": "#FFFFFF",
+    "divider": "#D7CCC8"
+  },
+  "typography": {
+    "fontFamily": "Poppins",
+    "sizes": { "xs": 10, "sm": 12, "md": 14, "lg": 16, "xl": 20, "xxl": 32 },
+    "weights": { "regular": 400, "medium": 500, "bold": 700 }
+  },
+  "spacing": { "xs": 4, "sm": 8, "md": 16, "lg": 24, "xl": 32 },
+  "borderRadius": { "sm": 8, "md": 12, "lg": 20, "full": 9999 }
+}
+```
+
+> **Nota:** Você não precisa informar todos os tokens. O sistema faz **deep merge** com o tema padrão — apenas os campos informados são sobrescritos.
+
+### Passo a Passo: Criar Tema para Outro Food Truck
+
+1. **Crie o arquivo de tema** — Crie um arquivo JSON (ex: `themes/taco-loco.json`) com os tokens que deseja sobrescrever. Pode ser um override parcial (ex: apenas cores).
+
+2. **Configure a variável de ambiente:**
+
+   - **Web (painel do preparador):** Adicione no `.env`:
+     ```bash
+     VITE_THEME_CONFIG_PATH=./themes/taco-loco.json
+     ```
+     Ou, para injeção em runtime sem rebuild, adicione ao `index.html` antes do bundle:
+     ```html
+     <script>
+       window.__THEME_CONFIG__ = { "businessName": "Taco Loco", "colors": { "primary": "#E65100" } };
+     </script>
+     ```
+
+   - **Mobile (app do operador):** Adicione no `.env`:
+     ```bash
+     EXPO_PUBLIC_THEME_CONFIG='{"businessName":"Taco Loco","colors":{"primary":"#E65100","secondary":"#BF360C"}}'
+     ```
+
+3. **Reinicie o servidor de desenvolvimento** (ou, em produção, reinicie o container/processo). Nenhum rebuild é necessário quando usado via `window.__THEME_CONFIG__`.
+
+4. **Verifique o contraste** — Garanta que as combinações de cor atendem WCAG AA (razão de contraste ≥ 4.5:1 para texto).
+
+### Como o Tema é Carregado em Runtime
+
+O carregamento é **síncrono** e ocorre antes de qualquer componente ser renderizado:
+
+**Web** — Ordem de resolução (primeiro encontrado vence):
+1. `window.__THEME_CONFIG__` — objeto injetado no HTML pelo servidor (sem rebuild)
+2. `VITE_THEME_CONFIG_PATH` — variável de build que aponta para um JSON
+3. Tema padrão (fallback)
+
+**Mobile** — Ordem de resolução:
+1. `EXPO_PUBLIC_THEME_CONFIG` — variável de ambiente com JSON string
+2. Tema padrão (fallback)
+
+Em ambos os casos, o override parcial é mesclado (deep merge) com o tema padrão. O `ThemeProvider` aplica os tokens globalmente antes de renderizar componentes filhos, garantindo que a interface nunca pisque com o tema errado.
+
+### Referência Completa
+
+Para a documentação completa de tokens com valores padrão, regras de implementação, componentes e exemplos visuais, consulte [`docs/design-system.md`](docs/design-system.md).
 
 ## Bot WhatsApp
 
-O bot utiliza a [Evolution API](https://github.com/EvolutionAPI/evolution-api) para integração com WhatsApp:
+O bot utiliza a [Evolution API](https://github.com/EvolutionAPI/evolution-api) (self-hosted) para integração com WhatsApp. Abaixo estão as instruções completas para conectar, configurar e operar o bot.
 
-1. Garanta que o serviço `evolution` está rodando via Docker Compose
-2. Acesse `http://localhost:8080` para gerar o QR Code de conexão
-3. Escaneie com o WhatsApp do food truck
-4. O bot responde automaticamente: exibe cardápio, aceita pedidos e confirma
+### Pré-requisitos
 
-**Fluxo:** Saudação → Seleção de itens → Resumo → Confirmação → Pedido criado
+- Docker Compose rodando com todos os serviços saudáveis (`docker compose up -d`)
+- Serviço `evolution-api` ativo e acessível na porta 8080
+- Backend rodando (porta 4000) — necessário para receber webhooks
+- Variáveis configuradas no `.env`:
+  - `EVOLUTION_API_URL=http://localhost:8080`
+  - `EVOLUTION_API_KEY=change-me-evolution-api-key` (altere para uma chave segura)
+  - `EVOLUTION_INSTANCE_NAME=order-system`
+
+Verifique que a Evolution API está saudável:
+
+```bash
+curl http://localhost:8080
+# Deve retornar informações da API
+```
+
+### Acessar o Painel da Evolution API
+
+1. Abra no navegador: **http://localhost:8080/manager**
+2. Faça login com a API Key configurada em `EVOLUTION_API_KEY`
+
+### Criar Instância WhatsApp
+
+1. No painel (ou via API), crie uma nova instância com o nome definido em `EVOLUTION_INSTANCE_NAME` (padrão: `order-system`):
+
+```bash
+curl -X POST http://localhost:8080/instance/create \
+  -H "apikey: SUA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instanceName": "order-system",
+    "integration": "WHATSAPP-BAILEYS",
+    "qrcode": true
+  }'
+```
+
+2. A resposta retornará um QR Code (base64) ou você pode visualizá-lo no painel.
+
+### Conectar via QR Code
+
+1. Acesse a instância criada no painel ou faça a requisição:
+
+```bash
+curl -X GET http://localhost:8080/instance/connect/order-system \
+  -H "apikey: SUA_API_KEY"
+```
+
+2. Escaneie o QR Code com o WhatsApp do celular do food truck:
+   - Abra o WhatsApp → **Dispositivos conectados** → **Conectar dispositivo**
+   - Aponte a câmera para o QR Code exibido
+3. Aguarde a confirmação de conexão (status muda para `open`)
+
+### Configurar Webhook
+
+O webhook é o canal pelo qual a Evolution API envia as mensagens recebidas para o backend processar. Configure-o apontando para o endpoint do backend:
+
+**Para ambiente Docker (serviços na mesma rede):**
+
+```bash
+curl -X PUT http://localhost:8080/webhook/set/order-system \
+  -H "apikey: SUA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook": {
+      "enabled": true,
+      "url": "http://backend:4000/api/webhook/evolution",
+      "webhookByEvents": false,
+      "events": ["MESSAGES_UPSERT"]
+    }
+  }'
+```
+
+**Para desenvolvimento local (backend fora do Docker):**
+
+```bash
+curl -X PUT http://localhost:8080/webhook/set/order-system \
+  -H "apikey: SUA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhook": {
+      "enabled": true,
+      "url": "http://host.docker.internal:4000/api/webhook/evolution",
+      "webhookByEvents": false,
+      "events": ["MESSAGES_UPSERT"]
+    }
+  }'
+```
+
+> **Nota:** Use `http://backend:4000` quando o backend roda dentro do Docker Compose (nome do serviço na rede interna). Use `http://host.docker.internal:4000` ou `http://localhost:4000` quando o backend roda fora do Docker.
+
+### Fluxo do Bot
+
+O bot opera como uma máquina de estados com 3 estágios:
+
+```
+┌────────────┐     ┌──────────────┐     ┌──────────┐
+│  Saudação  │────▶│  Selecionando │────▶│  Resumo  │
+│            │     │  (carrinho)   │     │          │
+└────────────┘     └──────────────┘     └──────────┘
+                         │    ▲                │
+                         │    └────────────────┘
+                         │         (MAIS)
+                         ▼
+                   ┌──────────┐
+                   │ Cancelar │
+                   └──────────┘
+```
+
+1. **Saudação** — Cliente envia qualquer mensagem. O bot responde com saudação personalizada (usa o nome do WhatsApp) e exibe o cardápio numerado.
+2. **Selecionando** — Cliente envia números para adicionar itens ao carrinho. Formatos aceitos:
+   - `1` → 1 unidade do item 1
+   - `1 2` → 2 unidades do item 1
+   - `2x1` → 2 unidades do item 1
+   - Vários itens separados por vírgula: `1, 2 3, 3x2`
+   - Digitar `PRONTO` para ver o resumo
+   - Digitar `CANCELAR` para cancelar
+3. **Resumo** — O bot exibe o resumo com itens, quantidades e total. Comandos:
+   - `CONFIRMAR` → Cria o pedido (origin=whatsapp) e exibe número do pedido
+   - `CANCELAR` → Cancela e encerra sessão
+   - `MAIS` → Volta para seleção de itens
+
+### Gerenciamento de Sessão
+
+- Cada conversa cria uma sessão no banco de dados (`whatsapp_sessions`)
+- Timeout de inatividade: **10 minutos** — após este período, a sessão expira automaticamente e o cliente recebe aviso
+- Ao confirmar ou cancelar um pedido, a sessão é encerrada
+- Nova mensagem após sessão expirada inicia o fluxo novamente
+
+### Troubleshooting
+
+| Problema | Causa Provável | Solução |
+|---|---|---|
+| QR Code não aparece | Instância já conectada ou API key inválida | Verifique status da instância: `GET /instance/connectionState/order-system` |
+| Bot não responde | Webhook não configurado ou backend offline | Verifique webhook com `GET /webhook/find/order-system` e confirme que o backend está rodando |
+| "Sessão expirada" frequente | Timeout de 10 min sem atividade | Comportamento normal; cliente deve enviar nova mensagem |
+| Erro ao enviar mensagem | Instância desconectada | Reconecte via QR Code: `GET /instance/connect/order-system` |
+| Pedido não criado | Erro no banco de dados | Verifique logs do backend: `docker compose logs backend` |
+| Evolution API inacessível | Container parado | Reinicie: `docker compose restart evolution-api` |
+| API Key rejeitada | Key do `.env` diferente da configurada | Confira `EVOLUTION_API_KEY` no `.env` e reinicie os containers |
+
+### Reconexão
+
+Se o WhatsApp desconectar (troca de celular, logout, etc.):
+
+1. Verifique o status: `GET http://localhost:8080/instance/connectionState/order-system`
+2. Se `state: close`, reconecte gerando novo QR Code:
+   ```bash
+   curl -X GET http://localhost:8080/instance/connect/order-system \
+     -H "apikey: SUA_API_KEY"
+   ```
+3. Escaneie novamente com o WhatsApp
 
 ## API Endpoints
 
@@ -156,13 +408,16 @@ O bot utiliza a [Evolution API](https://github.com/EvolutionAPI/evolution-api) p
 |---|---|---|
 | POST | `/api/auth/login` | Login (retorna JWT, sessão 8h) |
 | POST | `/api/auth/logout` | Logout |
-| GET | `/api/menu` | Listar cardápio ativo |
-| POST | `/api/menu` | Criar item |
+| GET | `/api/auth/session` | Verificar sessão atual |
+| GET | `/api/menu` | Listar cardápio ativo (agrupado por categoria) |
+| POST | `/api/menu` | Criar item no cardápio |
 | PUT | `/api/menu/:id` | Atualizar item |
-| POST | `/api/orders` | Criar pedido |
-| PATCH | `/api/orders/:id/status` | Avançar status |
+| PATCH | `/api/menu/:id/status` | Ativar/desativar item |
+| POST | `/api/orders` | Criar pedido (presencial ou whatsapp) |
+| PATCH | `/api/orders/:id/status` | Avançar status do pedido |
 | POST | `/api/orders/:id/payment` | Registrar pagamento |
-| GET | `/api/summary/today` | Resumo do dia |
+| GET | `/api/summary/today` | Resumo do dia (America/Sao_Paulo) |
+| POST | `/api/webhook/evolution` | Webhook da Evolution API (WhatsApp) |
 | GET | `/api/health` | Health check |
 
 ## Tecnologias

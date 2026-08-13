@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Pressable,
   type TextStyle,
   type ViewStyle,
   type TextInputProps,
@@ -42,6 +43,8 @@ export interface InputProps {
   iconColor?: string;
   /** Optional background color override (defaults to #F5F5F5) */
   backgroundColor?: string;
+  /** Show a trailing toggle icon for password visibility (eye icon) */
+  showPasswordToggle?: boolean;
 }
 
 /**
@@ -80,15 +83,16 @@ function extractDigits(formatted: string): string {
  * Themed Input component for React Native.
  * Pixel-perfect match to Penpot Design System.
  *
- * Penpot specs (Input / Default):
+ * Penpot specs (Input / Login variant):
  * - Wrapper: column, gap 8px
  * - Label: 12px weight 400, color text (#3D2020)
- * - Field: border-radius 24px, height 48px, padding 0 16px, gap 10px
- *   - Default: bg #F5F5F5, no border
+ * - Field: border-radius 24px, height 52px, padding 0 16px, gap 10px
+ *   - Default: bg #FFFFFF, border 1px solid #E8DDD5 (divider)
  *   - Focus: bg #FFFFFF, border 1px solid #7B2D2D (primary)
  *   - Error: bg #FFFFFF, border 1px solid #B54040 (error)
  * - Placeholder: 14px weight 400, color #8B6B5A (textSecondary)
  * - Leading icon: Material Symbols Outlined, 20px, color #8B6B5A
+ * - Trailing icon (password toggle): Material Symbols "visibility", 20px, color #8B6B5A
  */
 export function Input({
   label,
@@ -106,9 +110,11 @@ export function Input({
   icon,
   iconColor,
   backgroundColor,
+  showPasswordToggle = false,
 }: InputProps) {
   const theme = useTheme();
   const [isFocused, setIsFocused] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleChangeText = (text: string): void => {
     if (mask === 'currency') {
@@ -128,7 +134,6 @@ export function Input({
 
   const containerStyle: ViewStyle = {
     gap: 8,
-    marginBottom: theme.spacing.md,
   };
 
   const labelStyle: TextStyle = {
@@ -141,11 +146,11 @@ export function Input({
   const inputWrapperStyle: ViewStyle = {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: (error || isFocused) ? '#FFFFFF' : (backgroundColor ?? '#F5F5F5'),
-    borderWidth: (error || isFocused) ? 1 : 0,
-    borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : 'transparent',
+    backgroundColor: backgroundColor ?? '#FFFFFF',
+    borderWidth: 1,
+    borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : '#E8DDD5',
     borderRadius: 24,
-    height: 48,
+    height: 52,
     paddingHorizontal: 16,
     gap: 10,
   };
@@ -159,12 +164,21 @@ export function Input({
 
   const inputStyle: TextStyle = {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
     color: disabled ? `${theme.colors.text}80` : theme.colors.text,
     paddingVertical: 0,
-    height: 48,
+    height: 52,
+  };
+
+  const trailingIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 20,
+    fontWeight: '400',
+    color: '#8B6B5A',
   };
 
   const errorStyle: TextStyle = {
@@ -203,7 +217,7 @@ export function Input({
           placeholderTextColor="#8B6B5A"
           editable={!disabled}
           keyboardType={resolvedKeyboardType}
-          secureTextEntry={secureTextEntry}
+          secureTextEntry={showPasswordToggle ? !passwordVisible : secureTextEntry}
           autoCapitalize={autoCapitalize}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -211,6 +225,18 @@ export function Input({
           accessibilityState={{ disabled }}
           accessibilityHint={error ? `Erro: ${error}` : undefined}
         />
+        {showPasswordToggle ? (
+          <Pressable
+            onPress={() => setPasswordVisible((prev) => !prev)}
+            accessibilityRole="button"
+            accessibilityLabel={passwordVisible ? 'Ocultar senha' : 'Exibir senha'}
+            hitSlop={8}
+          >
+            <Text style={trailingIconStyle}>
+              {passwordVisible ? 'visibility_off' : 'visibility'}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
       {error ? (
         <Text

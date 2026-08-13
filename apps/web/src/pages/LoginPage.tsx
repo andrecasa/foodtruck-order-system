@@ -2,18 +2,16 @@ import React, { useState } from 'react';
 import { useTheme } from '../theme';
 import { Screen } from '../components';
 import { PrototypeBanner } from '../components/PrototypeBanner';
-import { apiClient } from '../services/api-client';
-
-interface LoginPageProps {
-  onLoginSuccess: () => void;
-}
+import { useAuth } from '../hooks';
 
 /**
  * Login page for the Preparador web app.
  * Uses Design System components exclusively — no hardcoded visual values.
+ * Uses the useAuth hook for authentication instead of calling apiClient directly.
  */
-export function LoginPage({ onLoginSuccess }: LoginPageProps) {
+export function LoginPage() {
   const theme = useTheme();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -25,8 +23,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setLoading(true);
 
     try {
-      await apiClient.login(email, password);
-      onLoginSuccess();
+      await login(email, password);
     } catch {
       setError('E-mail ou senha incorretos');
     } finally {

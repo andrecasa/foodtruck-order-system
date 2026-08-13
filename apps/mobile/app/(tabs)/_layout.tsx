@@ -85,6 +85,12 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <TabIcon name="bar_chart" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="payment"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

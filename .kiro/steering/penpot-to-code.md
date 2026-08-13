@@ -318,6 +318,46 @@ backgrounds:
   - pronto: #5A8C5A (cor do status)
 ```
 
+### Switch Toggle (Tela Cardápio — ativar/desativar item)
+```
+width: 44px, height: 24px
+borderRadius: 12px (pill)
+trackColor ativo: #7B2D2D (primary, NÃO a cor do status)
+trackColor inativo: #E8DDD5 (divider)
+thumbColor: #FFFFFF
+thumb: 20×20 circle, shadow: 0 1px 2px rgba(0,0,0,0.2)
+scale: 0.85 (React Native — para caber na altura do card)
+Quando inativo: texto do item com opacity 0.5
+```
+
+### Icon Button Edit (Tela Cardápio — botão editar redondo)
+```
+width: 24px, height: 24px
+borderRadius: 12px (totalmente redondo)
+backgroundColor: rgba(123, 45, 45, 0.08) — primary@8%
+borderWidth: 1px
+borderColor: rgba(123, 45, 45, 0.3) — primary@30%
+icon: Material Symbols "edit" 14px, color #7B2D2D (primary)
+alignItems: center, justifyContent: center
+
+Ordem no item: [info (flex:1)] → [Btn Edit] → [Switch] (gap: 12px)
+```
+
+### Button Novo Item (Tela Cardápio — inline, fim da lista)
+```
+width: fill (full width)
+height: 44px
+borderRadius: 22px (pill)
+backgroundColor: #FFFFFF
+borderWidth: 1px
+borderColor: #E8DDD5 (divider)
+flexDirection: row, alignItems: center, justifyContent: center, gap: 6px
+content:
+  - "+" Inter 16px weight 400, color #3D2020 (text)
+  - "Novo Item" Inter 14px weight 400, color #3D2020 (text)
+Posição: inline no fim do ScrollContainer (NÃO é FAB flutuante)
+```
+
 ### FilterChips (Status Filter — fila de pedidos)
 ```
 container:

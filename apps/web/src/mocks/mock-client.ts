@@ -53,10 +53,18 @@ class MockClient implements ApiClient {
     if (filter?.status && filter.status.length > 0) {
       result = result.filter((o) => filter.status!.includes(o.status));
     }
-    // Sort by createdAt ascending (oldest first)
-    result.sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    // Sort delivered orders by deliveredAt descending, others by createdAt ascending
+    if (filter?.status?.includes('entregue') && filter.status.length === 1) {
+      result.sort((a, b) => {
+        const aTime = a.deliveredAt ? new Date(a.deliveredAt).getTime() : 0;
+        const bTime = b.deliveredAt ? new Date(b.deliveredAt).getTime() : 0;
+        return bTime - aTime;
+      });
+    } else {
+      result.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    }
     return result;
   }
 

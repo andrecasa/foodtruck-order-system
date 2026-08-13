@@ -13,6 +13,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
+      - ./scripts/create-evolution-db.sh:/docker-entrypoint-initdb.d/02-create-evolution-db.sh:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-order_system}"]
       interval: 5s
@@ -57,7 +63,9 @@ services:
   # Supabase Realtime - WebSocket events
   # ===========================================
   realtime:
-    image: supabase/realtime:v2.28.32
+    # Container name follows Supabase convention: realtime parses subdomain as tenant id
+    container_name: realtime-dev.supabase-realtime
+    image: supabase/realtime:v2.33.70
     restart: unless-stopped
     ports:
       - "${REALTIME_PORT:-4001}:4000"
@@ -71,17 +79,34 @@ services:
       DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
       DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:-supabaserealtime}
       API_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
-      FLY_ALLOC_ID: fly123
-      FLY_APP_NAME: realtime
       SECRET_KEY_BASE: ${REALTIME_SECRET_KEY_BASE:-UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq}
       ERL_AFLAGS: -proto_dist inet_tcp
-      ENABLE_TAILSCALE: "false"
       DNS_NODES: "''"
-      REPLICATION_MODE: RLS
-      REPLICATION_POLL_INTERVAL: 100
-      SECURE_CHANNELS: "true"
-      SLOT_NAME: supabase_realtime_rls
-      TEMPORARY_SLOT: "true"
+      SEED_SELF_HOST: "true"
+      APP_NAME: realtime
+      RLIMIT_NOFILE: "10000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      order-system-network:
+        aliases:
+          - realtime
+
+  # ===========================================
+  # Supabase REST (PostgREST) - API REST auto-gerada
+  # ===========================================
+  rest:
+    image: postgrest/postgrest:v12.0.2
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-order_system}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: postgres
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -92,7 +117,7 @@ services:
   # Kong - API Gateway (Supabase)
   # ===========================================
   kong:
-    image: kong:3-alpine
+    image: kong:3.9
     restart: unless-stopped
     ports:
       - "${KONG_HTTP_PORT:-8000}:8000"
@@ -113,6 +138,8 @@ services:
         condition: service_started
       realtime:
         condition: service_started
+      rest:
+        condition: service_started
     networks:
       - order-system-network
 
@@ -120,7 +147,7 @@ services:
   # Evolution API - WhatsApp Integration
   # ===========================================
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.7
     restart: unless-stopped
     ports:
       - "${EVOLUTION_API_PORT:-8080}:8080"
@@ -129,9 +156,15 @@ services:
       AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
       SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8080}
       SERVER_PORT: 8080
-      DATABASE_ENABLED: "false"
-      DATABASE_CONNECTION_URI: ""
+      DATABASE_PROVIDER: postgresql
+      DATABASE_ENABLED: "true"
+      DATABASE_CONNECTION_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/evolution_db
       DATABASE_CONNECTION_DB_PREFIX_NAME: evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
       RABBITMQ_ENABLED: "false"
       WEBSOCKET_ENABLED: "false"
       LOG_LEVEL: WARN

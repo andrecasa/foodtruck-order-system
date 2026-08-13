@@ -1,15 +1,16 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTheme } from '../theme';
 import { Screen, Header, ScrollContainer, Card, Badge, OriginBadge, Text, FilterChips } from '../components';
 import type { FilterChipOption } from '../components';
 import { Button } from '../components/Button';
 import { PrototypeBanner } from '../components/PrototypeBanner';
+import { ConnectionBanner } from '../components/ConnectionBanner';
 import { apiClient } from '../services/api-client';
+import { useAuth, useRealtime } from '../hooks';
+import type { RealtimeEvent } from '../hooks';
 import type { Order, OrderStatus } from '@order-system/shared';
 
-interface QueuePageProps {
-  onLogout: () => void;
-}
+const isPrototypeMode = import.meta.env.VITE_PROTOTYPE_MODE === 'true';
 
 /** Format price in centavos to R$ X,XX */
 function formatPrice(cents: number): string {
@@ -30,29 +31,28 @@ const DEFAULT_FILTERS: string[] = ['aguardando', 'preparando', 'pronto'];
 /**
  * Queue page for the Preparador — pixel-perfect match to Penpot "Fila do Preparador".
  *
- * Penpot specs:
- * - Header: 56px, bg white, shadow 0 1px 3px rgba(0,0,0,0.06), padding 0 24px
- *   - Left: icon receipt_long 24px #7B2D2D + title "Fila de Pedidos" 18px weight 400 #3D2020
- *   - Right: icon logout 16px + "Sair" 12px, both #8B6B5A
- * - Content: flex row, gap 20px, padding 24px, wrap
- * - Cards: same as mobile (gradient + stroke 30% + 12px radius + 16px padding + gap 12px)
- *   - Title: 16px weight 500 #3D2020
- *   - Status badge: sm (22px, radius 11)
- *   - Origin badge: pill tinted
- *   - Items: 13px weight 400 #3D2020
- *   - Price: 18px weight 600 #3D2020
- *   - Button: 36px height, radius 18, alignSelf center
+ * Integrates Supabase Realtime via useRealtime hook:
+ * - Loads complete state on initialization before activating Realtime (17.7)
+ * - Reconnects every 5s with full order reload on reconnect (17.5)
+ * - Marks data as stale during disconnection (17.6)
+ * - Removes orders from queue on "entregue" event (17.8)
  */
-export function QueuePage({ onLogout }: QueuePageProps) {
+export function QueuePage() {
   const theme = useTheme();
+  const { logout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
+  const [initialLoaded, setInitialLoaded] = useState(false);
+  const [isStale, setIsStale] = useState(false);
+
+  // ─── Data Fetching ────────────────────────────────────────────────────────
 
   const fetchOrders = useCallback(async () => {
     try {
       const fetched = await apiClient.getOrders({ status: selectedFilters as OrderStatus[] });
       setOrders(fetched);
+      setIsStale(false);
     } catch {
       // In prototype mode this should never fail
     } finally {
@@ -60,12 +60,92 @@ export function QueuePage({ onLogout }: QueuePageProps) {
     }
   }, [selectedFilters]);
 
+  // Initial load — must complete before Realtime is enabled (Task 17.7)
   useEffect(() => {
-    fetchOrders();
+    const doInitialLoad = async () => {
+      await fetchOrders();
+      setInitialLoaded(true);
+    };
+    doInitialLoad();
   }, [fetchOrders]);
 
-  // Subscribe to realtime order updates
+  // ─── Realtime Event Handling ──────────────────────────────────────────────
+
+  /** Handle incoming realtime events (Task 17.8) */
+  const handleRealtimeEvent = useCallback((event: RealtimeEvent) => {
+    const payload = event.payload;
+    if (!payload) return;
+
+    // Normalize: support both { type, record } and { order } formats
+    let order: Order | undefined;
+    if (payload.record) {
+      order = payload.record as Order;
+    } else if (payload.order) {
+      order = payload.order as Order;
+    } else if (payload.id && payload.status) {
+      // Payload IS the order itself
+      order = payload as Order;
+    }
+
+    if (!order) return;
+
+    setOrders((prev) => {
+      // Task 17.8: Remove order from queue if status is 'entregue' and entregue filter is NOT active
+      if (order!.status === 'entregue' && !selectedFilters.includes('entregue')) {
+        return prev.filter((o) => o.id !== order!.id);
+      }
+
+      // Remove if the order's status is no longer in selected filters
+      if (!selectedFilters.includes(order!.status)) {
+        return prev.filter((o) => o.id !== order!.id);
+      }
+
+      // Update existing or add new
+      const existingIndex = prev.findIndex((o) => o.id === order!.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = order!;
+        return updated;
+      }
+
+      // New order — add and sort by createdAt
+      const newList = [...prev, order!];
+      newList.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+      return newList;
+    });
+  }, [selectedFilters]);
+
+  /** Reconnect callback: reload full state from backend (Task 17.5) */
+  const handleReconnect = useCallback(async () => {
+    await fetchOrders();
+  }, [fetchOrders]);
+
+  // Stable channel list for useRealtime
+  const channels = useMemo(() => ['orders:queue'], []);
+
+  // Task 17.7: Only enable realtime AFTER initial load, and only in non-prototype mode
+  const { status: realtimeStatus } = useRealtime({
+    channels,
+    onEvent: handleRealtimeEvent,
+    onReconnect: handleReconnect,
+    enabled: !isPrototypeMode && initialLoaded,
+  });
+
+  // Task 17.6: Mark data as stale when disconnected/reconnecting
   useEffect(() => {
+    if (realtimeStatus === 'disconnected' || realtimeStatus === 'reconnecting') {
+      setIsStale(true);
+    } else if (realtimeStatus === 'connected') {
+      setIsStale(false);
+    }
+  }, [realtimeStatus]);
+
+  // ─── Prototype Mode: mock event subscription ─────────────────────────────
+  useEffect(() => {
+    if (!isPrototypeMode) return;
+
     const unsubscribe = apiClient.onOrderUpdate((updatedOrder: Order) => {
       setOrders((prev) => {
         // Remove if the order's status is no longer in selected filters
@@ -88,6 +168,8 @@ export function QueuePage({ onLogout }: QueuePageProps) {
     return unsubscribe;
   }, [selectedFilters]);
 
+  // ─── Actions ──────────────────────────────────────────────────────────────
+
   const handleAdvanceStatus = async (order: Order) => {
     const nextStatusMap: Record<OrderStatus, OrderStatus | null> = {
       aguardando: 'preparando',
@@ -105,12 +187,7 @@ export function QueuePage({ onLogout }: QueuePageProps) {
   };
 
   const handleLogout = async () => {
-    try {
-      await apiClient.logout();
-    } catch {
-      // ignore
-    }
-    onLogout();
+    await logout();
   };
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
@@ -127,6 +204,9 @@ export function QueuePage({ onLogout }: QueuePageProps) {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: '20px',
+    // Task 17.6: reduce opacity when data is stale
+    opacity: isStale ? 0.6 : 1,
+    transition: 'opacity 0.3s ease',
   };
 
   const cardContentStyle: React.CSSProperties = {
@@ -188,7 +268,6 @@ export function QueuePage({ onLogout }: QueuePageProps) {
     minHeight: '50vh',
   };
 
-  // Logout button in header (Penpot: pill outline, 36px, border #E8DDD5, icon + text #8B6B5A)
   const logoutButtonStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -205,9 +284,20 @@ export function QueuePage({ onLogout }: QueuePageProps) {
     fontWeight: 400,
   };
 
+  const staleNoteStyle: React.CSSProperties = {
+    fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
+    fontSize: '12px',
+    color: '#8B6B5A',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: '4px 0',
+  };
+
   return (
     <Screen padding={false}>
       <PrototypeBanner />
+      {/* Task 17.6 / 17.5: Show connection banner when realtime is not connected */}
+      {!isPrototypeMode && <ConnectionBanner status={realtimeStatus} />}
       <Header
         title="Fila de Pedidos"
         icon="receipt_long"
@@ -228,18 +318,23 @@ export function QueuePage({ onLogout }: QueuePageProps) {
               selected={selectedFilters}
               onSelectionChange={setSelectedFilters}
             />
+            {isStale && (
+              <p style={staleNoteStyle}>Dados podem estar desatualizados</p>
+            )}
             <div style={emptyStyle}>
               <Text size="lg">Nenhum pedido na fila</Text>
             </div>
           </div>
         ) : (
           <div style={contentStyle}>
-            {/* Status Filter Chips — inside content, no separate bg, aligned with cards */}
             <FilterChips
               options={FILTER_OPTIONS}
               selected={selectedFilters}
               onSelectionChange={setSelectedFilters}
             />
+            {isStale && (
+              <p style={staleNoteStyle}>Dados podem estar desatualizados</p>
+            )}
             <div style={gridStyle}>
             {orders.map((order) => {
               const cardVariant =
@@ -256,7 +351,6 @@ export function QueuePage({ onLogout }: QueuePageProps) {
               const nextStatus = nextStatusMap[order.status];
               const showButton = !!nextStatus;
 
-              // Button label per status
               const buttonLabel: Record<OrderStatus, string> = {
                 aguardando: 'Iniciar Preparo',
                 preparando: 'Marcar Pronto',
@@ -264,7 +358,6 @@ export function QueuePage({ onLogout }: QueuePageProps) {
                 entregue: '',
               };
 
-              // Button color: aguardando → primary, preparando → blue, pronto → green
               const getButtonColor = (): string => {
                 switch (order.status) {
                   case 'preparando': return theme.colors.preparando;
@@ -280,7 +373,6 @@ export function QueuePage({ onLogout }: QueuePageProps) {
                 ariaLabel={`Pedido #${order.dailyNumber} - ${order.customerName}`}
               >
                 <div style={cardContentStyle}>
-                  {/* Header: "#N — Nome" + status badge */}
                   <div style={cardHeaderStyle}>
                     <span style={titleStyle}>
                       #{order.dailyNumber} — {order.customerName}
@@ -291,20 +383,16 @@ export function QueuePage({ onLogout }: QueuePageProps) {
                     />
                   </div>
 
-                  {/* Origin badge (tinted pill) */}
                   <OriginBadge origin={order.origin} />
 
-                  {/* Items */}
                   <span style={itemsStyle}>
                     {order.items.map((item) => `${item.quantity}x ${item.name}`).join('\n')}
                   </span>
 
-                  {/* Price */}
                   <span style={priceStyle}>
                     {formatPrice(order.totalAmount)}
                   </span>
 
-                  {/* Action button (centered) */}
                   {showButton && (
                     <div style={buttonContainerStyle}>
                       <Button

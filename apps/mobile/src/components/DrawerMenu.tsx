@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * Drawer menu item definition.
@@ -49,6 +50,7 @@ const DRAWER_WIDTH = SCREEN_WIDTH * 0.82; // ~82% screen width (Material Design 
 export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
   const theme = useTheme();
   const router = useRouter();
+  const { logout, user } = useAuth();
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
@@ -104,6 +106,9 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     { icon: 'add_circle', label: 'Novo Pedido', route: '/(tabs)/new-order' },
     { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
     { icon: 'bar_chart', label: 'Resumo do Dia', route: '/(tabs)/summary' },
+    ...(user?.role === 'admin'
+      ? [{ icon: 'group', label: 'Usuários', route: '/users-list' }]
+      : []),
     { icon: 'settings', label: 'Configurações' },
   ];
 
@@ -118,8 +123,9 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     }, 220);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleClose();
+    await logout();
     setTimeout(() => {
       router.replace('/login' as never);
     }, 220);

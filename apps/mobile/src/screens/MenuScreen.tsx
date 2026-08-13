@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   View,
   Text as RNText,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import type { MenuItem } from '@order-system/shared';
 import { Screen, ScrollContainer, Header, Text } from '../components';
+import { ToggleSwitch } from '../components/ToggleSwitch';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
@@ -52,6 +55,7 @@ function formatPrice(priceInCentavos: number): string {
  */
 export function MenuScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +65,7 @@ export function MenuScreen() {
     try {
       setLoading(true);
       setError(null);
-      const items = await apiClient.getMenu();
+      const items = await apiClient.getAllMenuItems();
       setMenuItems(items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar cardápio');
@@ -77,9 +81,11 @@ export function MenuScreen() {
   const handleToggleStatus = useCallback(async (id: string) => {
     try {
       setTogglingId(id);
-      await apiClient.toggleMenuItemStatus(id);
-      const items = await apiClient.getMenu();
-      setMenuItems(items);
+      const updated = await apiClient.toggleMenuItemStatus(id);
+      // Update the item in-place without reloading the full list
+      setMenuItems((prev) =>
+        prev.map((item) => (item.id === id ? updated : item)),
+      );
     } catch {
       // Silently handle toggle errors
     } finally {
@@ -140,6 +146,35 @@ export function MenuScreen() {
     gap: 2,
   };
 
+  const itemActionsStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  };
+
+  // Icon Button Edit: 24×24, round, subtle bg + border (Penpot specs)
+  const editBtnStyle: ViewStyle = {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(123, 45, 45, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(123, 45, 45, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const editIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 14,
+    color: theme.colors.primary,
+  };
+
+  // Disabled item text opacity
+  const itemDisabledStyle: ViewStyle = {
+    opacity: 0.5,
+  };
+
   // Item name: 14px, weight 400, color text
   const itemNameStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
@@ -154,6 +189,36 @@ export function MenuScreen() {
     fontSize: 12,
     fontWeight: '400',
     color: theme.colors.primary,
+  };
+
+  // "Novo Item" inline button — Penpot specs:
+  // full width (fill), height 44, bg white, border 1px #E8DDD5, borderRadius 22 (pill)
+  // content: "+" 16px + "Novo Item" 14px, color #3D2020, gap 6, centered
+  const novoItemBtnStyle: ViewStyle = {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8DDD5',
+    borderRadius: 22,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+  };
+
+  const novoItemPlusStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    fontWeight: '400',
+    color: theme.colors.text,
+  };
+
+  const novoItemTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '400',
+    color: theme.colors.text,
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -207,21 +272,40 @@ export function MenuScreen() {
                 <View
                   key={item.id}
                   style={itemCardStyle}
-                  accessibilityLabel={`${item.name}, ${formatPrice(item.price)}`}
+                  accessibilityLabel={`${item.name}, ${formatPrice(item.price)}, ${item.status === 'ativo' ? 'ativado' : 'desativado'}`}
                 >
-                  <View style={itemInfoStyle}>
+                  <View style={[itemInfoStyle, item.status === 'inativo' && itemDisabledStyle]}>
                     <RNText style={itemNameStyle}>{item.name}</RNText>
                     <RNText style={itemPriceStyle}>{formatPrice(item.price)}</RNText>
                   </View>
-                  <Button
-                    title="Desativar"
-                    variant="outline"
-                    size="sm"
-                    color={theme.colors.primary}
-                    onPress={() => handleToggleStatus(item.id)}
-                    loading={togglingId === item.id}
-                    disabled={togglingId === item.id}
-                  />
+                  <View style={itemActionsStyle}>
+                    <Pressable
+                      style={editBtnStyle}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Editar ${item.name}`}
+                      onPress={() => {
+                        router.push({
+                          pathname: '/edit-menu-item',
+                          params: {
+                            id: item.id,
+                            name: item.name,
+                            price: String(item.price),
+                            category: item.category,
+                          },
+                        });
+                      }}
+                      testID={`edit-menu-item-${item.id}`}
+                    >
+                      <RNText style={editIconStyle}>edit</RNText>
+                    </Pressable>
+                    <ToggleSwitch
+                      value={item.status === 'ativo'}
+                      onValueChange={() => handleToggleStatus(item.id)}
+                      disabled={togglingId === item.id}
+                      accessibilityLabel={`${item.status === 'ativo' ? 'Desativar' : 'Ativar'} ${item.name}`}
+                      testID={`toggle-menu-item-${item.id}`}
+                    />
+                  </View>
                 </View>
               ))}
             </View>
@@ -233,6 +317,19 @@ export function MenuScreen() {
               </Text>
             </View>
           )}
+          {/* Inline "+ Novo Item" button — matches Penpot design */}
+          <Pressable
+            style={novoItemBtnStyle}
+            accessibilityRole="button"
+            accessibilityLabel="Novo Item"
+            accessibilityHint="Navega para a tela de criação de item do cardápio"
+            onPress={() => {
+              router.push('/create-menu-item');
+            }}
+          >
+            <RNText style={novoItemPlusStyle}>+</RNText>
+            <RNText style={novoItemTextStyle}>Novo Item</RNText>
+          </Pressable>
         </ScrollContainer>
       </View>
     </Screen>

@@ -1,18 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { AuthProvider, useAuth } from './hooks';
 import { LoginPage } from './pages/LoginPage';
 import { QueuePage } from './pages/QueuePage';
 
 /**
- * Root App component with simple state-based routing.
- * Toggles between Login and Queue pages based on auth state.
- * No router library needed — just a boolean flag.
+ * Inner component that reads auth state and renders the appropriate page.
  */
-export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  if (isLoading) {
+    return null; // Brief flash while checking sessionStorage
   }
 
-  return <QueuePage onLogout={() => setIsAuthenticated(false)} />;
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <QueuePage />;
+}
+
+/**
+ * Root App component wrapped with AuthProvider.
+ * Uses useAuth hook for state-based routing between Login and Queue pages.
+ */
+export function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }

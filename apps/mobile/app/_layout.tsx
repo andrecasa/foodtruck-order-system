@@ -9,6 +9,7 @@ import {
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
 import { ThemeProvider } from '../src/theme/ThemeProvider';
+import { AuthProvider } from '../src/hooks/useAuth';
 
 /**
  * Root layout — loads custom fonts (Inter) and injects Material Symbols
@@ -50,17 +51,47 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="payment"
-          options={{
-            presentation: 'modal',
-            headerShown: false,
-          }}
-        />
-      </Stack>
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="create-menu-item"
+            options={{
+              presentation: 'card',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="edit-menu-item"
+            options={{
+              presentation: 'card',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="users-list"
+            options={{
+              presentation: 'card',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="user-form"
+            options={{
+              presentation: 'card',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="user-detail"
+            options={{
+              presentation: 'card',
+              headerShown: false,
+            }}
+          />
+        </Stack>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

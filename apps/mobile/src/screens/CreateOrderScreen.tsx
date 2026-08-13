@@ -44,23 +44,23 @@ function groupByCategory(items: MenuItem[]): Record<string, MenuItem[]> {
  * Novo Pedido (Create Order) Screen — pixel-perfect match to Penpot design.
  *
  * Penpot specs (Pastel das Meninas palette):
- * - AppBar: bg white, shadow 0 1px 3px rgba(0,0,0,0.06), height 56px, title "Novo Pedido" 18px weight 500, color text (#3D2020)
+ * - AppBar: bg white, shadow 0 1px 3px rgba(0,0,0,0.06), height 56px, title "Novo Pedido" 18px weight 400, color text (#3D2020)
  * - Content: padding 16px, gap 20px
- * - Origin label: "Origem do Pedido" 12px weight 500, color textSecondary (#8B6B5A)
+ * - Origin label: "Origem do Pedido" 14px weight 400, color text (#3D2020)
  * - Origin Selector: height 40px, radius 20px, border 1px divider (#E8DDD5), bg white
- *   - Active tab: bg primary (#7B2D2D), text white 13px weight 500, radius 18px
- *   - Inactive tab: bg transparent, text textSecondary (#8B6B5A) 13px weight 500
- * - Section title "Itens do Pedido": 16px weight 500, color text (#3D2020)
- * - Category label: 13px weight 400, color textSecondary (#8B6B5A)
+ *   - Active tab: bg primary (#7B2D2D), text white 13px weight 400, radius 18px
+ *   - Inactive tab: bg transparent, text textSecondary (#8B6B5A) 13px weight 400
+ * - Section title "Itens do Pedido": 14px weight 400, color text (#3D2020)
+ * - Category label: 13px weight 400, color text (#3D2020)
  * - Items Card: bg white, radius 12px, shadow 0 1px 3px rgba(0,0,0,0.04), padding 10px 14px, gap 10px
  * - Item row: height 40px, flex row space-between
  *   - Name: 14px weight 400, color text (#3D2020)
- *   - Price: 12px weight 400, color textSecondary (#8B6B5A)
+ *   - Price: 12px weight 400, color text (#3D2020)
  *   - Stepper circle 28px: minus (bg background, border 1px divider, text divider when 0), plus (bg primary, text white)
- *   - Quantity: 14px weight 600, color text (#3D2020)
+ *   - Quantity: 14px weight 400, color text (#3D2020)
  * - Total row: bg rgba(123,45,45,0.06), radius 8px, height 48px, padding 0 16px
- *   - "Total" text: 14px weight 500, color text (#3D2020)
- *   - Amount: 20px weight 600, color primary (#7B2D2D)
+ *   - "Total" text: 14px weight 400, color text (#3D2020)
+ *   - Amount: 20px weight 400, color primary (#7B2D2D)
  * - Button "Criar Pedido": height 44px, radius 22px, bg primary (#7B2D2D), text 14px weight 400
  */
 export function CreateOrderScreen() {
@@ -191,7 +191,7 @@ export function CreateOrderScreen() {
         setSelectedItems({});
         setSuccessOrder(null);
         // Navigate to payment screen with the newly created order
-        router.push({ pathname: '/payment', params: { orderId: order.id } });
+        router.push({ pathname: '/(tabs)/payment', params: { orderId: order.id } });
       }, 2000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar pedido';
@@ -210,10 +210,10 @@ export function CreateOrderScreen() {
 
   const originLabelStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8B6B5A',
-    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '400',
+    color: theme.colors.text,
+    marginBottom: 20,
   };
 
   const originSelectorStyle: ViewStyle = {
@@ -246,7 +246,7 @@ export function CreateOrderScreen() {
 
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
     color: theme.colors.text,
   };
@@ -294,7 +294,7 @@ export function CreateOrderScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.text,
   };
 
   const stepperContainerStyle: ViewStyle = {

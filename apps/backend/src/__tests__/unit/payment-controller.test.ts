@@ -1,0 +1,314 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Response } from 'express';
+import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+
+// Mock supabaseAdmin
+const mockChannel = vi.fn();
+const mockSend = vi.fn();
+
+vi.mock('../../config/supabase.js', () => ({
+  supabase: { auth: { getUser: vi.fn() } },
+  supabaseAdmin: {
+    from: vi.fn(),
+    channel: (...args: any[]) => mockChannel(...args),
+  },
+}));
+
+// Mock pg Pool
+const mockQuery = vi.fn();
+const mockRelease = vi.fn();
+const mockConnect = vi.fn();
+
+vi.mock('../../config/database.js', () => ({
+  pool: {
+    connect: () => mockConnect(),
+  },
+}));
+
+// Mock date-fns-tz
+vi.mock('date-fns-tz', () => ({
+  toZonedTime: vi.fn().mockReturnValue(new Date('2024-06-15T10:00:00')),
+  format: vi.fn().mockReturnValue('2024-06-15'),
+}));
+
+import { registerPayment } from '../../controllers/order.controller.js';
+
+function mockRequest(params?: any, body?: any): Partial<AuthenticatedRequest> {
+  return {
+    body: body || {},
+    params: params || {},
+    user: { id: 'user-1', email: 'test@test.com' },
+  };
+}
+
+function mockResponse(): Partial<Response> & { statusCode: number; body: any } {
+  const res: any = {
+    statusCode: 0,
+    body: null,
+    status(code: number) {
+      res.statusCode = code;
+      return res;
+    },
+    json(data: any) {
+      res.body = data;
+      return res;
+    },
+  };
+  return res;
+}
+
+const baseOrder = {
+  id: 'order-uuid-1',
+  daily_number: 5,
+  customer_name: 'João Silva',
+  origin: 'presencial',
+  status: 'aguardando',
+  payment_status: 'pendente',
+  payment_method: null,
+  total_amount_cents: 1800,
+  order_date: '2024-06-15',
+  created_at: '2024-06-15T13:00:00.000Z',
+  started_at: null,
+  ready_at: null,
+  delivered_at: null,
+  paid_at: null,
+};
+
+describe('Order Controller - registerPayment', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockConnect.mockResolvedValue({
+      query: mockQuery,
+      release: mockRelease,
+    });
+
+    mockChannel.mockReturnValue({
+      send: mockSend.mockResolvedValue(undefined),
+    });
+  });
+
+  describe('Successful payment registration', () => {
+    it('should register payment with dinheiro and return 200', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          ...baseOrder,
+          payment_status: 'pago',
+          payment_method: 'dinheiro',
+          paid_at: '2024-06-15T14:00:00.000Z',
+        }],
+      });
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'dinheiro' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.paymentStatus).toBe('pago');
+      expect(res.body.paymentMethod).toBe('dinheiro');
+      expect(res.body.paidAt).toBe('2024-06-15T14:00:00.000Z');
+    });
+
+    it('should register payment with pix and return 200', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          ...baseOrder,
+          payment_status: 'pago',
+          payment_method: 'pix',
+          paid_at: '2024-06-15T14:00:00.000Z',
+        }],
+      });
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.paymentStatus).toBe('pago');
+      expect(res.body.paymentMethod).toBe('pix');
+    });
+
+    it('should register payment with cartão and return 200', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          ...baseOrder,
+          payment_status: 'pago',
+          payment_method: 'cartão',
+          paid_at: '2024-06-15T14:00:00.000Z',
+        }],
+      });
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'cartão' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.paymentStatus).toBe('pago');
+      expect(res.body.paymentMethod).toBe('cartão');
+    });
+
+    it('should update payment_status, payment_method and paid_at in the database', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          ...baseOrder,
+          payment_status: 'pago',
+          payment_method: 'pix',
+          paid_at: '2024-06-15T14:00:00.000Z',
+        }],
+      });
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      // Verify the UPDATE query
+      const updateCall = mockQuery.mock.calls[1];
+      expect(updateCall[0]).toContain('payment_status');
+      expect(updateCall[0]).toContain('payment_method');
+      expect(updateCall[0]).toContain('paid_at');
+      expect(updateCall[1][0]).toBe('pix');
+      expect(updateCall[1][2]).toBe('order-uuid-1');
+    });
+  });
+
+  describe('Duplicate payment rejection (HTTP 409)', () => {
+    it('should reject payment for already paid order with 409', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          ...baseOrder,
+          payment_status: 'pago',
+          payment_method: 'dinheiro',
+          paid_at: '2024-06-15T13:30:00.000Z',
+        }],
+      });
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(409);
+      expect(res.body.message).toBe('Pedido já foi pago');
+    });
+  });
+
+  describe('Invalid payment method (HTTP 422)', () => {
+    it('should reject invalid payment method with 422', async () => {
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'cheque' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(422);
+      expect(res.body.message).toBe('Forma de pagamento inválida');
+    });
+
+    it('should reject missing payment method with 422', async () => {
+      const req = mockRequest({ id: 'order-uuid-1' }, {});
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(422);
+      expect(res.body.message).toBe('Forma de pagamento inválida');
+    });
+
+    it('should reject empty string payment method with 422', async () => {
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: '' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(422);
+      expect(res.body.message).toBe('Forma de pagamento inválida');
+    });
+  });
+
+  describe('Order not found (HTTP 404)', () => {
+    it('should return 404 when order does not exist', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const req = mockRequest({ id: 'non-existent-id' }, { paymentMethod: 'pix' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(404);
+      expect(res.body.message).toBe('Pedido não encontrado');
+    });
+  });
+
+  describe('Realtime event publishing', () => {
+    it('should publish payment_registered event to orders:payment on success', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          ...baseOrder,
+          payment_status: 'pago',
+          payment_method: 'dinheiro',
+          paid_at: '2024-06-15T14:00:00.000Z',
+        }],
+      });
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'dinheiro' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(200);
+      expect(mockChannel).toHaveBeenCalledWith('orders:payment');
+      expect(mockSend).toHaveBeenCalledWith({
+        type: 'broadcast',
+        event: 'payment_registered',
+        payload: expect.objectContaining({
+          id: 'order-uuid-1',
+          paymentStatus: 'pago',
+          paymentMethod: 'dinheiro',
+        }),
+      });
+    });
+
+    it('should still return 200 even if Realtime publish fails', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          ...baseOrder,
+          payment_status: 'pago',
+          payment_method: 'pix',
+          paid_at: '2024-06-15T14:00:00.000Z',
+        }],
+      });
+      mockSend.mockRejectedValueOnce(new Error('Realtime error'));
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.paymentStatus).toBe('pago');
+    });
+  });
+
+  describe('Internal server error', () => {
+    it('should return 500 when database connection fails', async () => {
+      mockConnect.mockRejectedValueOnce(new Error('Connection failed'));
+
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'dinheiro' });
+      const res = mockResponse();
+
+      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('INTERNAL_ERROR');
+    });
+  });
+});

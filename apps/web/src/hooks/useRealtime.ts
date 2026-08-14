@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import { useEffect, useRef, useState } from 'react';
+import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8000';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -25,9 +25,28 @@ interface UseRealtimeOptions {
   enabled?: boolean;
 }
 
+/** Singleton Supabase client for realtime — avoids creating new connections on every render */
+let realtimeClient: SupabaseClient | null = null;
+
+function getRealtimeClient(): SupabaseClient {
+  if (!realtimeClient) {
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    realtimeClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      realtime: {
+        params: {
+          apikey: SUPABASE_ANON_KEY,
+          ...(token ? { token } : {}),
+        },
+      },
+    });
+  }
+  return realtimeClient;
+}
+
 /**
  * Hook for Supabase Realtime subscriptions (web).
  * Subscribes to broadcast channels and handles:
+ * - Stable connection (singleton client, no recreation on re-render)
  * - Auto-reconnection on disconnect (5s delay)
  * - Data reload callback after reconnect
  * - Connection status tracking
@@ -38,99 +57,113 @@ export function useRealtime({ channels, onEvent, onReconnect, enabled = true }: 
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onEventRef = useRef(onEvent);
   const onReconnectRef = useRef(onReconnect);
+  const enabledRef = useRef(enabled);
 
-  // Keep refs up to date
+  // Keep refs up to date without causing re-renders or effect re-runs
   onEventRef.current = onEvent;
   onReconnectRef.current = onReconnect;
+  enabledRef.current = enabled;
 
-  const cleanup = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    for (const ch of channelsRef.current) {
-      try {
-        ch.unsubscribe();
-      } catch {
-        // ignore
-      }
-    }
-    channelsRef.current = [];
-    setStatus('disconnected');
-  }, []);
+  // Stable channel key for effect dependency
+  const channelKey = channels.join(',');
 
   useEffect(() => {
     if (!enabled || channels.length === 0) {
-      cleanup();
+      // Cleanup if disabled
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      for (const ch of channelsRef.current) {
+        try { ch.unsubscribe(); } catch { /* ignore */ }
+      }
+      channelsRef.current = [];
+      setStatus('disconnected');
       return;
     }
 
     let cancelled = false;
+    const supabase = getRealtimeClient();
+    const subscribed: RealtimeChannel[] = [];
 
-    function subscribe() {
-      const token = sessionStorage.getItem(TOKEN_KEY);
+    for (const channelName of channels) {
+      const channel = supabase.channel(channelName);
 
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        realtime: {
-          params: {
-            apikey: SUPABASE_ANON_KEY,
-            ...(token ? { token } : {}),
-          },
-        },
-      });
+      channel
+        .on('broadcast', { event: '*' }, (payload) => {
+          if (!cancelled) {
+            onEventRef.current({
+              channel: channelName,
+              event: payload.event ?? 'unknown',
+              payload: payload.payload,
+            });
+          }
+        })
+        .subscribe((subscribeStatus) => {
+          if (cancelled) return;
 
-      const subscribed: RealtimeChannel[] = [];
-
-      for (const channelName of channels) {
-        const channel = supabase.channel(channelName);
-
-        channel
-          .on('broadcast', { event: '*' }, (payload) => {
-            if (!cancelled) {
-              onEventRef.current({
-                channel: channelName,
-                event: payload.event ?? 'unknown',
-                payload: payload.payload,
-              });
-            }
-          })
-          .subscribe((subscribeStatus) => {
-            if (cancelled) return;
-
-            if (subscribeStatus === 'SUBSCRIBED') {
-              setStatus('connected');
-            } else if (subscribeStatus === 'CLOSED' || subscribeStatus === 'CHANNEL_ERROR') {
-              setStatus('disconnected');
-              // Auto-reconnect after 5 seconds
-              if (!reconnectTimerRef.current && !cancelled) {
-                setStatus('reconnecting');
-                reconnectTimerRef.current = setTimeout(() => {
-                  reconnectTimerRef.current = null;
-                  if (!cancelled) {
-                    // Cleanup and re-subscribe
-                    cleanup();
-                    subscribe();
-                    // Notify caller to reload data
-                    onReconnectRef.current?.();
+          if (subscribeStatus === 'SUBSCRIBED') {
+            setStatus('connected');
+          } else if (subscribeStatus === 'CLOSED' || subscribeStatus === 'CHANNEL_ERROR') {
+            setStatus('disconnected');
+            // Auto-reconnect after 5 seconds (only once)
+            if (!reconnectTimerRef.current && !cancelled) {
+              setStatus('reconnecting');
+              reconnectTimerRef.current = setTimeout(() => {
+                reconnectTimerRef.current = null;
+                if (!cancelled && enabledRef.current) {
+                  // Unsubscribe old channels
+                  for (const ch of channelsRef.current) {
+                    try { ch.unsubscribe(); } catch { /* ignore */ }
                   }
-                }, 5000);
-              }
+                  channelsRef.current = [];
+
+                  // Re-subscribe
+                  const newSubscribed: RealtimeChannel[] = [];
+                  for (const chName of channels) {
+                    const newCh = supabase.channel(chName);
+                    newCh
+                      .on('broadcast', { event: '*' }, (p) => {
+                        if (!cancelled) {
+                          onEventRef.current({
+                            channel: chName,
+                            event: p.event ?? 'unknown',
+                            payload: p.payload,
+                          });
+                        }
+                      })
+                      .subscribe((s) => {
+                        if (s === 'SUBSCRIBED') setStatus('connected');
+                      });
+                    newSubscribed.push(newCh);
+                  }
+                  channelsRef.current = newSubscribed;
+
+                  // Notify caller to reload data
+                  onReconnectRef.current?.();
+                }
+              }, 5000);
             }
-          });
+          }
+        });
 
-        subscribed.push(channel);
-      }
-
-      channelsRef.current = subscribed;
+      subscribed.push(channel);
     }
 
-    subscribe();
+    channelsRef.current = subscribed;
 
     return () => {
       cancelled = true;
-      cleanup();
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      for (const ch of subscribed) {
+        try { ch.unsubscribe(); } catch { /* ignore */ }
+      }
+      channelsRef.current = [];
     };
-  }, [enabled, channels.join(','), cleanup]);
+  }, [enabled, channelKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { status };
 }

@@ -1,22 +1,29 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text as RNText,
   TouchableOpacity,
+  ActivityIndicator,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { Screen, ScrollContainer, Header } from '../components/Layout';
 import { Text } from '../components/Typography';
-import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
-import type { MenuItem, Order, OrderOrigin } from '@order-system/shared';
+import type { MenuItem, Order } from '@order-system/shared';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;
+
+export interface EditOrderItemsScreenProps {
+  /** The order ID to edit items for */
+  orderId: string;
+  /** The current order data (passed from navigation) */
+  order: Order;
+}
 
 /**
  * Formats a value in centavos to BRL currency string (R$ X,XX).
@@ -41,70 +48,74 @@ function groupByCategory(items: MenuItem[]): Record<string, MenuItem[]> {
 }
 
 /**
- * Novo Pedido (Create Order) Screen — pixel-perfect match to Penpot design.
- *
- * Penpot specs (Pastel das Meninas palette):
- * - AppBar: bg white, shadow 0 1px 3px rgba(0,0,0,0.06), height 56px, title "Novo Pedido" 18px weight 400, color text (#3D2020)
- * - Content: padding 16px, gap 20px
- * - Origin label: "Origem do Pedido" 14px weight 400, color text (#3D2020)
- * - Origin Selector: height 40px, radius 20px, border 1px divider (#E8DDD5), bg white
- *   - Active tab: bg primary (#7B2D2D), text white 13px weight 400, radius 18px
- *   - Inactive tab: bg transparent, text textSecondary (#8B6B5A) 13px weight 400
- * - Section title "Itens do Pedido": 14px weight 400, color text (#3D2020)
- * - Category label: 13px weight 400, color text (#3D2020)
- * - Items Card: bg white, radius 12px, shadow 0 1px 3px rgba(0,0,0,0.04), padding 10px 14px, gap 10px
- * - Item row: height 40px, flex row space-between
- *   - Name: 14px weight 400, color text (#3D2020)
- *   - Price: 12px weight 400, color text (#3D2020)
- *   - Stepper circle 28px: minus (bg background, border 1px divider, text divider when 0), plus (bg primary, text white)
- *   - Quantity: 14px weight 400, color text (#3D2020)
- * - Total row: bg rgba(123,45,45,0.06), radius 8px, height 48px, padding 0 16px
- *   - "Total" text: 14px weight 400, color text (#3D2020)
- *   - Amount: 20px weight 400, color primary (#7B2D2D)
- * - Button "Criar Pedido": height 44px, radius 22px, bg primary (#7B2D2D), text 14px weight 400
+ * Initializes stepper quantities from existing order items,
+ * only including items whose menu item is still active.
  */
-export function CreateOrderScreen() {
+export function initializeStepperQuantities(
+  orderItems: Order['items'],
+  activeMenuItems: MenuItem[],
+): SelectedItems {
+  const activeIds = new Set(activeMenuItems.map((m) => m.id));
+  const selected: SelectedItems = {};
+  for (const item of orderItems) {
+    if (activeIds.has(item.menuItemId)) {
+      selected[item.menuItemId] = item.quantity;
+    }
+  }
+  return selected;
+}
+
+/**
+ * Editar Itens (Edit Order Items) Screen.
+ *
+ * Reuses the stepper UI pattern from CreateOrderScreen with:
+ * - No customer name or origin fields
+ * - Header "Editar Itens"
+ * - Button "Salvar Alterações"
+ * - Pre-fills quantities from existing order items (only active menu items)
+ */
+export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenProps) {
   const theme = useTheme();
   const router = useRouter();
 
   // Form state
-  const [customerName, setCustomerName] = useState('');
-  const [origin, setOrigin] = useState<OrderOrigin>('presencial');
   const [selectedItems, setSelectedItems] = useState<SelectedItems>({});
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   // UI state
   const [loading, setLoading] = useState(false);
   const [menuLoading, setMenuLoading] = useState(true);
-  const [customerNameError, setCustomerNameError] = useState('');
+  const [menuError, setMenuError] = useState('');
   const [itemsError, setItemsError] = useState('');
   const [apiError, setApiError] = useState('');
 
-  // Load menu items when screen gains focus (e.g., after editing menu)
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      async function loadMenu() {
-        try {
-          setMenuLoading(true);
-          const items = await apiClient.getMenu();
-          if (!cancelled) {
-            setMenuItems(items);
-          }
-        } catch {
-          if (!cancelled) {
-            setApiError('Erro ao carregar cardápio');
-          }
-        } finally {
-          if (!cancelled) {
-            setMenuLoading(false);
-          }
+  // Load menu items on mount and pre-fill quantities
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMenu() {
+      try {
+        setMenuLoading(true);
+        setMenuError('');
+        const items = await apiClient.getMenu();
+        if (!cancelled) {
+          setMenuItems(items);
+          // Pre-fill stepper quantities from order items (only active menu items)
+          const initial = initializeStepperQuantities(order.items, items);
+          setSelectedItems(initial);
+        }
+      } catch {
+        if (!cancelled) {
+          setMenuError('Erro ao carregar cardápio');
+        }
+      } finally {
+        if (!cancelled) {
+          setMenuLoading(false);
         }
       }
-      loadMenu();
-      return () => { cancelled = true; };
-    }, [])
-  );
+    }
+    loadMenu();
+    return () => { cancelled = true; };
+  }, [order.items]);
 
   // Group items by category
   const groupedItems = useMemo(() => groupByCategory(menuItems), [menuItems]);
@@ -121,6 +132,11 @@ export function CreateOrderScreen() {
     }
     return sum;
   }, [selectedItems, menuItems]);
+
+  // Check if any items are selected
+  const hasItems = useMemo(() => {
+    return Object.values(selectedItems).some((qty) => qty > 0);
+  }, [selectedItems]);
 
   // Item quantity management
   const incrementItem = useCallback((id: string) => {
@@ -145,32 +161,14 @@ export function CreateOrderScreen() {
     });
   }, []);
 
-  // Validation
-  const validate = (): boolean => {
-    let isValid = true;
-
-    if (!customerName.trim()) {
-      setCustomerNameError('Informe o nome do cliente');
-      isValid = false;
-    } else {
-      setCustomerNameError('');
-    }
-
-    const hasItems = Object.values(selectedItems).some((qty) => qty > 0);
-    if (!hasItems) {
-      setItemsError('Adicione ao menos um item ao pedido');
-      isValid = false;
-    } else {
-      setItemsError('');
-    }
-
-    return isValid;
-  };
-
-  // Submit order
+  // Submit updated items
   const handleSubmit = async () => {
     setApiError('');
-    if (!validate()) return;
+
+    if (!hasItems) {
+      setItemsError('Adicione ao menos um item ao pedido');
+      return;
+    }
 
     const items = Object.entries(selectedItems)
       .filter(([, qty]) => qty > 0)
@@ -178,18 +176,11 @@ export function CreateOrderScreen() {
 
     try {
       setLoading(true);
-      const order = await apiClient.createOrder({
-        customerName: customerName.trim(),
-        origin,
-        items,
-      });
-      // Reset form and navigate directly to payment
-      setCustomerName('');
-      setOrigin('presencial');
-      setSelectedItems({});
-      router.push({ pathname: '/(tabs)/payment', params: { orderId: order.id } });
+      const updatedOrder = await apiClient.updateOrderItems(orderId, { items });
+      // Navigate back to PaymentScreen with updated order data (replace to avoid stale edit screen in stack)
+      router.replace({ pathname: '/(tabs)/payment', params: { orderId: updatedOrder.id } });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao criar pedido';
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar itens do pedido';
       setApiError(message);
     } finally {
       setLoading(false);
@@ -202,42 +193,6 @@ export function CreateOrderScreen() {
     padding: 16,
     gap: 20,
   };
-
-  const originLabelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    marginBottom: 20,
-  };
-
-  const originSelectorStyle: ViewStyle = {
-    flexDirection: 'row',
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E8DDD5',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    alignItems: 'center',
-    padding: 2,
-  };
-
-  const originTabStyle = (selected: boolean): ViewStyle => ({
-    flex: 1,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: selected ? theme.colors.primary : 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  });
-
-  const originTabTextStyle = (selected: boolean): TextStyle => ({
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 13,
-    fontWeight: '400',
-    color: selected ? '#FFFFFF' : '#8B6B5A',
-  });
 
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
@@ -373,71 +328,55 @@ export function CreateOrderScreen() {
     marginTop: 4,
   };
 
+  const centerStyle: ViewStyle = {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  };
+
   // ─── Render ─────────────────────────────────────────────────────────────────
+
+  // Loading state while menu is loading
+  if (menuLoading) {
+    return (
+      <Screen padding={false}>
+        <Header title="Editar Itens" icon="edit" />
+        <View style={centerStyle}>
+          <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
+          <Text size="sm" color="#8B6B5A" style={{ marginTop: 12 }}>
+            Carregando cardápio...
+          </Text>
+        </View>
+      </Screen>
+    );
+  }
+
+  // Error state if menu failed to load
+  if (menuError) {
+    return (
+      <Screen padding={false}>
+        <Header title="Editar Itens" icon="edit" />
+        <View style={centerStyle}>
+          <RNText style={{ ...errorTextStyle, fontSize: 14 }} testID="menu-error">
+            {menuError}
+          </RNText>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Novo Pedido" icon="add_circle" />
+      <Header title="Editar Itens" icon="edit" />
 
       <ScrollContainer padding={false} style={contentStyle}>
-        {/* Customer Name */}
-        <Input
-          accessibilityLabel="Nome do Cliente"
-          value={customerName}
-          onChangeText={(text) => {
-            setCustomerName(text.slice(0, 100));
-            if (customerNameError) setCustomerNameError('');
-          }}
-          placeholder="Nome do cliente..."
-          icon="person"
-          iconColor="#8B6B5A"
-          error={customerNameError}
-          testID="input-customer-name"
-        />
-
-        {/* Origin Selector */}
-        <View>
-          <RNText style={originLabelStyle}>Origem do Pedido</RNText>
-          <View style={originSelectorStyle}>
-            <TouchableOpacity
-              style={originTabStyle(origin === 'presencial')}
-              onPress={() => setOrigin('presencial')}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: origin === 'presencial' }}
-              accessibilityLabel="Presencial"
-              testID="origin-presencial"
-            >
-              <RNText style={originTabTextStyle(origin === 'presencial')}>Presencial</RNText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={originTabStyle(origin === 'whatsapp')}
-              onPress={() => setOrigin('whatsapp')}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: origin === 'whatsapp' }}
-              accessibilityLabel="WhatsApp"
-              testID="origin-whatsapp"
-            >
-              <RNText style={originTabTextStyle(origin === 'whatsapp')}>WhatsApp</RNText>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Menu Items Selection */}
         <View>
           <RNText style={sectionTitleStyle}>Itens do Pedido</RNText>
 
-          {menuLoading && (
-            <Text size="sm" color="#8B6B5A">
-              Carregando cardápio...
-            </Text>
-          )}
-
-          {apiError && !menuLoading ? (
-            <RNText style={errorTextStyle}>{apiError}</RNText>
-          ) : null}
-
-          {!menuLoading && categories.map((category) => (
+          {categories.map((category) => (
             <View key={category}>
               <RNText style={categoryLabelStyle}>{category}</RNText>
               <View style={itemsCardStyle}>
@@ -453,7 +392,7 @@ export function CreateOrderScreen() {
                         <TouchableOpacity
                           style={stepperMinusStyle}
                           onPress={() => decrementItem(item.id)}
-                          disabled={qty <= 0}
+                          disabled={qty <= 0 || loading}
                           accessibilityRole="button"
                           accessibilityLabel={`Diminuir quantidade de ${item.name}`}
                           testID={`decrement-${item.id}`}
@@ -464,7 +403,7 @@ export function CreateOrderScreen() {
                         <TouchableOpacity
                           style={stepperPlusStyle}
                           onPress={() => incrementItem(item.id)}
-                          disabled={qty >= 99}
+                          disabled={qty >= 99 || loading}
                           accessibilityRole="button"
                           accessibilityLabel={`Aumentar quantidade de ${item.name}`}
                           testID={`increment-${item.id}`}
@@ -480,26 +419,31 @@ export function CreateOrderScreen() {
           ))}
 
           {itemsError ? (
-            <RNText style={errorTextStyle}>{itemsError}</RNText>
+            <RNText style={errorTextStyle} testID="items-error">{itemsError}</RNText>
           ) : null}
         </View>
 
         {/* Total */}
         <View style={totalContainerStyle}>
           <RNText style={totalLabelStyle}>Total</RNText>
-          <RNText style={totalAmountStyle}>{formatCurrency(total)}</RNText>
+          <RNText style={totalAmountStyle} testID="total-amount">{formatCurrency(total)}</RNText>
         </View>
+
+        {/* API Error */}
+        {apiError ? (
+          <RNText style={errorTextStyle} testID="api-error">{apiError}</RNText>
+        ) : null}
 
         {/* Submit Button */}
         <Button
-          title="Criar Pedido"
+          title="Salvar Alterações"
           variant="primary"
           size="lg"
           fullWidth
           onPress={handleSubmit}
           loading={loading}
           disabled={loading}
-          testID="submit-order"
+          testID="submit-edit-order"
         />
       </ScrollContainer>
     </Screen>

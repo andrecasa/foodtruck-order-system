@@ -119,7 +119,7 @@ function mapMenuItem(raw: any): MenuItem {
 /**
  * Maps backend order response to the shared Order interface.
  */
-function mapOrder(raw: any): Order {
+export function mapOrder(raw: any): Order {
   return {
     id: raw.id,
     dailyNumber: raw.dailyNumber ?? raw.daily_number,

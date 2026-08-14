@@ -40,3 +40,7 @@ export interface UpdateOrderStatusRequest {
 export interface RegisterPaymentRequest {
   paymentMethod: PaymentMethod;
 }
+
+export interface UpdateOrderItemsRequest {
+  items: { menuItemId: string; quantity: number }[];
+}

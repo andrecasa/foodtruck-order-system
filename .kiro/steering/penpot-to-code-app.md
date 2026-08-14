@@ -2,11 +2,11 @@
 inclusion: manual
 ---
 
-# Penpot → Code: Guia de Extração Pixel-Perfect
+# Penpot → Code (App Mobile): Guia de Extração Pixel-Perfect
 
 ## Quando usar este guia
 
-Sempre que precisar sincronizar um componente ou tela do Penpot com o código (mobile ou web).
+Sempre que precisar sincronizar um componente ou tela do Penpot com o código do app mobile (React Native / Expo).
 
 ## Paleta Atual (Pastel das Meninas)
 
@@ -33,8 +33,6 @@ Origin badges: Presencial (bg #F5EDE8, text #7B2D2D) | WhatsApp (bg #F0F5EE, tex
 **Nunca use `penpot.generateStyle()` para React Native.**  
 Use extração de propriedades brutas via Penpot API e traduza manualmente para StyleSheet.
 
-Para **web (React + CSS)**, `penpot.generateStyle()` funciona bem e pode ser usado quase diretamente.
-
 ---
 
 ## Fluxo de Extração
@@ -42,7 +40,7 @@ Para **web (React + CSS)**, `penpot.generateStyle()` funciona bem e pode ser usa
 ```
 1. Localizar shape no Penpot (findShape por nome)
 2. Extrair propriedades brutas (fills, strokes, shadows, flex, texts)
-3. Traduzir para a plataforma alvo (RN StyleSheet ou CSS)
+3. Traduzir para React Native StyleSheet
 4. Aplicar no componente
 5. Verificar build (tsc --noEmit)
 ```
@@ -113,40 +111,21 @@ borderColor: shape.strokes[0].strokeColor,
 
 ---
 
-## Web (React + CSS) — Tradução de Propriedades
+## Ícones (Material Symbols Outlined)
 
-### Opção 1: generateStyle() (recomendado para web)
+No Penpot, ícones são renderizados como `Text` com `fontFamily: "Material Symbols Outlined"`.
 
+### Identificação
 ```javascript
-const css = penpot.generateStyle([shape], { 
-  type: "css", 
-  withChildren: true 
-});
-// Usar quase diretamente — ajustar nomes de classes
+const isIcon = (text) => text.fontFamily === "Material Symbols Outlined";
+// text.characters contém o nome do ícone: "receipt_long", "add_circle", etc.
 ```
 
-### Opção 2: Extração manual (para CSS-in-JS / Tailwind)
-
-| Penpot API | CSS |
-|-----------|-----|
-| `shape.fills[0].fillColor` | `background: #FFFFFF` |
-| `shape.borderRadius` | `border-radius: 12px` |
-| `shape.strokes[0]` | `border: 1px solid #F9A825` |
-| `shape.shadows[0]` | `box-shadow: 0px -1px 3px 0px rgba(0,0,0,0.06)` |
-| `shape.flex.*` | `display: flex; flex-direction: row; gap: 12px;` |
-| `text.fontSize` | `font-size: 14px` |
-| `text.fontWeight` | `font-weight: 400` |
-| `text.fontFamily` | `font-family: "Inter", sans-serif` |
-| `text.fills[0].fillColor` | `color: #212121` |
-
-### Shadow → CSS box-shadow
-
-```javascript
-// Penpot:
-{ offsetX: 0, offsetY: 2, blur: 8, spread: 0, color: { color: "#000000", opacity: 0.08 } }
-
-// CSS:
-box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.08);
+### React Native
+```tsx
+<Text style={{ fontFamily: 'Material Symbols Outlined', fontSize: 22 }}>
+  receipt_long
+</Text>
 ```
 
 ---
@@ -157,7 +136,7 @@ box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.08);
 
 ```javascript
 // 1. Navegar para a página correta
-const page = penpotUtils.getPageByName("App"); // ou "Web", "Design System"
+const page = penpotUtils.getPageByName("App");
 penpot.openPage(page);
 
 // 2. Encontrar o componente
@@ -202,39 +181,13 @@ return { container, texts: textInfo };
 
 ---
 
-## Ícones (Material Symbols Outlined)
-
-No Penpot, ícones são renderizados como `Text` com `fontFamily: "Material Symbols Outlined"`.
-
-### Identificação
-```javascript
-const isIcon = (text) => text.fontFamily === "Material Symbols Outlined";
-// text.characters contém o nome do ícone: "receipt_long", "add_circle", etc.
-```
-
-### React Native (web)
-```tsx
-<Text style={{ fontFamily: 'Material Symbols Outlined', fontSize: 22 }}>
-  receipt_long
-</Text>
-```
-
-### Web (CSS)
-```html
-<span class="material-symbols-outlined" style="font-size: 22px">
-  receipt_long
-</span>
-```
-
----
-
 ## Checklist de Sincronização
 
-Ao sincronizar um componente do Penpot → código:
+Ao sincronizar um componente do Penpot → código mobile:
 
 - [ ] Extrair fills (backgroundColor)
 - [ ] Extrair strokes (border: width, color, alignment)
-- [ ] Extrair shadows (shadow props / box-shadow)
+- [ ] Extrair shadows (boxShadow + elevation)
 - [ ] Extrair borderRadius
 - [ ] Extrair flex layout (direction, gap, padding, align, justify)
 - [ ] Extrair dimensões (width, height — fixas vs auto)
@@ -250,13 +203,12 @@ Ao sincronizar um componente do Penpot → código:
 
 | Problema | Causa | Solução |
 |----------|-------|---------|
-| Texto aparece como "receipt_long" | Font Material Symbols não carregada | Carregar via Google Fonts stylesheet (web) |
+| Texto aparece como "receipt_long" | Font Material Symbols não carregada | Usar `useFonts` para carregar a fonte |
 | Fonte não aplica | `fontFamily` no código difere do registrado | Usar exatamente o nome registrado em `useFonts` |
 | Página em branco | `useFonts` falha (TTF inválido) | Não carregar TTFs de URLs aleatórias; usar Google Fonts |
 | Sombra não aparece (Android) | Falta `elevation` | Adicionar `elevation: N` junto com boxShadow |
 | Border não inner | RN border é inner por padrão | Apenas setar borderWidth + borderColor |
 | Gap não funciona | RN < 0.71 | Usar marginBottom nos children como fallback |
-| `generateStyle()` gera CSS inútil para RN | É para web | Usar extração manual de propriedades |
 | Badge texto cor errada | Cálculo dinâmico de contraste | Status badges usam cor do status (tinted 12% bg + status color text) |
 | Badge texto peso errado | Diferente por tamanho | SEMPRE 400 para todos os tamanhos |
 | Botão não centralizado | alignSelf no componente | Button usa `alignSelf: 'center'` por padrão |
@@ -318,19 +270,36 @@ backgrounds:
   - pronto: #5A8C5A (cor do status)
 ```
 
-### Switch Toggle (Tela Cardápio — ativar/desativar item)
+### Button (md — padrão)
+```
+height: 40px
+borderRadius: 20px
+paddingHorizontal: 20px
+fontSize: 14
+fontWeight: '400'
+```
+
+### Button (lg — CTA principal)
+```
+height: 44px
+borderRadius: 22px
+paddingHorizontal: 20px
+fontSize: 14
+fontWeight: '400'
+```
+
+### Switch Toggle (ativar/desativar item)
 ```
 width: 44px, height: 24px
 borderRadius: 12px (pill)
-trackColor ativo: #7B2D2D (primary, NÃO a cor do status)
+trackColor ativo: #7B2D2D (primary)
 trackColor inativo: #E8DDD5 (divider)
 thumbColor: #FFFFFF
 thumb: 20×20 circle, shadow: 0 1px 2px rgba(0,0,0,0.2)
-scale: 0.85 (React Native — para caber na altura do card)
 Quando inativo: texto do item com opacity 0.5
 ```
 
-### Icon Button Edit (Tela Cardápio — botão editar redondo)
+### Icon Button Edit (botão editar redondo)
 ```
 width: 24px, height: 24px
 borderRadius: 12px (totalmente redondo)
@@ -343,7 +312,7 @@ alignItems: center, justifyContent: center
 Ordem no item: [info (flex:1)] → [Btn Edit] → [Switch] (gap: 12px)
 ```
 
-### Button Novo Item (Tela Cardápio — inline, fim da lista)
+### Button Novo Item (inline, fim da lista)
 ```
 width: fill (full width)
 height: 44px
@@ -358,12 +327,11 @@ content:
 Posição: inline no fim do ScrollContainer (NÃO é FAB flutuante)
 ```
 
-### FilterChips (Status Filter — fila de pedidos)
+### FilterChips (Status Filter)
 ```
 container:
   flexDirection: row
   gap: 8px
-  horizontalSizing: fill (stretch to content width)
 
 chip (active/selected):
   height: 32px
@@ -393,15 +361,6 @@ status colors:
   - entregue: #8B6B5A
 
 default state: aguardando, preparando, pronto = active; entregue = inactive
-```
-
-### Button (md — padrão)
-```
-height: 40px
-borderRadius: 20px
-paddingHorizontal: 20px
-fontSize: 14
-fontWeight: '400'
 ```
 
 ### Card (Order)
@@ -454,7 +413,7 @@ Menu Items:
     - Icon: Material Symbols 22px, color #7B2D2D (primary)
     - Label: Inter 16px weight 400, color #3D2020
 
-  Items: Pedidos, Novo Pedido, Cardápio, Resumo do Dia, Configurações
+  Items: Pedidos, Novo Pedido, Cardápio, Resumo do Dia, Usuários (admin only), Configurações
 
 Divider:
   height: 1px
@@ -488,7 +447,7 @@ method button (unselected):
 method button (selected):
   height: 44px
   borderRadius: 22px
-  backgroundColor: #7B2D2D + opacity 0.12 (12%)  ← mesmo padrão dos FilterChips
+  backgroundColor: #7B2D2D + opacity 0.12 (12%)
   borderWidth: 0
   fontSize: 14
   fontWeight: '400'
@@ -516,4 +475,28 @@ icon: Material Symbols Outlined 22px
 label: 10px, weight 400
 active: color #7B2D2D (primary)
 inactive: color #8B6B5A (textSecondary)
+```
+
+### User Card (Tela Gestão de Usuários)
+```
+backgroundColor: #FFFFFF
+borderRadius: 12px
+borderWidth: 1px
+borderColor: #E8DDD5
+height: 75px
+flexDirection: row, alignItems: center, justifyContent: space-between
+paddingHorizontal: 16px
+
+Info section (flex: 1, column, gap: 2):
+  - Role badge: height 15px, borderRadius 10px, paddingHorizontal 8px
+    backgroundColor: admin=#7B2D2D, atendente=#5B8BA8, preparador=#5A8C5A
+    text: 8px, weight 400, color #FFFFFF
+  - Name: 14px, weight 500, color #3D2020
+  - Email: 12px, weight 400, color #8B6B5A
+
+Actions (row, gap: 12px, alignItems: center):
+  - Edit button (Icon Button Edit specs acima)
+  - Toggle Switch (specs acima)
+
+Interação: apenas Edit e Toggle são pressáveis. Card info é estático (View).
 ```

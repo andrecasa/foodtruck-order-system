@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { createOrderRequestSchema, updateOrderStatusRequestSchema, registerPaymentRequestSchema, isValidTransition } from '@order-system/shared';
+import { createOrderRequestSchema, updateOrderStatusRequestSchema, registerPaymentRequestSchema, updateOrderItemsRequestSchema, isValidTransition } from '@order-system/shared';
 import type { OrderStatus } from '@order-system/shared';
-import { supabaseAdmin } from '../config/supabase.js';
 import { pool } from '../config/database.js';
+import { broadcast } from '../config/realtime.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { toZonedTime, format } from 'date-fns-tz';
 
@@ -245,17 +245,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response): Pro
       };
 
       // 7. Publish event to Realtime (fire and forget)
-      try {
-        const channel = supabaseAdmin.channel('orders:queue');
-        await channel.send({
-          type: 'broadcast',
-          event: 'new_order',
-          payload: createdOrder,
-        });
-      } catch {
-        // Non-critical: log but don't fail the request
-        console.error('[order] Failed to publish realtime event');
-      }
+      broadcast('orders:queue', 'new_order', createdOrder);
 
       res.status(201).json(createdOrder);
     } catch (txError: any) {
@@ -375,16 +365,7 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
       };
 
       // 7. Publish event to Realtime (fire and forget)
-      try {
-        const channel = supabaseAdmin.channel('orders:queue');
-        await channel.send({
-          type: 'broadcast',
-          event: 'status_updated',
-          payload: responsePayload,
-        });
-      } catch {
-        console.error('[order] Failed to publish realtime status_updated event');
-      }
+      broadcast('orders:queue', 'status_updated', responsePayload);
 
       res.status(200).json(responsePayload);
     } finally {
@@ -478,16 +459,7 @@ export async function registerPayment(req: AuthenticatedRequest, res: Response):
       };
 
       // 6. Publish event to Realtime (fire and forget)
-      try {
-        const channel = supabaseAdmin.channel('orders:payment');
-        await channel.send({
-          type: 'broadcast',
-          event: 'payment_registered',
-          payload: responsePayload,
-        });
-      } catch {
-        console.error('[order] Failed to publish realtime payment_registered event');
-      }
+      broadcast('orders:payment', 'payment_registered', responsePayload);
 
       res.status(200).json(responsePayload);
     } finally {
@@ -498,6 +470,192 @@ export async function registerPayment(req: AuthenticatedRequest, res: Response):
       statusCode: 500,
       error: 'INTERNAL_ERROR',
       message: 'Erro ao registrar pagamento.',
+    });
+  }
+}
+
+
+/**
+ * PUT /api/orders/:id/items
+ * Update order items (full replacement) for orders in 'aguardando' status.
+ */
+export async function updateOrderItems(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    // 1. Validate request body with Zod
+    const parsed = updateOrderItemsRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0];
+      // Determine the appropriate error message
+      let message = 'Dados inválidos';
+
+      if (firstError) {
+        // Check for duplicate items (refine message)
+        if (firstError.message === 'Itens duplicados não são permitidos') {
+          message = 'Itens duplicados não são permitidos';
+        }
+        // Check for items array length issues
+        else if (firstError.path?.includes('items') && firstError.code === 'too_small') {
+          message = 'A lista deve conter entre 1 e 50 itens';
+        } else if (firstError.path?.includes('items') && firstError.code === 'too_big') {
+          message = 'A lista deve conter entre 1 e 50 itens';
+        }
+        // Check for quantity out of range
+        else if (firstError.path?.includes('quantity')) {
+          message = 'Quantidade deve ser entre 1 e 99';
+        }
+        // For other validation errors, use the Zod message
+        else {
+          message = firstError.message;
+        }
+      }
+
+      res.status(422).json({
+        statusCode: 422,
+        error: 'VALIDATION_ERROR',
+        message,
+      });
+      return;
+    }
+
+    const { items } = parsed.data;
+    const orderId = req.params.id;
+
+    // 2. Belt-and-suspenders: check for duplicate menuItemIds
+    const menuItemIds = items.map((i) => i.menuItemId);
+    const uniqueIds = new Set(menuItemIds);
+    if (uniqueIds.size !== menuItemIds.length) {
+      res.status(422).json({
+        statusCode: 422,
+        error: 'VALIDATION_ERROR',
+        message: 'Itens duplicados não são permitidos',
+      });
+      return;
+    }
+
+    // 3. Look up order by ID
+    const orderResult = await pool.query(
+      `SELECT id, daily_number, customer_name, origin, status, payment_status,
+              payment_method, total_amount_cents, order_date, created_at,
+              started_at, ready_at, delivered_at, paid_at
+       FROM orders WHERE id = $1`,
+      [orderId]
+    );
+
+    if (orderResult.rows.length === 0) {
+      res.status(404).json({
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'Pedido não encontrado',
+      });
+      return;
+    }
+
+    const order = orderResult.rows[0];
+
+    // 4. Check order status is 'aguardando'
+    if (order.status !== 'aguardando') {
+      res.status(422).json({
+        statusCode: 422,
+        error: 'VALIDATION_ERROR',
+        message: 'Pedido só pode ser editado no status aguardando',
+      });
+      return;
+    }
+
+    // 5. Validate all menu items exist and are active
+    const menuResult = await pool.query(
+      `SELECT id, name, price_cents, status FROM menu_items WHERE id = ANY($1::uuid[])`,
+      [menuItemIds]
+    );
+    const menuItems = menuResult.rows;
+
+    for (const item of items) {
+      const menuItem = menuItems.find((mi: any) => mi.id === item.menuItemId);
+      if (!menuItem || menuItem.status !== 'ativo') {
+        res.status(422).json({
+          statusCode: 422,
+          error: 'VALIDATION_ERROR',
+          message: 'Item não encontrado ou inativo',
+        });
+        return;
+      }
+    }
+
+    // 6. Execute transaction: DELETE old → INSERT new → UPDATE total
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Delete old order items
+      await client.query('DELETE FROM order_items WHERE order_id = $1', [orderId]);
+
+      // Insert new order items with price snapshots
+      const insertedItems = [];
+      for (const item of items) {
+        const menuItem = menuItems.find((mi: any) => mi.id === item.menuItemId)!;
+        const itemResult = await client.query(
+          `INSERT INTO order_items (order_id, menu_item_id, item_name, unit_price_cents, quantity)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id, order_id, menu_item_id, item_name, unit_price_cents, quantity`,
+          [orderId, item.menuItemId, menuItem.name, menuItem.price_cents, item.quantity]
+        );
+        insertedItems.push(itemResult.rows[0]);
+      }
+
+      // Calculate new total
+      const totalAmountCents = insertedItems.reduce(
+        (sum, item) => sum + item.unit_price_cents * item.quantity,
+        0
+      );
+
+      // Update order total
+      await client.query(
+        'UPDATE orders SET total_amount_cents = $1 WHERE id = $2',
+        [totalAmountCents, orderId]
+      );
+
+      await client.query('COMMIT');
+
+      // 7. Build response (same shape as createOrder)
+      const updatedOrder = {
+        id: order.id,
+        dailyNumber: order.daily_number,
+        customerName: order.customer_name,
+        origin: order.origin,
+        status: order.status,
+        paymentStatus: order.payment_status,
+        paymentMethod: order.payment_method,
+        totalAmountCents,
+        orderDate: order.order_date,
+        createdAt: order.created_at,
+        startedAt: order.started_at,
+        readyAt: order.ready_at,
+        deliveredAt: order.delivered_at,
+        paidAt: order.paid_at,
+        items: insertedItems.map((i) => ({
+          id: i.id,
+          menuItemId: i.menu_item_id,
+          itemName: i.item_name,
+          unitPriceCents: i.unit_price_cents,
+          quantity: i.quantity,
+        })),
+      };
+
+      // 8. Broadcast order_updated event (fire and forget)
+      broadcast('orders:queue', 'order_updated', updatedOrder);
+
+      res.status(200).json(updatedOrder);
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
+    }
+  } catch {
+    res.status(500).json({
+      statusCode: 500,
+      error: 'INTERNAL_ERROR',
+      message: 'Erro ao atualizar itens do pedido.',
     });
   }
 }

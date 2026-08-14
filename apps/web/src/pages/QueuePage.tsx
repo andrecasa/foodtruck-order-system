@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useTheme } from '../theme';
 import { Screen, Header, ScrollContainer, Card, Badge, OriginBadge, Text, FilterChips } from '../components';
 import type { FilterChipOption } from '../components';
@@ -6,9 +6,10 @@ import { Button } from '../components/Button';
 import { PrototypeBanner } from '../components/PrototypeBanner';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { apiClient } from '../services/api-client';
+import { mapOrder } from '../services/real-client';
 import { useAuth, useRealtime } from '../hooks';
 import type { RealtimeEvent } from '../hooks';
-import type { Order, OrderStatus } from '@order-system/shared';
+import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 
 const isPrototypeMode = import.meta.env.VITE_PROTOTYPE_MODE === 'true';
 
@@ -77,43 +78,58 @@ export function QueuePage() {
     if (!payload) return;
 
     // Normalize: support both { type, record } and { order } formats
-    let order: Order | undefined;
+    let raw: any;
     if (payload.record) {
-      order = payload.record as Order;
+      raw = payload.record;
     } else if (payload.order) {
-      order = payload.order as Order;
+      raw = payload.order;
     } else if (payload.id && payload.status) {
-      // Payload IS the order itself
-      order = payload as Order;
+      // Payload IS the order itself (possibly partial — e.g. status_updated has no items)
+      raw = payload;
     }
 
-    if (!order) return;
+    if (!raw || !raw.id) return;
+
+    // Map raw backend payload to Order format (handles field name differences)
+    const mapped = mapOrder(raw);
 
     setOrders((prev) => {
+      const orderStatus = mapped.status;
+
       // Task 17.8: Remove order from queue if status is 'entregue' and entregue filter is NOT active
-      if (order!.status === 'entregue' && !selectedFilters.includes('entregue')) {
-        return prev.filter((o) => o.id !== order!.id);
+      if (orderStatus === 'entregue' && !selectedFilters.includes('entregue')) {
+        return prev.filter((o) => o.id !== mapped.id);
       }
 
       // Remove if the order's status is no longer in selected filters
-      if (!selectedFilters.includes(order!.status)) {
-        return prev.filter((o) => o.id !== order!.id);
+      if (orderStatus && !selectedFilters.includes(orderStatus)) {
+        return prev.filter((o) => o.id !== mapped.id);
       }
 
-      // Update existing or add new
-      const existingIndex = prev.findIndex((o) => o.id === order!.id);
+      // Update existing — MERGE mapped data into existing order to preserve fields like items
+      const existingIndex = prev.findIndex((o) => o.id === mapped.id);
       if (existingIndex >= 0) {
         const updated = [...prev];
-        updated[existingIndex] = order!;
+        // Only merge fields that are present in mapped (items may be empty array for partial payloads)
+        const mergedOrder = { ...prev[existingIndex], ...mapped };
+        // Preserve existing items if the broadcast had no items
+        if (!raw.items || raw.items.length === 0) {
+          mergedOrder.items = prev[existingIndex].items;
+        }
+        updated[existingIndex] = mergedOrder;
         return updated;
       }
 
-      // New order — add and sort by createdAt
-      const newList = [...prev, order!];
-      newList.sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      );
-      return newList;
+      // New order — only add if it has items (full order payload)
+      if (mapped.items && mapped.items.length > 0) {
+        const newList = [...prev, mapped];
+        newList.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+        return newList;
+      }
+
+      return prev;
     });
   }, [selectedFilters]);
 
@@ -123,7 +139,7 @@ export function QueuePage() {
   }, [fetchOrders]);
 
   // Stable channel list for useRealtime
-  const channels = useMemo(() => ['orders:queue'], []);
+  const channels = useMemo(() => ['orders:queue', 'orders:payment'], []);
 
   // Task 17.7: Only enable realtime AFTER initial load, and only in non-prototype mode
   const { status: realtimeStatus } = useRealtime({
@@ -133,13 +149,32 @@ export function QueuePage() {
     enabled: !isPrototypeMode && initialLoaded,
   });
 
-  // Task 17.6: Mark data as stale when disconnected/reconnecting
+  // Task 17.6: Mark data as stale when disconnected/reconnecting (debounced to avoid flicker)
+  const staleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (realtimeStatus === 'disconnected' || realtimeStatus === 'reconnecting') {
-      setIsStale(true);
+      // Only mark stale after 3s of being disconnected — avoids flicker on brief drops
+      if (!staleTimerRef.current) {
+        staleTimerRef.current = setTimeout(() => {
+          setIsStale(true);
+        }, 3000);
+      }
     } else if (realtimeStatus === 'connected') {
+      // Cancel pending stale timer and clear stale state immediately
+      if (staleTimerRef.current) {
+        clearTimeout(staleTimerRef.current);
+        staleTimerRef.current = null;
+      }
       setIsStale(false);
     }
+
+    return () => {
+      if (staleTimerRef.current) {
+        clearTimeout(staleTimerRef.current);
+        staleTimerRef.current = null;
+      }
+    };
   }, [realtimeStatus]);
 
   // ─── Prototype Mode: mock event subscription ─────────────────────────────
@@ -222,6 +257,24 @@ export function QueuePage() {
     alignItems: 'center',
   };
 
+  const paymentBadgeStyle = (status: PaymentStatus): React.CSSProperties => ({
+    width: '22px',
+    height: '22px',
+    borderRadius: '11px',
+    backgroundColor: status === 'pago' ? '#5A8C5A' : '#B54040',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  });
+
+  const paymentBadgeIconStyle: React.CSSProperties = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: '14px',
+    fontWeight: 400,
+    color: '#FFFFFF',
+  };
+
   const titleStyle: React.CSSProperties = {
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
     fontSize: '16px',
@@ -237,6 +290,8 @@ export function QueuePage() {
     color: '#3D2020',
     whiteSpace: 'pre-line',
     lineHeight: 1.5,
+    alignSelf: 'center',
+    textAlign: 'center',
   };
 
   const priceStyle: React.CSSProperties = {
@@ -244,6 +299,7 @@ export function QueuePage() {
     fontSize: '18px',
     fontWeight: 600,
     color: '#3D2020',
+    alignSelf: 'center',
   };
 
   const buttonContainerStyle: React.CSSProperties = {
@@ -374,6 +430,9 @@ export function QueuePage() {
               >
                 <div style={cardContentStyle}>
                   <div style={cardHeaderStyle}>
+                    <span style={paymentBadgeStyle(order.paymentStatus)}>
+                      <span className="material-symbols-outlined" style={paymentBadgeIconStyle}>payments</span>
+                    </span>
                     <span style={titleStyle}>
                       #{order.dailyNumber} — {order.customerName}
                     </span>

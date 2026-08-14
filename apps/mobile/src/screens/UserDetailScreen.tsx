@@ -48,6 +48,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 interface FormErrors {
   name?: string;
+  email?: string;
   password?: string;
   confirmPassword?: string;
   role?: string;
@@ -68,6 +69,7 @@ export function UserDetailScreen() {
 
   // Form state
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole | ''>('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -97,6 +99,7 @@ export function UserDetailScreen() {
       const userData = await getUserById(params.id);
       setUser(userData);
       setName(userData.name);
+      setEmail(userData.email);
       setRole(userData.role);
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erro ao carregar usuário');
@@ -122,6 +125,16 @@ export function UserDetailScreen() {
       newErrors.name = 'Nome deve ter no máximo 100 caracteres';
     } else if (/^\s+$/.test(name)) {
       newErrors.name = 'Nome não pode conter apenas espaços';
+    }
+
+    // Email: valid format, ≤254 chars
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      newErrors.email = 'E-mail é obrigatório';
+    } else if (trimmedEmail.length > 254) {
+      newErrors.email = 'E-mail deve ter no máximo 254 caracteres';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      newErrors.email = 'E-mail inválido';
     }
 
     // Password: optional in edit mode, but if filled must be 8-72
@@ -157,9 +170,10 @@ export function UserDetailScreen() {
     try {
       setLoading(true);
 
-      // Update user data (name, role)
+      // Update user data (name, email, role)
       const updateData: UpdateUserInput = {};
       if (name.trim() !== user?.name) updateData.name = name.trim();
+      if (email.trim().toLowerCase() !== user?.email.toLowerCase()) updateData.email = email.trim();
       if (role && role !== user?.role) updateData.role = role as UserRole;
 
       // Only call updateUser if there are changes
@@ -249,7 +263,7 @@ export function UserDetailScreen() {
   };
 
   const roleBadgeStyle = (badgeRole: UserRole): ViewStyle => ({
-    backgroundColor: ROLE_BADGE_COLORS[badgeRole],
+    backgroundColor: ROLE_BADGE_COLORS[badgeRole] + '1F',
     borderRadius: 10,
     paddingHorizontal: 8,
     height: 15,
@@ -258,12 +272,12 @@ export function UserDetailScreen() {
     alignSelf: 'flex-start',
   });
 
-  const roleBadgeTextStyle: TextStyle = {
+  const roleBadgeTextStyle = (badgeRole: UserRole): TextStyle => ({
     fontFamily: theme.typography.fontFamily,
     fontSize: 8,
     fontWeight: '400',
-    color: '#FFFFFF',
-  };
+    color: ROLE_BADGE_COLORS[badgeRole],
+  });
 
   const userNameStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
@@ -514,7 +528,7 @@ export function UserDetailScreen() {
           <View style={userInfoCardStyle} testID="user-info-card">
             <View style={userInfoLeftStyle}>
               <View style={roleBadgeStyle(user.role)}>
-                <RNText style={roleBadgeTextStyle}>
+                <RNText style={roleBadgeTextStyle(user.role)}>
                   {ROLE_LABELS[user.role]}
                 </RNText>
               </View>
@@ -619,6 +633,32 @@ export function UserDetailScreen() {
           </View>
           {errors.name ? (
             <RNText style={errorTextStyle}>{errors.name}</RNText>
+          ) : null}
+        </View>
+
+        {/* E-mail Field */}
+        <View style={fieldContainerStyle}>
+          <RNText style={labelStyle}>E-mail</RNText>
+          <View style={inputContainerStyle}>
+            <TextInput
+              style={inputStyle}
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                if (apiError) setApiError('');
+              }}
+              placeholder="usuario@email.com"
+              placeholderTextColor="rgba(139, 107, 90, 0.6)"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="E-mail"
+              testID="input-email"
+            />
+          </View>
+          {errors.email ? (
+            <RNText style={errorTextStyle}>{errors.email}</RNText>
           ) : null}
         </View>
 

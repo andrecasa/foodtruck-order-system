@@ -63,6 +63,8 @@ export interface HeaderProps {
   rightElement?: React.ReactNode;
   /** Whether to show the hamburger menu button. Defaults to true. */
   showMenu?: boolean;
+  /** If provided, shows a back arrow instead of the menu icon and calls this on press. */
+  onBack?: () => void;
 }
 
 /**
@@ -79,7 +81,7 @@ export interface HeaderProps {
  *   - Menu icon: Material Symbols "menu" 24px, color #8B6B5A (textSecondary)
  *   - Title: 18px weight 400 Inter, color #3D2020 (text), flex:1, textAlign: center
  */
-export function Header({ children, title, icon, rightElement, showMenu = true }: HeaderProps) {
+export function Header({ children, title, icon, rightElement, showMenu = true, onBack }: HeaderProps) {
   const theme = useTheme();
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -119,7 +121,15 @@ export function Header({ children, title, icon, rightElement, showMenu = true }:
       <View style={containerStyle} accessibilityRole="header">
         {title ? (
           <>
-            {showMenu && (
+            {onBack ? (
+              <Pressable
+                onPress={onBack}
+                accessibilityRole="button"
+                accessibilityLabel="Voltar"
+              >
+                <Text style={menuIconStyle}>arrow_back</Text>
+              </Pressable>
+            ) : showMenu ? (
               <Pressable
                 onPress={() => setDrawerVisible(true)}
                 accessibilityRole="button"
@@ -127,7 +137,7 @@ export function Header({ children, title, icon, rightElement, showMenu = true }:
               >
                 <Text style={menuIconStyle}>menu</Text>
               </Pressable>
-            )}
+            ) : null}
             <Text style={titleStyle}>{title}</Text>
             {rightElement ? (
               <View>{rightElement}</View>

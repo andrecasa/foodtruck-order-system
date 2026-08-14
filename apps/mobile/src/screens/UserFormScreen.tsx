@@ -431,6 +431,67 @@ export function UserFormScreen() {
       </View>
 
       <ScrollContainer padding={false} style={contentStyle}>
+        {/* Função Field (Role Selector) */}
+        <View style={fieldContainerStyle}>
+          <RNText style={labelStyle}>Função</RNText>
+          <TouchableOpacity
+            style={inputContainerStyle}
+            onPress={() => setShowRolePicker(!showRolePicker)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={role ? ROLE_OPTIONS.find((r) => r.value === role)?.label || '' : 'Selecione uma função'}
+            accessibilityHint="Toque para selecionar a função"
+            testID="select-role"
+          >
+            <RNText
+              style={
+                role
+                  ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: '#3D2020', flex: 1 }
+                  : { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: 'rgba(139, 107, 90, 0.6)', flex: 1 }
+              }
+            >
+              {role ? ROLE_OPTIONS.find((r) => r.value === role)?.label : 'Selecione...'}
+            </RNText>
+            <RNText style={arrowIconStyle}>expand_more</RNText>
+          </TouchableOpacity>
+          {showRolePicker && (
+            <View style={roleDropdownStyle}>
+              {ROLE_OPTIONS.map((option, index) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    roleOptionStyle,
+                    index === ROLE_OPTIONS.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                  onPress={() => {
+                    setRole(option.value);
+                    setShowRolePicker(false);
+                    if (errors.role) setErrors((prev) => ({ ...prev, role: undefined }));
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: role === option.value }}
+                  accessibilityLabel={option.label}
+                  testID={`role-${option.value}`}
+                >
+                  <RNText
+                    style={{
+                      fontFamily: theme.typography.fontFamily,
+                      fontSize: 14,
+                      fontWeight: '400',
+                      color: role === option.value ? theme.colors.primary : '#3D2020',
+                    }}
+                  >
+                    {option.label}
+                  </RNText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {errors.role ? (
+            <RNText style={errorTextStyle}>{errors.role}</RNText>
+          ) : null}
+        </View>
+
         {/* Nome Field */}
         <View style={fieldContainerStyle}>
           <RNText style={labelStyle}>Nome</RNText>
@@ -547,67 +608,6 @@ export function UserFormScreen() {
           </View>
           {errors.confirmPassword ? (
             <RNText style={errorTextStyle}>{errors.confirmPassword}</RNText>
-          ) : null}
-        </View>
-
-        {/* Função Field (Role Selector) */}
-        <View style={fieldContainerStyle}>
-          <RNText style={labelStyle}>Função</RNText>
-          <TouchableOpacity
-            style={inputContainerStyle}
-            onPress={() => setShowRolePicker(!showRolePicker)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={role ? ROLE_OPTIONS.find((r) => r.value === role)?.label || '' : 'Selecione uma função'}
-            accessibilityHint="Toque para selecionar a função"
-            testID="select-role"
-          >
-            <RNText
-              style={
-                role
-                  ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: '#3D2020', flex: 1 }
-                  : { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: 'rgba(139, 107, 90, 0.6)', flex: 1 }
-              }
-            >
-              {role ? ROLE_OPTIONS.find((r) => r.value === role)?.label : 'Selecione...'}
-            </RNText>
-            <RNText style={arrowIconStyle}>expand_more</RNText>
-          </TouchableOpacity>
-          {showRolePicker && (
-            <View style={roleDropdownStyle}>
-              {ROLE_OPTIONS.map((option, index) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    roleOptionStyle,
-                    index === ROLE_OPTIONS.length - 1 && { borderBottomWidth: 0 },
-                  ]}
-                  onPress={() => {
-                    setRole(option.value);
-                    setShowRolePicker(false);
-                    if (errors.role) setErrors((prev) => ({ ...prev, role: undefined }));
-                  }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: role === option.value }}
-                  accessibilityLabel={option.label}
-                  testID={`role-${option.value}`}
-                >
-                  <RNText
-                    style={{
-                      fontFamily: theme.typography.fontFamily,
-                      fontSize: 14,
-                      fontWeight: '400',
-                      color: role === option.value ? theme.colors.primary : '#3D2020',
-                    }}
-                  >
-                    {option.label}
-                  </RNText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          {errors.role ? (
-            <RNText style={errorTextStyle}>{errors.role}</RNText>
           ) : null}
         </View>
 

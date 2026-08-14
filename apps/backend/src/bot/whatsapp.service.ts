@@ -3,7 +3,7 @@
  */
 
 import { pool } from '../config/database.js';
-import { supabaseAdmin } from '../config/supabase.js';
+import { broadcast } from '../config/realtime.js';
 import { sendTextMessage } from './evolution-api.client.js';
 import { WHATSAPP_SESSION_TIMEOUT_MS } from '@order-system/shared';
 import { toZonedTime, format } from 'date-fns-tz';
@@ -303,21 +303,16 @@ async function createWhatsAppOrder(phoneNumber: string, customerName: string, ca
 
     // Publish realtime event (fire and forget)
     try {
-      const channel = supabaseAdmin.channel('orders:queue');
-      await channel.send({
-        type: 'broadcast',
-        event: 'new_order',
-        payload: {
-          id: order.id,
-          dailyNumber: order.daily_number,
-          customerName: order.customer_name,
-          origin: order.origin,
-          status: order.status,
-          paymentStatus: order.payment_status,
-          totalAmountCents: order.total_amount_cents,
-          orderDate: order.order_date,
-          createdAt: order.created_at,
-        },
+      broadcast('orders:queue', 'new_order', {
+        id: order.id,
+        dailyNumber: order.daily_number,
+        customerName: order.customer_name,
+        origin: order.origin,
+        status: order.status,
+        paymentStatus: order.payment_status,
+        totalAmountCents: order.total_amount_cents,
+        orderDate: order.order_date,
+        createdAt: order.created_at,
       });
     } catch {
       console.error('[whatsapp-bot] Failed to publish realtime event');

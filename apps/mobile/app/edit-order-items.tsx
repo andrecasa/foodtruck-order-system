@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, type ViewStyle } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { PaymentScreen } from '../../src/screens/PaymentScreen';
-import { Screen, Text } from '../../src/components';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { apiClient } from '../../src/services/api-client';
+import { useLocalSearchParams } from 'expo-router';
+import { EditOrderItemsScreen } from '../src/screens/EditOrderItemsScreen';
+import { Screen } from '../src/components';
+import { Text } from '../src/components/Typography';
+import { Header } from '../src/components/Layout';
+import { useTheme } from '../src/theme/ThemeProvider';
+import { apiClient } from '../src/services/api-client';
 import type { Order } from '@order-system/shared';
 
 /**
- * Payment modal route — opened from OrderQueueScreen with an order ID.
- * Uses useLocalSearchParams() to receive the orderId, then fetches the order
- * and passes it to PaymentScreen.
+ * Route: /edit-order-items
+ * Opens the Edit Order Items screen for a given order.
  *
- * Usage: router.push({ pathname: '/payment', params: { orderId: 'xxx' } })
+ * Usage: router.push({ pathname: '/edit-order-items', params: { orderId: 'xxx' } })
+ *
+ * Route params:
+ * - orderId: string — the order to edit items for
  */
-export default function PaymentRoute() {
+export default function EditOrderItemsRoute() {
   const theme = useTheme();
-  const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,12 +55,13 @@ export default function PaymentRoute() {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.xl,
+    padding: 32,
   };
 
   if (loading) {
     return (
-      <Screen>
+      <Screen padding={false}>
+        <Header title="Editar Itens" icon="edit" />
         <View style={centerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
@@ -67,7 +71,8 @@ export default function PaymentRoute() {
 
   if (error || !order) {
     return (
-      <Screen>
+      <Screen padding={false}>
+        <Header title="Editar Itens" icon="edit" />
         <View style={centerStyle}>
           <Text size="lg" color={theme.colors.error}>
             {error ?? 'Pedido não encontrado'}
@@ -77,12 +82,5 @@ export default function PaymentRoute() {
     );
   }
 
-  return (
-    <PaymentScreen
-      order={order}
-      onPaymentSuccess={() => {
-        router.back();
-      }}
-    />
-  );
+  return <EditOrderItemsScreen orderId={orderId!} order={order} />;
 }

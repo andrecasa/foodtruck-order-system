@@ -8,6 +8,7 @@ export type {
   CreateOrderRequest,
   UpdateOrderStatusRequest,
   RegisterPaymentRequest,
+  UpdateOrderItemsRequest,
 } from './order';
 
 export type {

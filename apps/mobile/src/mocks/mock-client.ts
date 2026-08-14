@@ -6,6 +6,7 @@ import type {
   OrderStatus,
   CreateOrderRequest,
   UpdateOrderStatusRequest,
+  UpdateOrderItemsRequest,
   RegisterPaymentRequest,
   DailySummary,
 } from '@order-system/shared';
@@ -203,6 +204,43 @@ export const mockClient: ApiClient = {
     } else if (data.status === 'entregue') {
       updated.deliveredAt = timestamp;
     }
+
+    ordersState[index] = updated;
+    return updated;
+  },
+
+  async updateOrderItems(orderId: string, data: UpdateOrderItemsRequest): Promise<Order> {
+    await delay();
+    const index = ordersState.findIndex((order) => order.id === orderId);
+    if (index === -1) {
+      throw new Error('Pedido não encontrado (404)');
+    }
+
+    const order = ordersState[index]!;
+    if (order.status !== 'aguardando') {
+      throw new Error('Pedido só pode ser editado no status aguardando (422)');
+    }
+
+    const items = data.items.map((reqItem) => {
+      const menuItem = menuState.find((m) => m.id === reqItem.menuItemId);
+      if (!menuItem || menuItem.status !== 'ativo') {
+        throw new Error(`Item não encontrado ou inativo: ${reqItem.menuItemId} (422)`);
+      }
+      return {
+        menuItemId: menuItem.id,
+        name: menuItem.name,
+        quantity: reqItem.quantity,
+        unitPrice: menuItem.price,
+      };
+    });
+
+    const totalAmount = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+
+    const updated: Order = {
+      ...order,
+      items,
+      totalAmount,
+    };
 
     ordersState[index] = updated;
     return updated;

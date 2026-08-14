@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import type { Order, OrderStatus } from '@order-system/shared';
+import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 import {
   Screen,
   Header,
@@ -157,12 +157,30 @@ export function OrderQueueScreen() {
     alignItems: 'center',
   };
 
+  const paymentBadgeStyle = (status: PaymentStatus): ViewStyle => ({
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: status === 'pago' ? '#5A8C5A' : '#B54040',
+    alignItems: 'center',
+    justifyContent: 'center',
+  });
+
+  const paymentBadgeIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#FFFFFF',
+  };
+
   const itemsTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 13,
     fontWeight: '400',
     color: theme.colors.text,
     lineHeight: 18,
+    alignSelf: 'center',
+    textAlign: 'center',
   };
 
   const priceTextStyle: TextStyle = {
@@ -170,6 +188,7 @@ export function OrderQueueScreen() {
     fontSize: 18,
     fontWeight: '600',
     color: theme.colors.text,
+    alignSelf: 'center',
   };
 
   const emptyContainerStyle: ViewStyle = {
@@ -259,8 +278,11 @@ export function OrderQueueScreen() {
               accessibilityLabel={`Pedido ${order.dailyNumber}, ${order.customerName}, status ${order.status}`}
               accessibilityHint="Toque para abrir pagamento"
             >
-              {/* Card Header: "#1 — Nome" + Badge (Penpot format) */}
+              {/* Card Header: Payment badge + "#1 — Nome" + Status Badge (Penpot format) */}
               <View style={cardHeaderStyle}>
+                <View style={paymentBadgeStyle(order.paymentStatus)}>
+                  <RNText style={paymentBadgeIconStyle}>payments</RNText>
+                </View>
                 <Text
                   size="lg"
                   weight="medium"

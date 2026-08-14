@@ -6,6 +6,7 @@ import type {
   OrderStatus,
   CreateOrderRequest,
   UpdateOrderStatusRequest,
+  UpdateOrderItemsRequest,
   RegisterPaymentRequest,
   DailySummary,
 } from '@order-system/shared';
@@ -241,6 +242,15 @@ export const realClient: ApiClient = {
   async updateOrderStatus(id: string, data: UpdateOrderStatusRequest): Promise<Order> {
     const response = await authFetch(`/api/orders/${id}/status`, {
       method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    const raw = await response.json();
+    return mapOrder(raw);
+  },
+
+  async updateOrderItems(orderId: string, data: UpdateOrderItemsRequest): Promise<Order> {
+    const response = await authFetch(`/api/orders/${orderId}/items`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
     const raw = await response.json();

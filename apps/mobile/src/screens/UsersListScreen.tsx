@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -8,7 +8,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { Screen } from '../components/Layout';
 import { FilterChips, type FilterChipOption } from '../components/FilterChips';
 import { ToggleSwitch } from '../components/ToggleSwitch';
@@ -58,6 +58,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export function UsersListScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,9 +93,12 @@ export function UsersListScreen() {
     }
   }, [selectedFilter]);
 
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+  // Refetch users when screen regains focus (e.g., after editing a user)
+  useFocusEffect(
+    useCallback(() => {
+      loadUsers();
+    }, [loadUsers])
+  );
 
   const handleFilterChange = useCallback((selected: string[]) => {
     setSelectedFilter(selected);
@@ -186,7 +190,7 @@ export function UsersListScreen() {
     alignSelf: 'flex-start',
   };
 
-  // Badge text: Inter 8px weight 400, white (Penpot spec: ALWAYS 400 for all badge sizes)
+  // Badge text: Inter 8px weight 400, white (Penpot spec: ALWAYS white for role badges)
   const roleBadgeTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 8,
@@ -278,15 +282,8 @@ export function UsersListScreen() {
     const isToggling = togglingUserId === item.id;
 
     return (
-      <Pressable
+      <View
         style={userCardStyle}
-        onPress={() =>
-          router.push({
-            pathname: '/user-detail',
-            params: { id: item.id },
-          })
-        }
-        accessibilityRole="button"
         accessibilityLabel={`${item.name}, ${item.email}, ${ROLE_LABELS[item.role]}, ${isActive ? 'Ativo' : 'Inativo'}`}
         testID={`user-card-${item.id}`}
       >
@@ -295,10 +292,10 @@ export function UsersListScreen() {
           <View
             style={[
               roleBadgeBaseStyle,
-              { backgroundColor: ROLE_BADGE_COLORS[item.role] },
+              { backgroundColor: ROLE_BADGE_COLORS[item.role] + '1F' },
             ]}
           >
-            <RNText style={roleBadgeTextStyle}>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 8, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
               {ROLE_LABELS[item.role]}
             </RNText>
           </View>
@@ -310,13 +307,12 @@ export function UsersListScreen() {
         <View style={userMetaStyle}>
           <Pressable
             style={editBtnStyle}
-            onPress={(e) => {
-              e.stopPropagation();
+            onPress={() =>
               router.push({
                 pathname: '/user-detail',
                 params: { id: item.id },
-              });
-            }}
+              })
+            }
             accessibilityRole="button"
             accessibilityLabel={`Editar ${item.name}`}
             testID={`edit-user-${item.id}`}
@@ -333,7 +329,7 @@ export function UsersListScreen() {
             testID={`toggle-user-${item.id}`}
           />
         </View>
-      </Pressable>
+      </View>
     );
   };
 
@@ -424,7 +420,13 @@ export function UsersListScreen() {
       {/* AppBar: arrow_back + "Usuários" */}
       <View style={appBarStyle} accessibilityRole="header">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/');
+            }
+          }}
           accessibilityRole="button"
           accessibilityLabel="Voltar"
           testID="back-button"

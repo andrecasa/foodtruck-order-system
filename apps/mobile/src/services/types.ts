@@ -6,6 +6,7 @@ import type {
   OrderStatus,
   CreateOrderRequest,
   UpdateOrderStatusRequest,
+  UpdateOrderItemsRequest,
   RegisterPaymentRequest,
   DailySummary,
 } from '@order-system/shared';
@@ -26,6 +27,7 @@ export interface ApiClient {
   getOrders(filter?: { status?: OrderStatus[] }): Promise<Order[]>;
   createOrder(data: CreateOrderRequest): Promise<Order>;
   updateOrderStatus(id: string, data: UpdateOrderStatusRequest): Promise<Order>;
+  updateOrderItems(orderId: string, data: UpdateOrderItemsRequest): Promise<Order>;
 
   // Payment
   registerPayment(id: string, data: RegisterPaymentRequest): Promise<Order>;

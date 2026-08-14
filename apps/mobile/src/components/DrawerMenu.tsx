@@ -109,7 +109,6 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     ...(user?.role === 'admin'
       ? [{ icon: 'group', label: 'Usuários', route: '/users-list' }]
       : []),
-    { icon: 'settings', label: 'Configurações' },
   ];
 
   const handleNavigate = (item: DrawerMenuItem) => {

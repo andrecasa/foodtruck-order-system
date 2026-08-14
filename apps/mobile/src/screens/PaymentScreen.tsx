@@ -22,9 +22,9 @@ function formatPrice(priceInCentavos: number): string {
 }
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: 'dinheiro', label: 'Dinheiro' },
   { value: 'pix', label: 'PIX' },
   { value: 'cartão', label: 'Cartão' },
+  { value: 'dinheiro', label: 'Dinheiro' },
 ];
 
 export interface PaymentScreenProps {
@@ -47,7 +47,7 @@ export interface PaymentScreenProps {
  *   - Item: 14px weight 400 left, quantity "2x" right 14px weight 400 color #8B6B5A
  * - Payment buttons: height 44px, radius 22px
  *   - Unselected: bg white, border 1px #E8DDD5, text 14px weight 400 color #3D2020
- *   - Selected: bg #7B2D2D 12% opacity, no border, text 14px weight 400 color #7B2D2D
+ *   - Selected: bg #5A8C5A (success green), no border, text 14px weight 400 color #FFFFFF
  * - Button "Confirmar Pagamento": height 44px, radius 22px, bg #7B2D2D, text 14px weight 400
  */
 export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
@@ -57,7 +57,6 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const isAlreadyPaid = order.paymentStatus === 'pago';
 
@@ -81,7 +80,6 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
       const updatedOrder = await apiClient.registerPayment(order.id, {
         paymentMethod: selectedMethod,
       });
-      setSuccess(true);
       onPaymentSuccess?.(updatedOrder);
     } catch (err) {
       if (err instanceof Error && err.message.includes('409')) {
@@ -176,7 +174,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const paymentButtonStyle = (selected: boolean): ViewStyle => ({
     height: 44,
     borderRadius: 22,
-    backgroundColor: selected ? `${theme.colors.primary}1F` : '#FFFFFF', // 12% opacity
+    backgroundColor: selected ? '#5A8C5A' : '#FFFFFF',
     borderWidth: selected ? 0 : 1,
     borderColor: selected ? 'transparent' : '#E8DDD5',
     alignItems: 'center',
@@ -187,7 +185,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: selected ? theme.colors.primary : theme.colors.text,
+    color: selected ? '#FFFFFF' : theme.colors.text,
   });
 
   const errorContainerStyle: ViewStyle = {
@@ -203,80 +201,12 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     color: theme.colors.error,
   };
 
-  const successContainerStyle: ViewStyle = {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  };
-
-  const successTitleStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '500',
-    color: theme.colors.text,
-    textAlign: 'center',
-  };
-
-  const successDetailStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: theme.colors.text,
-    textAlign: 'center',
-    marginTop: 12,
-  };
-
   // ─── Render ─────────────────────────────────────────────────────────────────
-
-  // Success state
-  if (success) {
-    return (
-      <Screen padding={false}>
-        <Header title="Pagamento" icon="payments" />
-        <View style={successContainerStyle}>
-          <RNText style={successTitleStyle}>Pagamento registrado!</RNText>
-          <RNText style={successDetailStyle}>
-            {formatPrice(order.totalAmount)} via{' '}
-            {PAYMENT_METHODS.find((m) => m.value === selectedMethod)?.label}
-          </RNText>
-          <View style={{ marginTop: 24, width: '100%', paddingHorizontal: 32 }}>
-            <TouchableOpacity
-              style={{
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: theme.colors.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                alignSelf: 'stretch',
-              }}
-              onPress={() => router.replace('/(tabs)/new-order')}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Novo Pedido"
-              testID="new-order-button"
-            >
-              <RNText
-                style={{
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: 14,
-                  fontWeight: '400',
-                  color: '#FFFFFF',
-                }}
-              >
-                Novo Pedido
-              </RNText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Screen>
-    );
-  }
 
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Pagamento" icon="payments" />
+      <Header title="Pagamento" icon="payments" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* Order Header & Amount */}
@@ -290,11 +220,11 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
         </View>
 
         {/* Error Message */}
-        {error && (
+        {error ? (
           <View style={errorContainerStyle}>
             <RNText style={errorTextStyle}>{error}</RNText>
           </View>
-        )}
+        ) : null}
 
         {/* Order Items */}
         <View>
@@ -309,107 +239,145 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           </View>
         </View>
 
-        {/* Payment Method Selection */}
-        <View>
-          <RNText style={sectionTitleStyle}>Forma de pagamento</RNText>
-          <View style={methodsContainerStyle}>
-            {PAYMENT_METHODS.map((method) => (
-              <TouchableOpacity
-                key={method.value}
-                style={paymentButtonStyle(selectedMethod === method.value)}
-                onPress={() => setSelectedMethod(method.value)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: selectedMethod === method.value }}
-                accessibilityLabel={method.label}
-                testID={`payment-method-${method.value}`}
+        {/* Already Paid State — show only payment method badge + message */}
+        {isAlreadyPaid ? (
+          <View>
+            <RNText style={sectionTitleStyle}>Forma de pagamento</RNText>
+            <View style={methodsContainerStyle}>
+              <View
+                style={{
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: `${theme.colors.success}1F`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                <RNText style={paymentButtonTextStyle(selectedMethod === method.value)}>
-                  {method.label}
+                <RNText
+                  style={{
+                    fontFamily: theme.typography.fontFamily,
+                    fontSize: 14,
+                    fontWeight: '400',
+                    color: theme.colors.success,
+                  }}
+                >
+                  {PAYMENT_METHODS.find((m) => m.value === order.paymentMethod)?.label ?? 'Pago'}
                 </RNText>
-              </TouchableOpacity>
-            ))}
+              </View>
+            </View>
+            <RNText
+              style={{
+                fontFamily: theme.typography.fontFamily,
+                fontSize: 12,
+                fontWeight: '400',
+                color: theme.colors.success,
+                textAlign: 'center',
+                marginTop: 16,
+              }}
+            >
+              Pedido já foi pago
+            </RNText>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* Payment Method Selection */}
+            <View>
+              <RNText style={sectionTitleStyle}>Forma de pagamento</RNText>
+              <View style={methodsContainerStyle}>
+                {PAYMENT_METHODS.map((method) => (
+                  <TouchableOpacity
+                    key={method.value}
+                    style={paymentButtonStyle(selectedMethod === method.value)}
+                    onPress={() => setSelectedMethod(method.value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: selectedMethod === method.value }}
+                    accessibilityLabel={method.label}
+                    testID={`payment-method-${method.value}`}
+                  >
+                    <RNText style={paymentButtonTextStyle(selectedMethod === method.value)}>
+                      {method.label}
+                    </RNText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-        {/* Confirm Button — Penpot: full width, height 44, radius 22, bg primary solid */}
-        <TouchableOpacity
-          style={{
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: (!selectedMethod || isAlreadyPaid) ? '#E8DDD5' : theme.colors.primary,
-            alignItems: 'center',
-            justifyContent: 'center',
-            alignSelf: 'stretch',
-          }}
-          onPress={handleConfirmPress}
-          disabled={!selectedMethod || isAlreadyPaid || loading}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Confirmar Pagamento"
-          testID="confirm-payment-button"
-        >
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 14,
-              fontWeight: '400',
-              color: (!selectedMethod || isAlreadyPaid) ? '#9E9E9E' : '#FFFFFF',
-            }}
-          >
-            Confirmar Pagamento
-          </RNText>
-        </TouchableOpacity>
+            {/* Confirm Button */}
+            <TouchableOpacity
+              style={{
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: !selectedMethod ? '#E8DDD5' : theme.colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                alignSelf: 'stretch',
+              }}
+              onPress={handleConfirmPress}
+              disabled={!selectedMethod || loading}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Confirmar Pagamento"
+              testID="confirm-payment-button"
+            >
+              <RNText
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 14,
+                  fontWeight: '400',
+                  color: !selectedMethod ? '#9E9E9E' : '#FFFFFF',
+                }}
+              >
+                Confirmar Pagamento
+              </RNText>
+            </TouchableOpacity>
 
-        {/* "+ Adicionar Item" button — Penpot specs:
-         * height: 44, borderRadius: 22, bg: #FFFFFF, border: 1px #E8DDD5 inner
-         * text: "+" 16px + "Adicionar Item" 14px, weight 400, color #3D2020
-         * layout: row, gap 6, alignItems center, justifyContent center
-         * horizontalSizing: fill (full width) */}
-        <TouchableOpacity
-          style={{
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: '#FFFFFF',
-            borderWidth: 1,
-            borderColor: '#E8DDD5',
-            flexDirection: 'row',
-            gap: 6,
-            alignItems: 'center',
-            justifyContent: 'center',
-            alignSelf: 'stretch',
-          }}
-          onPress={() => router.replace('/(tabs)/new-order')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Adicionar Item"
-          testID="add-items-button-main"
-        >
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 16,
-              fontWeight: '400',
-              color: theme.colors.text,
-            }}
-          >
-            +
-          </RNText>
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 14,
-              fontWeight: '400',
-              color: theme.colors.text,
-            }}
-          >
-            Adicionar Item
-          </RNText>
-        </TouchableOpacity>
-
-        {isAlreadyPaid && (
-          <RNText style={{ ...errorTextStyle, textAlign: 'center', marginTop: 8 }}>
-            Pedido já foi pago
-          </RNText>
+            {/* "+ Adicionar Item" button */}
+            <TouchableOpacity
+              style={{
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: '#FFFFFF',
+                borderWidth: 1,
+                borderColor: '#E8DDD5',
+                flexDirection: 'row',
+                gap: 6,
+                alignItems: 'center',
+                justifyContent: 'center',
+                alignSelf: 'stretch',
+              }}
+              onPress={() =>
+                router.push({
+                  pathname: '/edit-order-items',
+                  params: { orderId: order.id },
+                })
+              }
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Adicionar Item"
+              testID="add-items-button-main"
+            >
+              <RNText
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 16,
+                  fontWeight: '400',
+                  color: theme.colors.text,
+                }}
+              >
+                +
+              </RNText>
+              <RNText
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 14,
+                  fontWeight: '400',
+                  color: theme.colors.text,
+                }}
+              >
+                Adicionar Item
+              </RNText>
+            </TouchableOpacity>
+          </>
         )}
       </ScrollContainer>
 

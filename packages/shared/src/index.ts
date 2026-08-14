@@ -8,6 +8,7 @@ export type {
   CreateOrderRequest,
   UpdateOrderStatusRequest,
   RegisterPaymentRequest,
+  UpdateOrderItemsRequest,
   MenuItemStatus,
   MenuItem,
   CreateMenuItemRequest,
@@ -19,6 +20,7 @@ export type {
 export {
   createOrderRequestSchema,
   updateOrderStatusRequestSchema,
+  updateOrderItemsRequestSchema,
 } from './validators/order.validator';
 
 export {

@@ -106,25 +106,21 @@ pnpm dev:web
 ### Modo Completo (com infraestrutura)
 
 ```bash
-# 1. Gerar chaves JWT (atualiza .env e kong.yml)
+# 1. Gerar chaves JWT (atualiza .env, kong.yml, apps/mobile/.env)
 ./scripts/generate-keys.sh
 
-# 2. Subir tudo
+# 2. Subir tudo (seed-realtime cria tenant automaticamente)
 docker compose down -v
 docker compose up -d --build
 
-# 3. Aguardar Realtime criar tenant + seed corrigir (~15s)
+# 3. Aguardar estabilizar
 sleep 15
 
-# 4. Reiniciar Realtime (pegar jwt_secret atualizado pelo seed)
-docker compose restart realtime
-
-# 5. Criar usuário admin (padrão: admin@foodtruck.com / 12345678)
-sleep 5
+# 4. Criar usuário admin (padrão: admin@foodtruck.com / 12345678)
 ./scripts/seed-admin.sh
 
-# 6. Iniciar apps
-pnpm dev:mobile    # App mobile (Expo)
+# 5. Iniciar apps
+pnpm dev:mobile    # App mobile (Expo) — rodar de apps/mobile/
 pnpm dev:web       # Painel web (porta 3000)
 ```
 
@@ -135,8 +131,8 @@ pnpm dev:web       # Painel web (porta 3000)
 ```bash
 docker compose down -v
 docker compose up -d --build
-sleep 15 && docker compose restart realtime
-sleep 5 && ./scripts/seed-admin.sh
+sleep 15
+./scripts/seed-admin.sh
 ```
 
 ### Scripts

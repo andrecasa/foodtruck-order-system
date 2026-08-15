@@ -86,7 +86,7 @@ services:
 consumers:
   - username: anon
     keyauth_credentials:
-      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg2NzY1Njc3LCJleHAiOjIxMDIxMjU2Nzd9.uVVIy0uFgKhshUemCADmdnTxl8kI1ftoG7Z1vtvYZ5w
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg2NzY5MTgzLCJleHAiOjIxMDIxMjkxODN9.B0sowRApntbsPQALB7_4CpT03vhl98XTQqcZIqHSnBw
   - username: service_role
     keyauth_credentials:
-      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODY3NjU2NzcsImV4cCI6MjEwMjEyNTY3N30.MhM4IE6_mPKWemT_-Oz3NprI19X3wT1Ne7eUB9nTwls
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODY3NjkxODMsImV4cCI6MjEwMjEyOTE4M30.nzQNL-Z3qx1zZr23oEfxHMs0q9unPkP6QbRF-uAUE6g

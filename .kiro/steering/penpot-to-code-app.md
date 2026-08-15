@@ -413,7 +413,7 @@ Menu Items:
     - Icon: Material Symbols 22px, color #7B2D2D (primary)
     - Label: Inter 16px weight 400, color #3D2020
 
-  Items: Pedidos, Novo Pedido, Cardápio, Resumo do Dia, Usuários (admin only), Configurações
+  Items: Pedidos, Novo Pedido, Cardápio, Resumo Financeiro, Usuários (admin only), Configurações
 
 Divider:
   height: 1px

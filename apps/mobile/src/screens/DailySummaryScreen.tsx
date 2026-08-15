@@ -25,10 +25,10 @@ function formatPrice(priceInCentavos: number): string {
 }
 
 /**
- * Resumo do Dia (Daily Summary) Screen — pixel-perfect match to Penpot design.
+ * Resumo Financeiro (Daily Summary) Screen — pixel-perfect match to Penpot design.
  *
  * Penpot specs:
- * - AppBar: bg white, shadow, title "Resumo do Dia" 18px weight 500, color theme.text
+ * - AppBar: bg white, shadow, title "Resumo Financeiro" 18px weight 500, color theme.text
  * - Content: padding 16px, gap 16px
  * - Hero card (Revenue): bg primary (#7B2D2D) at 6% opacity, radius 12px, padding 16px, text-align center
  *   - Label "Faturamento Total": 12px weight 400, color #8B6B5A (textSecondary)
@@ -208,7 +208,7 @@ export function DailySummaryScreen() {
   if (loading) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Dia" icon="bar_chart" />
+        <Header title="Resumo Financeiro" icon="monitoring" />
         <View style={loadingContainerStyle} accessibilityLabel="Carregando resumo">
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text size="md" style={{ marginTop: 8 }}>
@@ -223,7 +223,7 @@ export function DailySummaryScreen() {
   if (error && !summary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Dia" icon="bar_chart" />
+        <Header title="Resumo Financeiro" icon="monitoring" />
         <View style={errorContainerStyle}>
           <Text size="lg" color={theme.colors.error}>
             {error}
@@ -247,7 +247,7 @@ export function DailySummaryScreen() {
   if (!summary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Dia" icon="bar_chart" />
+        <Header title="Resumo Financeiro" icon="monitoring" />
         <View style={errorContainerStyle}>
           <Text size="md" color="#8B6B5A">
             Nenhum dado disponível.
@@ -260,7 +260,7 @@ export function DailySummaryScreen() {
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Resumo do Dia" icon="bar_chart" />
+      <Header title="Resumo Financeiro" icon="monitoring" />
 
       <ScrollView
         contentContainerStyle={contentStyle}

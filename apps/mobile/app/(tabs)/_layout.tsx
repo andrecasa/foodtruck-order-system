@@ -85,7 +85,7 @@ export default function TabsLayout() {
         name="summary"
         options={{
           title: 'Resumo',
-          tabBarIcon: ({ color }) => <TabIcon name="bar_chart" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="monitoring" color={color} />,
         }}
       />
       <Tabs.Screen

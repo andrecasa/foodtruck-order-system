@@ -28,7 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: 'receipt_long', label: 'Pedidos', route: '/(tabs)' },
   { icon: 'add_circle', label: 'Novo', route: '/(tabs)/new-order' },
   { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
-  { icon: 'bar_chart', label: 'Resumo', route: '/(tabs)/summary' },
+  { icon: 'monitoring', label: 'Resumo', route: '/(tabs)/summary' },
 ];
 
 export function BottomNav() {

@@ -174,7 +174,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const paymentButtonStyle = (selected: boolean): ViewStyle => ({
     height: 44,
     borderRadius: 22,
-    backgroundColor: selected ? 'rgba(123, 45, 45, 0.12)' : '#FFFFFF',
+    backgroundColor: selected ? '#5A8C5A' : '#FFFFFF',
     borderWidth: selected ? 0 : 1,
     borderColor: selected ? 'transparent' : '#E8DDD5',
     alignItems: 'center',
@@ -185,7 +185,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: selected ? '#7B2D2D' : theme.colors.text,
+    color: selected ? '#FFFFFF' : theme.colors.text,
   });
 
   const errorContainerStyle: ViewStyle = {

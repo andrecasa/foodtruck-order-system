@@ -39,12 +39,13 @@ describe('Property 6: Stepper Initialization Reflects Active Order Items', () =>
   const menuItemIdArb = fc.uuid();
 
   // Generator: a set of all menu item IDs and a subset that are active
-  const menuStateArb = fc
+  type MenuState = { allIds: string[]; activeIds: string[] };
+  const menuStateArb: fc.Arbitrary<MenuState> = fc
     .array(menuItemIdArb, { minLength: 1, maxLength: 20 })
-    .chain((allIds) => {
+    .chain((allIds): fc.Arbitrary<MenuState> => {
       // Deduplicate
       const uniqueIds = [...new Set(allIds)];
-      if (uniqueIds.length === 0) return fc.constant({ allIds: [], activeIds: [] });
+      if (uniqueIds.length === 0) return fc.constant({ allIds: [] as string[], activeIds: [] as string[] });
 
       // Randomly select which ones are active (at least 0, up to all)
       return fc
@@ -56,7 +57,8 @@ describe('Property 6: Stepper Initialization Reflects Active Order Items', () =>
     });
 
   // Generator: order items referencing a subset of all menu item IDs
-  const orderWithMenuArb = menuStateArb.chain(({ allIds, activeIds }) => {
+  type OrderWithMenu = { orderItems: { menuItemId: string; quantity: number }[]; activeIds: string[]; allIds: string[] };
+  const orderWithMenuArb: fc.Arbitrary<OrderWithMenu> = menuStateArb.chain(({ allIds, activeIds }): fc.Arbitrary<OrderWithMenu> => {
     if (allIds.length === 0) {
       return fc.constant({
         orderItems: [] as { menuItemId: string; quantity: number }[],
@@ -84,7 +86,7 @@ describe('Property 6: Stepper Initialization Reflects Active Order Items', () =>
 
         return {
           orderItems: items.map((s) => ({
-            menuItemId: allIds[s.index],
+            menuItemId: allIds[s.index]!,
             quantity: s.quantity,
           })),
           activeIds,

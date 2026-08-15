@@ -70,7 +70,7 @@ export async function getOrders(req: AuthenticatedRequest, res: Response): Promi
       );
       for (const item of itemsResult.rows) {
         if (!itemsMap[item.order_id]) itemsMap[item.order_id] = [];
-        itemsMap[item.order_id].push({
+        itemsMap[item.order_id]!.push({
           id: item.id,
           menuItemId: item.menu_item_id,
           itemName: item.item_name,

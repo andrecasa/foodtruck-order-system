@@ -61,8 +61,8 @@ describe('Property 9: Fila ordenada por created_at crescente', () => {
 
         // Consecutive orders must have createdAt in non-decreasing order
         for (let i = 1; i < queue.length; i++) {
-          const prevTime = new Date(queue[i - 1].createdAt).getTime();
-          const currTime = new Date(queue[i].createdAt).getTime();
+          const prevTime = new Date(queue[i - 1]!.createdAt).getTime();
+          const currTime = new Date(queue[i]!.createdAt).getTime();
           expect(prevTime).toBeLessThanOrEqual(currTime);
         }
       }),

@@ -174,7 +174,7 @@ describe('Property 4: Invalid Menu Items Cause Atomic Rejection', () => {
       if (deduped.length < 2) {
         return fc.constant(null);
       }
-      const inactiveItemId = deduped[deduped.length - 1].menuItemId;
+      const inactiveItemId = deduped[deduped.length - 1]!.menuItemId;
       return fc.constant({
         items: deduped,
         // DB returns all items, but the last one has status 'inativo'

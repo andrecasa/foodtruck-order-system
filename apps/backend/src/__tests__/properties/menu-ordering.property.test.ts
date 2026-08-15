@@ -65,8 +65,8 @@ describe('Property 5: Cardápio ordenado por categoria e nome', () => {
         .map((items) =>
           items.map((item) => ({
             name: item.name,
-            categoryName: categories[item.categoryIndex].name,
-            sortOrder: categories[item.categoryIndex].sortOrder,
+            categoryName: categories[item.categoryIndex]!.name,
+            sortOrder: categories[item.categoryIndex]!.sortOrder,
           }))
         )
     );
@@ -105,8 +105,8 @@ describe('Property 5: Cardápio ordenado por categoria e nome', () => {
 
         // Verify categories appear in sort_order ascending
         for (let i = 1; i < result.length; i++) {
-          const prevSortOrder = categoryToSortOrder.get(result[i - 1].category)!;
-          const currSortOrder = categoryToSortOrder.get(result[i].category)!;
+          const prevSortOrder = categoryToSortOrder.get(result[i - 1]!.category)!;
+          const currSortOrder = categoryToSortOrder.get(result[i]!.category)!;
           expect(prevSortOrder).toBeLessThanOrEqual(currSortOrder);
         }
       }),
@@ -122,8 +122,8 @@ describe('Property 5: Cardápio ordenado por categoria e nome', () => {
         // Within each category, consecutive items must be in alphabetical order
         for (const group of result) {
           for (let i = 1; i < group.items.length; i++) {
-            const comparison = group.items[i - 1].name.localeCompare(
-              group.items[i].name,
+            const comparison = group.items[i - 1]!.name.localeCompare(
+              group.items[i]!.name,
               'pt-BR'
             );
             expect(comparison).toBeLessThanOrEqual(0);

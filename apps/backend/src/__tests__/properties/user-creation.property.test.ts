@@ -150,7 +150,7 @@ describe('Property 2: Unicidade de e-mail case-insensitive', () => {
     return email
       .split('')
       .map((char, i) => {
-        const toggle = seed[i % seed.length] % 2 === 0;
+        const toggle = seed[i % seed.length]! % 2 === 0;
         return toggle ? char.toUpperCase() : char.toLowerCase();
       })
       .join('');

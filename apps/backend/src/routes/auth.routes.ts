@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, logout, getSession } from '../controllers/auth.controller.js';
+import { login, logout, getSession, refreshToken } from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { syncUserMiddleware } from '../middleware/sync-user.middleware.js';
 import { rateLimitMiddleware } from '../middleware/rate-limit.middleware.js';
@@ -11,6 +11,9 @@ router.post('/login', rateLimitMiddleware, login);
 
 // POST /api/auth/logout - Auth required
 router.post('/logout', authMiddleware, syncUserMiddleware, logout);
+
+// POST /api/auth/refresh - No auth required (access token may be expired)
+router.post('/refresh', refreshToken);
 
 // GET /api/auth/session - Auth required, returns current user
 router.get('/session', authMiddleware, syncUserMiddleware, getSession);

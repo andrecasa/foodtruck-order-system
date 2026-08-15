@@ -84,6 +84,7 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
   const priceCents = fc.integer({ min: 100, max: 50000 });
 
   // Generate 1–5 items with unique menuItemIds
+  type OrderItem = { menuItemId: string; quantity: number; priceCents: number; name: string };
   const orderItemsArb = fc
     .array(
       fc.record({
@@ -94,7 +95,7 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
       }),
       { minLength: 1, maxLength: 5 }
     )
-    .chain((items) => {
+    .chain((items): fc.Arbitrary<OrderItem[]> => {
       // Ensure unique menuItemIds
       const seen = new Set<string>();
       const unique = items.filter((item) => {
@@ -102,7 +103,7 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
         seen.add(item.menuItemId);
         return true;
       });
-      if (unique.length === 0) return fc.constant([items[0]]);
+      if (unique.length === 0) return fc.constant([items[0]!]);
       return fc.constant(unique);
     });
 
@@ -194,10 +195,10 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
                 rows: [{
                   id: `item-uuid-${i}`,
                   order_id: orderId,
-                  menu_item_id: items[i].menuItemId,
-                  item_name: items[i].name,
-                  unit_price_cents: items[i].priceCents,
-                  quantity: items[i].quantity,
+                  menu_item_id: items[i]!.menuItemId,
+                  item_name: items[i]!.name,
+                  unit_price_cents: items[i]!.priceCents,
+                  quantity: items[i]!.quantity,
                 }],
               });
             }

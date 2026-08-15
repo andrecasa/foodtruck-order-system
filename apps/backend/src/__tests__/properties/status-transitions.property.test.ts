@@ -116,7 +116,7 @@ describe('Property 11: Transições válidas registram timestamps', () => {
         expect(timestampField).toBeDefined();
         // Must be a non-empty string
         expect(typeof timestampField).toBe('string');
-        expect(timestampField.length).toBeGreaterThan(0);
+        expect(timestampField!.length).toBeGreaterThan(0);
 
         // Must be unique per transition (no two transitions share same field)
         const otherTransitions = VALID_TRANSITION_PAIRS.filter(

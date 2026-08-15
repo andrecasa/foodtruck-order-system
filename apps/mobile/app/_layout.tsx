@@ -2,6 +2,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   Inter_300Light,
   Inter_400Regular,
@@ -12,13 +13,12 @@ import { ThemeProvider } from '../src/theme/ThemeProvider';
 import { AuthProvider } from '../src/hooks/useAuth';
 
 /**
- * Root layout — loads custom fonts (Inter) and injects Material Symbols
- * via Google Fonts stylesheet on web.
+ * Root layout — loads custom fonts (Inter + Material Symbols Outlined)
+ * and injects Material Symbols via Google Fonts stylesheet on web.
  *
  * Font loading strategy:
  * - Inter: loaded via @expo-google-fonts/inter (all platforms)
- * - Material Symbols Outlined: Google Fonts stylesheet (web only for now)
- *   On native, will need a proper TTF or @expo/vector-icons fallback.
+ * - Material Symbols Outlined: loaded from local TTF asset (native) + Google Fonts stylesheet (web)
  */
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -26,6 +26,7 @@ export default function RootLayout() {
     'Inter-Light': Inter_300Light,
     'Inter-Medium': Inter_500Medium,
     'Inter-SemiBold': Inter_600SemiBold,
+    'Material Symbols Outlined': require('../assets/MaterialSymbolsOutlined.ttf'),
   });
 
   // Inject Google Fonts stylesheet on web for Inter + Material Symbols Outlined
@@ -50,48 +51,50 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="login" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="create-menu-item"
-            options={{
-              presentation: 'card',
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="edit-menu-item"
-            options={{
-              presentation: 'card',
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="users-list"
-            options={{
-              presentation: 'card',
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="user-form"
-            options={{
-              presentation: 'card',
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="user-detail"
-            options={{
-              presentation: 'card',
-              headerShown: false,
-            }}
-          />
-        </Stack>
-      </AuthProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="login" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="create-menu-item"
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="edit-menu-item"
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="users-list"
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="user-form"
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="user-detail"
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+          </Stack>
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

@@ -166,9 +166,9 @@ describe('Property 15: Fronteira de data por fuso horário', () => {
 
         // Must be a valid date when parsed
         const [yearStr, monthStr, dayStr] = orderDate.split('-');
-        const y = parseInt(yearStr, 10);
-        const m = parseInt(monthStr, 10);
-        const d = parseInt(dayStr, 10);
+        const y = parseInt(yearStr!, 10);
+        const m = parseInt(monthStr!, 10);
+        const d = parseInt(dayStr!, 10);
 
         expect(y).toBeGreaterThanOrEqual(2020);
         expect(y).toBeLessThanOrEqual(2030);

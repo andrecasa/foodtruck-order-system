@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -29,18 +29,8 @@
     },
     "scheme": "order-system",
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "http://localhost:8081"
-        }
-      ],
+      "expo-router",
       "expo-font"
-    ],
-    "extra": {
-      "router": {
-        "origin": "http://localhost:8081"
-      }
-    }
+    ]
   }
 }

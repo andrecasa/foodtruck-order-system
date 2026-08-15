@@ -121,6 +121,7 @@ sleep 15
 
 # 5. Iniciar apps
 pnpm dev:mobile    # App mobile (Expo) — rodar de apps/mobile/
+pnpm dev:mobile --clear    # App mobile (Expo) — rodar de apps/mobile/
 pnpm dev:web       # Painel web (porta 3000)
 ```
 

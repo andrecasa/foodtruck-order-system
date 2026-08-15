@@ -9,6 +9,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme';
 import { useAuth } from '../hooks/useAuth';
@@ -51,6 +52,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
   const theme = useTheme();
   const router = useRouter();
   const { logout, user } = useAuth();
+  const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
@@ -141,6 +143,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     width: DRAWER_WIDTH,
     backgroundColor: '#F5F0EB',
     height: '100%',
+    paddingTop: insets.top,
   };
 
   const headerStyle: ViewStyle = {

@@ -186,15 +186,15 @@ describe('WhatsApp Bot - Cart Operations', () => {
       unitPriceCents: 750,
     }];
     const updated = addToCart(cart, menuItem1, 3);
-    expect(updated[0].quantity).toBe(4);
+    expect(updated[0]!.quantity).toBe(4);
   });
 
   it('should add different items separately', () => {
     const cart = addToCart([], menuItem1, 1);
     const updated = addToCart(cart, menuItem2, 2);
     expect(updated).toHaveLength(2);
-    expect(updated[0].name).toBe('Pastel de Carne');
-    expect(updated[1].name).toBe('Água Mineral');
+    expect(updated[0]!.name).toBe('Pastel de Carne');
+    expect(updated[1]!.name).toBe('Água Mineral');
   });
 
   it('should calculate total correctly', () => {
@@ -353,7 +353,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'João', 'oi');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.number).toBe('5511999999999');
       expect(sentMessage.text).toContain('Olá, João!');
       expect(sentMessage.text).toContain('Pastel de Carne');
@@ -383,7 +383,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'Maria', 'oi');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.text).toContain('sem itens disponíveis');
     });
   });
@@ -415,7 +415,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'João', '1');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.text).toContain('Adicionado');
       expect(sentMessage.text).toContain('Pastel de Carne');
     });
@@ -437,7 +437,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'João', 'quero pastel');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.text).toContain('Não entendi');
       expect(sentMessage.text).toContain('PRONTO');
       expect(sentMessage.text).toContain('CANCELAR');
@@ -468,7 +468,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'João', 'pronto');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.text).toContain('Resumo do seu pedido');
       expect(sentMessage.text).toContain('2x Pastel de Carne');
       expect(sentMessage.text).toContain('R$ 15,00');
@@ -526,7 +526,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'João', 'confirmar');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.text).toContain('Pedido confirmado');
       expect(sentMessage.text).toContain('#7');
       expect(sentMessage.text).toContain('R$ 15,00');
@@ -555,7 +555,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'João', 'cancelar');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.text).toContain('cancelado');
     });
   });
@@ -598,8 +598,8 @@ describe('WhatsApp Bot - State Machine', () => {
 
       // Should send timeout message + greeting
       expect(mockSendTextMessage).toHaveBeenCalledTimes(2);
-      expect(mockSendTextMessage.mock.calls[0][0].text).toContain('expirou');
-      expect(mockSendTextMessage.mock.calls[1][0].text).toContain('Olá, João');
+      expect(mockSendTextMessage.mock.calls[0]![0].text).toContain('expirou');
+      expect(mockSendTextMessage.mock.calls[1]![0].text).toContain('Olá, João');
     });
   });
 
@@ -625,7 +625,7 @@ describe('WhatsApp Bot - State Machine', () => {
       await handleIncomingMessage('5511999999999', 'João', 'blablabla');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0][0];
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
       expect(sentMessage.text).toContain('Não entendi');
       expect(sentMessage.text).toContain('CONFIRMAR');
       expect(sentMessage.text).toContain('CANCELAR');

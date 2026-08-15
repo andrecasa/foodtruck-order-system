@@ -135,7 +135,7 @@ describe('Property 1: Total Calculation Invariant', () => {
         return {
           menuItems,
           requestItems: items.map((s) => ({
-            menuItemId: menuItems[s.index].id,
+            menuItemId: menuItems[s.index]!.id,
             quantity: s.quantity,
           })),
         };
@@ -188,7 +188,7 @@ describe('Property 1: Total Calculation Invariant', () => {
           // 3..N: INSERT each new order_item
           const insertIndex = clientQueryCallCount - 3;
           if (insertIndex < requestItems.length) {
-            const reqItem = requestItems[insertIndex];
+            const reqItem = requestItems[insertIndex]!;
             const menuItem = menuItems.find((mi) => mi.id === reqItem.menuItemId)!;
             return {
               rows: [{

@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { useRouter, useSegments } from 'expo-router';
 import { tokenStorage } from '../services/token-storage';
 import { apiClient } from '../services/api-client';
+import { authEvents } from '../services/auth-events';
 
 interface AuthUser {
   email: string;
@@ -68,6 +69,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkSession();
     return () => { cancelled = true; };
+  }, []);
+
+  // Listen for session expiration events (401 from API)
+  useEffect(() => {
+    const unsubscribe = authEvents.onSessionExpired(() => {
+      setUser(null);
+    });
+    return unsubscribe;
   }, []);
 
   // Auto-redirect based on auth state

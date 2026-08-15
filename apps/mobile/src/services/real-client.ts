@@ -12,24 +12,91 @@ import type {
 } from '@order-system/shared';
 import type { ApiClient } from './types';
 import { tokenStorage } from './token-storage';
+import { authEvents } from './auth-events';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
+/** Flag to prevent multiple simultaneous refresh attempts. */
+let isRefreshing = false;
+/** Queue of requests waiting for refresh to complete. */
+let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: Error) => void }> = [];
+
+/**
+ * Attempts to refresh the access token using the stored refresh token.
+ * Returns the new access token on success, or null if refresh fails.
+ */
+async function tryRefreshToken(): Promise<string | null> {
+  const refreshToken = await tokenStorage.getRefreshToken();
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    await tokenStorage.setTokens(data.accessToken, data.refreshToken, data.expiresIn);
+    return data.accessToken;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Handles token refresh with queuing to prevent multiple concurrent refresh calls.
+ */
+async function handleTokenRefresh(): Promise<string | null> {
+  if (isRefreshing) {
+    // Wait for the ongoing refresh to complete
+    return new Promise((resolve, reject) => {
+      refreshQueue.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      // Resolve all queued requests with the new token
+      refreshQueue.forEach(({ resolve }) => resolve(newToken));
+    } else {
+      // Reject all queued requests
+      refreshQueue.forEach(({ reject }) => reject(new Error('Refresh failed')));
+    }
+    refreshQueue = [];
+    return newToken;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
 /**
  * Performs an authenticated fetch request with automatic token handling.
- * Throws an error with status code info on non-2xx responses.
+ * On 401, attempts to refresh the token before failing.
  */
 async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const token = await tokenStorage.getAccessToken();
+  let token = await tokenStorage.getAccessToken();
+
+  // If token expired locally, try refreshing before giving up
+  if (!token) {
+    const newToken = await handleTokenRefresh();
+    if (!newToken) {
+      await tokenStorage.clear();
+      authEvents.emitSessionExpired();
+      throw new NetworkError('Sessão expirada. Faça login novamente.', 401);
+    }
+    token = newToken;
+  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
+    'Authorization': `Bearer ${token}`,
   };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -37,8 +104,35 @@ async function authFetch(path: string, options: RequestInit = {}): Promise<Respo
   });
 
   if (response.status === 401) {
-    // Token expired or invalid — clear stored tokens
+    // Token rejected by server — attempt refresh
+    const newToken = await handleTokenRefresh();
+    if (newToken) {
+      // Retry the original request with the new token
+      const retryHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string> || {}),
+        'Authorization': `Bearer ${newToken}`,
+      };
+      const retryResponse = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: retryHeaders,
+      });
+      if (retryResponse.status === 401) {
+        // Refresh token also invalid — session truly expired
+        await tokenStorage.clear();
+        authEvents.emitSessionExpired();
+        throw new NetworkError('Sessão expirada. Faça login novamente.', 401);
+      }
+      if (!retryResponse.ok) {
+        const body = await retryResponse.json().catch(() => ({}));
+        throw new NetworkError(body.message || `Erro ${retryResponse.status}`, retryResponse.status);
+      }
+      return retryResponse;
+    }
+
+    // Refresh failed — session expired
     await tokenStorage.clear();
+    authEvents.emitSessionExpired();
     throw new NetworkError('Sessão expirada. Faça login novamente.', 401);
   }
 

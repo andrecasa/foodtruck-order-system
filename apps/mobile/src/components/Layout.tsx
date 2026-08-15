@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   View,
   Text,
@@ -9,6 +8,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { PrototypeBanner } from './PrototypeBanner';
 import { DrawerMenu } from './DrawerMenu';

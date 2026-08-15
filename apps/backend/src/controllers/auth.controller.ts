@@ -116,3 +116,47 @@ export async function getSession(req: AuthenticatedRequest, res: Response): Prom
     user: req.user,
   });
 }
+
+/**
+ * POST /api/auth/refresh — Renew access token using a refresh token.
+ * No auth middleware required (the access token may already be expired).
+ */
+export async function refreshToken(req: Request, res: Response): Promise<void> {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    res.status(400).json({
+      statusCode: 400,
+      error: 'BAD_REQUEST',
+      message: 'Refresh token é obrigatório.',
+    });
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error || !data.session) {
+      res.status(401).json({
+        statusCode: 401,
+        error: 'INVALID_REFRESH_TOKEN',
+        message: 'Refresh token inválido ou expirado.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      expiresIn: SESSION_DURATION_HOURS * 3600,
+    });
+  } catch {
+    res.status(401).json({
+      statusCode: 401,
+      error: 'INVALID_REFRESH_TOKEN',
+      message: 'Refresh token inválido ou expirado.',
+    });
+  }
+}

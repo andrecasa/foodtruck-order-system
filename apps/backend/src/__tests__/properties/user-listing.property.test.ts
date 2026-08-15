@@ -264,8 +264,8 @@ describe('Property 7: Listagem ordenada alfabeticamente por nome (case-insensiti
 
         // Property: for any i < j, result[i].name.toLowerCase() <= result[j].name.toLowerCase()
         for (let i = 0; i < result.length - 1; i++) {
-          const current = result[i].name.toLowerCase();
-          const next = result[i + 1].name.toLowerCase();
+          const current = result[i]!.name.toLowerCase();
+          const next = result[i + 1]!.name.toLowerCase();
           expect(current.localeCompare(next)).toBeLessThanOrEqual(0);
         }
       }),
@@ -295,7 +295,7 @@ describe('Property 7: Listagem ordenada alfabeticamente por nome (case-insensiti
         const result = await listUsers();
         const lowerNames = result.map((u) => u.name.toLowerCase());
         for (let i = 0; i < lowerNames.length - 1; i++) {
-          expect(lowerNames[i].localeCompare(lowerNames[i + 1])).toBeLessThanOrEqual(0);
+          expect(lowerNames[i]!.localeCompare(lowerNames[i + 1]!)).toBeLessThanOrEqual(0);
         }
       }),
       { numRuns: 100 },

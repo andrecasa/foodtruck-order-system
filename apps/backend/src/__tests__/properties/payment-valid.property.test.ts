@@ -70,7 +70,7 @@ describe('Property 13: Pagamento válido atualiza para pago', () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-          expect(result.updatedOrder.payment_status).toBe('pago');
+          expect(result.updatedOrder!.payment_status).toBe('pago');
         }
       }),
       { numRuns: 100 }
@@ -84,7 +84,7 @@ describe('Property 13: Pagamento válido atualiza para pago', () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-          expect(result.updatedOrder.payment_method).toBe(method);
+          expect(result.updatedOrder!.payment_method).toBe(method);
         }
       }),
       { numRuns: 100 }
@@ -98,7 +98,7 @@ describe('Property 13: Pagamento válido atualiza para pago', () => {
 
         expect(result.success).toBe(true);
         if (result.success) {
-          const paidAt = result.updatedOrder.paid_at;
+          const paidAt = result.updatedOrder!.paid_at;
           // Must be a non-empty string
           expect(typeof paidAt).toBe('string');
           expect(paidAt.length).toBeGreaterThan(0);

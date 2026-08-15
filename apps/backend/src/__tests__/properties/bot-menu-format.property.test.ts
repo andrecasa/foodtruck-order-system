@@ -57,8 +57,8 @@ describe('Property 18: Formatação do cardápio (R$ X,XX, agrupado)', () => {
             id: `item-${idx}`,
             name: item.name,
             price_cents: item.priceCents,
-            category_name: categories[item.categoryIndex].name,
-            category_sort_order: categories[item.categoryIndex].sortOrder,
+            category_name: categories[item.categoryIndex]!.name,
+            category_sort_order: categories[item.categoryIndex]!.sortOrder,
           }))
         )
     );
@@ -149,9 +149,9 @@ describe('Property 18: Formatação do cardápio (R$ X,XX, agrupado)', () => {
         // Find category heading positions
         const categoryPositions: { name: string; lineIndex: number }[] = [];
         for (let i = 0; i < lines.length; i++) {
-          const headingMatch = lines[i].match(/^\*(.+)\*$/);
+          const headingMatch = lines[i]!.match(/^\*(.+)\*$/);
           if (headingMatch) {
-            categoryPositions.push({ name: headingMatch[1], lineIndex: i });
+            categoryPositions.push({ name: headingMatch[1]!, lineIndex: i });
           }
         }
 
@@ -169,18 +169,18 @@ describe('Property 18: Formatação do cardápio (R$ X,XX, agrupado)', () => {
 
         // For each category section, count the numbered item lines
         for (let i = 0; i < categoryPositions.length; i++) {
-          const startLine = categoryPositions[i].lineIndex + 1;
+          const startLine = categoryPositions[i]!.lineIndex + 1;
           const endLine =
             i + 1 < categoryPositions.length
-              ? categoryPositions[i + 1].lineIndex
+              ? categoryPositions[i + 1]!.lineIndex
               : lines.length;
 
-          const categoryName = categoryPositions[i].name;
+          const categoryName = categoryPositions[i]!.name;
           let itemLineCount = 0;
 
           for (let j = startLine; j < endLine; j++) {
             // Lines that start with a number followed by a dot are item lines
-            if (lines[j].match(/^\d+\./)) {
+            if (lines[j]!.match(/^\d+\./)) {
               itemLineCount++;
             }
           }

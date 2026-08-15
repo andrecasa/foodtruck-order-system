@@ -5,7 +5,10 @@ const path = require('path');
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
 
-const config = getDefaultConfig(projectRoot);
+const config = getDefaultConfig(projectRoot, {
+  // Enable CSS support for web
+  isCSSEnabled: true,
+});
 
 // 1. Watch all files in the monorepo
 config.watchFolders = [monorepoRoot];

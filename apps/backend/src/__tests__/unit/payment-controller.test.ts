@@ -171,11 +171,11 @@ describe('Order Controller - registerPayment', () => {
 
       // Verify the UPDATE query
       const updateCall = mockQuery.mock.calls[1];
-      expect(updateCall[0]).toContain('payment_status');
-      expect(updateCall[0]).toContain('payment_method');
-      expect(updateCall[0]).toContain('paid_at');
-      expect(updateCall[1][0]).toBe('pix');
-      expect(updateCall[1][2]).toBe('order-uuid-1');
+      expect(updateCall![0]).toContain('payment_status');
+      expect(updateCall![0]).toContain('payment_method');
+      expect(updateCall![0]).toContain('paid_at');
+      expect(updateCall![1][0]).toBe('pix');
+      expect(updateCall![1][2]).toBe('order-uuid-1');
     });
   });
 

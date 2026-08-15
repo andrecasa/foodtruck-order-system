@@ -110,8 +110,8 @@ describe('Order Controller - updateOrderStatus', () => {
 
       // Verify the UPDATE query sets started_at
       const updateCall = mockQuery.mock.calls[1];
-      expect(updateCall[0]).toContain('started_at');
-      expect(updateCall[1][0]).toBe('preparando');
+      expect(updateCall![0]).toContain('started_at');
+      expect(updateCall![1][0]).toBe('preparando');
     });
 
     it('should transition preparando → pronto and set ready_at', async () => {
@@ -137,8 +137,8 @@ describe('Order Controller - updateOrderStatus', () => {
       expect(res.body.readyAt).toBe('2024-06-15T13:15:00.000Z');
 
       const updateCall = mockQuery.mock.calls[1];
-      expect(updateCall[0]).toContain('ready_at');
-      expect(updateCall[1][0]).toBe('pronto');
+      expect(updateCall![0]).toContain('ready_at');
+      expect(updateCall![1][0]).toBe('pronto');
     });
 
     it('should transition pronto → entregue and set delivered_at', async () => {
@@ -170,8 +170,8 @@ describe('Order Controller - updateOrderStatus', () => {
       expect(res.body.deliveredAt).toBe('2024-06-15T13:20:00.000Z');
 
       const updateCall = mockQuery.mock.calls[1];
-      expect(updateCall[0]).toContain('delivered_at');
-      expect(updateCall[1][0]).toBe('entregue');
+      expect(updateCall![0]).toContain('delivered_at');
+      expect(updateCall![1][0]).toBe('entregue');
     });
   });
 

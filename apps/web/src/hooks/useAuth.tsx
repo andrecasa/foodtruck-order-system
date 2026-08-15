@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { apiClient } from '../services/api-client';
 
 const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'auth_refresh_token';
 
 interface AuthUser {
   email: string;
@@ -48,9 +49,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((data) => {
           setUser({ email: data?.user?.email || '' });
         })
-        .catch(() => {
-          // Token is invalid (server reset, expired, etc.) — clear it
+        .catch(async () => {
+          // Token invalid — try refresh before giving up
+          const refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+          if (refreshToken) {
+            try {
+              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+              const refreshRes = await fetch(`${apiUrl}/api/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken }),
+              });
+              if (refreshRes.ok) {
+                const data = await refreshRes.json();
+                sessionStorage.setItem(TOKEN_KEY, data.accessToken);
+                sessionStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+                // Validate the new token
+                const sessionRes = await fetch(`${apiUrl}/api/auth/session`, {
+                  headers: { Authorization: `Bearer ${data.accessToken}` },
+                });
+                if (sessionRes.ok) {
+                  const sessionData = await sessionRes.json();
+                  setUser({ email: sessionData?.user?.email || '' });
+                  return;
+                }
+              }
+            } catch {
+              // Refresh failed
+            }
+          }
           sessionStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(REFRESH_TOKEN_KEY);
           setUser(null);
         })
         .finally(() => {
@@ -73,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Even if the API call fails, clear local state
     }
     sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
     setUser(null);
   }, []);
 

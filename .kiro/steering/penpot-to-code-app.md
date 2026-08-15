@@ -447,11 +447,11 @@ method button (unselected):
 method button (selected):
   height: 44px
   borderRadius: 22px
-  backgroundColor: #7B2D2D + opacity 0.12 (12%)
+  backgroundColor: #5A8C5A (success green, sólido)
   borderWidth: 0
   fontSize: 14
   fontWeight: '400'
-  textColor: #7B2D2D (primary)
+  textColor: #FFFFFF
   alignItems: center, justifyContent: center
   horizontalSizing: fill (full width)
 
@@ -463,6 +463,16 @@ confirm button:
   fontWeight: '400'
   textColor: #FFFFFF
   alignSelf: stretch (full width)
+
+LAYOUT DA TELA DE PAGAMENTO:
+  Ordem dos elementos (de cima para baixo):
+  1. Header (Pedido # — Nome, valor total)
+  2. Seção "Itens do pedido" (card com lista)
+  3. Botão "+ Adicionar Item" (marginTop: 12, dentro da seção itens)
+  4. Seção "Forma de pagamento" (botões de método)
+  5. Botão "Confirmar Pagamento"
+  NOTA: O botão Adicionar Item fica SEMPRE logo abaixo da lista de itens,
+        NUNCA após o botão Confirmar Pagamento.
 ```
 
 ### Bottom Nav
@@ -475,6 +485,43 @@ icon: Material Symbols Outlined 22px
 label: 10px, weight 400
 active: color #7B2D2D (primary)
 inactive: color #8B6B5A (textSecondary)
+```
+
+### Price Text (em cards de pedido)
+```
+fontSize: 18
+fontWeight: '600'
+color: #3D2020 (text)
+```
+
+### Calendar (Tela Resumo do Dia - Calendário)
+```
+Calendar Card:
+  backgroundColor: #FFFFFF
+  borderRadius: 12px
+  flexDirection: column
+  gap: 4px
+
+Week Row:
+  flexDirection: row
+  alignItems: start (números alinhados no topo)
+
+Day Cell:
+  flexDirection: column
+  alignItems: center
+  justifyContent: start  ← OBRIGATÓRIO (alinha texto no topo)
+  rowGap: 2px
+  horizontalSizing: fill (distribui igualmente na row)
+  verticalSizing: fix (altura fixa)
+  height: 40px
+
+  - Número: Inter 14px, weight 400, color #3D2020
+  - Order Dot (se houver pedidos): ellipse 6px, fill #D4812B (amber)
+  - Selected Dot: ellipse 6px, fill #7B2D2D (primary/dark)
+
+NOTA: justifyContent DEVE ser 'start', NUNCA 'center'.
+      Isso garante que os números fiquem alinhados no topo
+      independente de ter ou não o dot indicador abaixo.
 ```
 
 ### User Card (Tela Gestão de Usuários)

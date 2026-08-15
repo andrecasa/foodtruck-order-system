@@ -237,6 +237,56 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               </View>
             ))}
           </View>
+
+          {/* "+ Adicionar Item" button — right below items list */}
+          {!isAlreadyPaid && order.status === 'aguardando' && (
+            <TouchableOpacity
+              style={{
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: '#FFFFFF',
+                borderWidth: 1,
+                borderColor: '#E8DDD5',
+                flexDirection: 'row',
+                gap: 6,
+                alignItems: 'center',
+                justifyContent: 'center',
+                alignSelf: 'stretch',
+                marginTop: 12,
+              }}
+              onPress={() =>
+                router.push({
+                  pathname: '/edit-order-items',
+                  params: { orderId: order.id },
+                })
+              }
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Adicionar Item"
+              testID="add-items-button-main"
+            >
+              <RNText
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 16,
+                  fontWeight: '400',
+                  color: theme.colors.text,
+                }}
+              >
+                +
+              </RNText>
+              <RNText
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 14,
+                  fontWeight: '400',
+                  color: theme.colors.text,
+                }}
+              >
+                Adicionar Item
+              </RNText>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Already Paid State — show only payment method badge + message */}
@@ -331,54 +381,6 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               </RNText>
             </TouchableOpacity>
 
-            {/* "+ Adicionar Item" button — only when order is still aguardando */}
-            {order.status === 'aguardando' && (
-            <TouchableOpacity
-              style={{
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: '#FFFFFF',
-                borderWidth: 1,
-                borderColor: '#E8DDD5',
-                flexDirection: 'row',
-                gap: 6,
-                alignItems: 'center',
-                justifyContent: 'center',
-                alignSelf: 'stretch',
-              }}
-              onPress={() =>
-                router.push({
-                  pathname: '/edit-order-items',
-                  params: { orderId: order.id },
-                })
-              }
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Adicionar Item"
-              testID="add-items-button-main"
-            >
-              <RNText
-                style={{
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: 16,
-                  fontWeight: '400',
-                  color: theme.colors.text,
-                }}
-              >
-                +
-              </RNText>
-              <RNText
-                style={{
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: 14,
-                  fontWeight: '400',
-                  color: theme.colors.text,
-                }}
-              >
-                Adicionar Item
-              </RNText>
-            </TouchableOpacity>
-            )}
           </>
         )}
       </ScrollContainer>

@@ -143,9 +143,8 @@ sleep 5 && ./scripts/seed-admin.sh
 
 | Script | Descrição |
 |---|---|
-| `./scripts/generate-keys.sh` | Gera JWT_SECRET (32 hex), ANON_KEY e SERVICE_ROLE_KEY. Atualiza `.env` e `kong.yml` |
-| `./scripts/seed-admin.sh` | Cria usuário admin no Supabase Auth |
-| `./scripts/seed-realtime.sh` | Corrige tenant do Realtime manualmente (normalmente automático) |
+| `./scripts/generate-keys.sh` | Gera JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY. Atualiza `.env`, `kong.yml`, `apps/mobile/.env` |
+| `./scripts/seed-admin.sh` | Cria usuário admin no Supabase Auth (padrão: admin@foodtruck.com / 12345678) |
 
 ### Rebuildar Backend
 

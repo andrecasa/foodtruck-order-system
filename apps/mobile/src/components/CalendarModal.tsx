@@ -18,6 +18,7 @@ export interface CalendarModalProps {
   selectedDay: number;
   daysWithOrders: number[];
   onDaySelect: (day: number, month: number, year: number) => void;
+  onMonthChange?: (year: number, month: number) => Promise<number[]> | number[];
   onClose: () => void;
 }
 
@@ -44,10 +45,12 @@ export function CalendarModal({
   selectedDay,
   daysWithOrders,
   onDaySelect,
+  onMonthChange,
   onClose,
 }: CalendarModalProps) {
   const [modalYear, setModalYear] = useState(year);
   const [modalMonth, setModalMonth] = useState(month);
+  const [modalDaysWithOrders, setModalDaysWithOrders] = useState<number[]>(daysWithOrders);
   const [isVisible, setIsVisible] = useState(false);
 
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
@@ -58,6 +61,7 @@ export function CalendarModal({
     if (visible) {
       setModalYear(year);
       setModalMonth(month);
+      setModalDaysWithOrders(daysWithOrders);
       setIsVisible(true);
       // Animate in
       Animated.parallel([
@@ -126,22 +130,31 @@ export function CalendarModal({
     })
   ).current;
 
-  const handlePrevious = () => {
-    if (modalMonth === 1) {
-      setModalMonth(12);
-      setModalYear((prev) => prev - 1);
+  const fetchDaysForMonth = async (newYear: number, newMonth: number) => {
+    if (newYear === year && newMonth === month) {
+      setModalDaysWithOrders(daysWithOrders);
+    } else if (onMonthChange) {
+      const days = await onMonthChange(newYear, newMonth);
+      setModalDaysWithOrders(days);
     } else {
-      setModalMonth((prev) => prev - 1);
+      setModalDaysWithOrders([]);
     }
   };
 
+  const handlePrevious = () => {
+    const newMonth = modalMonth === 1 ? 12 : modalMonth - 1;
+    const newYear = modalMonth === 1 ? modalYear - 1 : modalYear;
+    setModalMonth(newMonth);
+    setModalYear(newYear);
+    fetchDaysForMonth(newYear, newMonth);
+  };
+
   const handleNext = () => {
-    if (modalMonth === 12) {
-      setModalMonth(1);
-      setModalYear((prev) => prev + 1);
-    } else {
-      setModalMonth((prev) => prev + 1);
-    }
+    const newMonth = modalMonth === 12 ? 1 : modalMonth + 1;
+    const newYear = modalMonth === 12 ? modalYear + 1 : modalYear;
+    setModalMonth(newMonth);
+    setModalYear(newYear);
+    fetchDaysForMonth(newYear, newMonth);
   };
 
   const handleDayPress = (day: number) => {
@@ -185,9 +198,9 @@ export function CalendarModal({
           year={modalYear}
           month={modalMonth}
           selectedDay={isOriginalMonth ? selectedDay : -1}
-          daysWithOrders={isOriginalMonth ? daysWithOrders : []}
+          daysWithOrders={modalDaysWithOrders}
           onDayPress={handleDayPress}
-          allDaysTappable={!isOriginalMonth}
+          allDaysTappable={false}
         />
 
         {/* Legend */}

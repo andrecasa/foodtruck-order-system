@@ -331,6 +331,14 @@ export function IntermediateSummaryScreen() {
         selectedDay={selectedDay}
         daysWithOrders={daysWithOrders}
         onDaySelect={handleDaySelect}
+        onMonthChange={async (newYear, newMonth) => {
+          try {
+            const data = await apiClient.getMonthlySummary(newYear, newMonth);
+            return data.days.map(d => d.day);
+          } catch {
+            return [];
+          }
+        }}
         onClose={() => setCalendarModalVisible(false)}
       />
     </Screen>

@@ -6,11 +6,35 @@ Sistema de pedidos MVP para food truck, com app mobile para o operador, painel w
 
 | Componente | Tecnologia | Descrição |
 |---|---|---|
-| **Mobile** | Expo + React Native | App do operador: criar pedidos, gerenciar fila, pagamentos, resumo do dia |
-| **Web** | Vite + React | Painel do preparador: fila em tempo real com avanço de status |
-| **Backend** | Express + Node.js | API REST com autenticação JWT e eventos Realtime |
+| **Mobile** | Expo + React Native | App do operador: criar pedidos, gerenciar fila, pagamentos, cardápio, gestão de usuários |
+| **Web** | Vite + React | Painel do preparador: fila em tempo real com avanço de status e notificações de pagamento |
+| **Backend** | Express + Node.js | API REST com autenticação JWT, eventos Realtime e CRUD completo |
 | **Bot WhatsApp** | Evolution API | Atendimento automatizado via máquina de estados |
 | **Shared** | TypeScript + Zod | Tipos, validadores e constantes compartilhados |
+
+## Funcionalidades
+
+### App Mobile (Operador)
+- **Criar pedidos** — Selecionar itens do cardápio, definir origem (presencial/WhatsApp), cliente
+- **Editar itens do pedido** — Adicionar/remover itens enquanto status é "aguardando"
+- **Pagamento** — Registrar pagamento (PIX, Cartão, Dinheiro) com confirmação modal
+- **Fila de pedidos** — Visualizar e avançar status dos pedidos em tempo real
+- **Gestão de cardápio** — Criar, editar, ativar/desativar itens do menu
+- **Gestão de usuários** — CRUD completo com filtros por role, toggle de status, edição de email/senha
+- **Resumo do dia** — Totais de vendas, pedidos e métodos de pagamento
+
+### Painel Web (Preparador)
+- **Fila em tempo real** — Pedidos atualizados via Supabase Realtime (WebSocket)
+- **Filtros por status** — Aguardando, Preparando, Pronto, Entregue
+- **Avanço de status** — Botões contextuais por status (Iniciar Preparo, Marcar Pronto, etc.)
+- **Notificação de pagamento** — Badge atualizado em tempo real quando pagamento é registrado
+- **Banner de conexão** — Indicador visual quando a conexão Realtime é perdida
+
+### Realtime (Supabase Broadcast)
+- Canal `orders:queue` — Novos pedidos, mudanças de status, edição de itens
+- Canal `orders:payment` — Registros de pagamento
+- Reconexão automática com reload de dados
+- Debounce de estado "stale" para evitar flickering
 
 ## Arquitetura
 
@@ -414,8 +438,17 @@ Se o WhatsApp desconectar (troca de celular, logout, etc.):
 | PUT | `/api/menu/:id` | Atualizar item |
 | PATCH | `/api/menu/:id/status` | Ativar/desativar item |
 | POST | `/api/orders` | Criar pedido (presencial ou whatsapp) |
+| GET | `/api/orders` | Listar pedidos do dia (filtro por status) |
 | PATCH | `/api/orders/:id/status` | Avançar status do pedido |
 | POST | `/api/orders/:id/payment` | Registrar pagamento |
+| PUT | `/api/orders/:id/items` | Editar itens de um pedido (status aguardando) |
+| GET | `/api/users` | Listar usuários (filtro por role/status) |
+| GET | `/api/users/:id` | Buscar usuário por ID |
+| POST | `/api/users` | Criar usuário |
+| PUT | `/api/users/:id` | Atualizar usuário (nome, email, role) |
+| DELETE | `/api/users/:id` | Excluir usuário |
+| PATCH | `/api/users/:id/status` | Ativar/desativar usuário |
+| POST | `/api/users/:id/reset-password` | Resetar senha do usuário |
 | GET | `/api/summary/today` | Resumo do dia (America/Sao_Paulo) |
 | POST | `/api/webhook/evolution` | Webhook da Evolution API (WhatsApp) |
 | GET | `/api/health` | Health check |

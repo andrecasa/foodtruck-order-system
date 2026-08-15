@@ -165,8 +165,47 @@ Shadow: 0 1px 3px rgba(0,0,0,0.06)  [nas telas]
 Layout: flex row, align-items center, gap 12px
 
 Conteúdo (nas telas App):
-- Ícone leading: Material Symbols Outlined 24px, color #1B5E20
-- Título: 18px weight 500, Inter Tight, color #212121
+- Ícone leading: Material Symbols Outlined 24px, color #8B6B5A
+  - "menu" (abre drawer) — padrão
+  - "arrow_back" (volta) — quando prop onBack é fornecido
+- Título: 18px weight 400, Inter, color #3D2020, flex:1, textAlign center
+- Spacer ou rightElement à direita (24px width para centralizar título)
+```
+
+### Role Badge (Tela de Usuários)
+
+```
+Shape: pill (borderRadius 10px)
+Height: 15px
+Padding: 0 8px
+Font: 8px weight 400, Inter
+
+Estilo (padrão dos filter chips):
+- Background: cor do role com 12% opacidade (hex + '1F')
+- Text: cor sólida do role
+
+Cores por role:
+- Admin:      bg #7B2D2D1F, text #7B2D2D
+- Atendente:  bg #5B8BA81F, text #5B8BA8
+- Preparador: bg #5A8C5A1F, text #5A8C5A
+```
+
+### Payment Method Button (Tela de Pagamento)
+
+```
+Height: 44px
+Border-radius: 22px
+Font: 14px weight 400, Inter
+
+Estados:
+- Não selecionado: bg #FFFFFF, border 1px #E8DDD5, text #3D2020
+- Selecionado: bg #5A8C5A (verde sólido), sem border, text #FFFFFF
+
+Ordem dos métodos: PIX, Cartão, Dinheiro
+
+Estado "Já Pago":
+- Exibe apenas o método usado com bg #5A8C5A1F (12% opacidade) e text #5A8C5A
+- Mensagem "Pedido já foi pago" em verde centralizada abaixo
 ```
 
 ### Bottom Navigation
@@ -447,4 +486,5 @@ Action buttons:
 
 | Data       | Alteração |
 | ---------- | --------- |
+| 2025-08-14 | Atualizado design dos badges de role na tela de usuários: fundo com 12% de opacidade + texto na cor do role (padrão dos filter chips). Botão de pagamento selecionado agora usa verde sólido (#5A8C5A) com texto branco. Ordem dos métodos de pagamento: PIX, Cartão, Dinheiro. Header com suporte a `onBack` (seta de volta). |
 | 2025-08-11 | Atualizado com valores reais extraídos do Penpot via MCP. Adicionadas seções: AppBar, Bottom Navigation, Card de Pedido (composição), Regras de Implementação, Button sm/lg. Corrigidos valores que divergiam (badge sm weight, input error color, card padding nas telas). |

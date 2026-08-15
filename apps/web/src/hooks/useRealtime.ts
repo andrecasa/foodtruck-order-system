@@ -4,8 +4,6 @@ import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabas
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8000';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-const TOKEN_KEY = 'auth_token';
-
 export type RealtimeStatus = 'connected' | 'disconnected' | 'reconnecting';
 
 export interface RealtimeEvent {
@@ -27,24 +25,13 @@ interface UseRealtimeOptions {
 
 /** Singleton Supabase client for realtime — avoids creating new connections on every render */
 let realtimeClient: SupabaseClient | null = null;
-let realtimeClientHadToken = false;
 
 function getRealtimeClient(): SupabaseClient {
-  const token = sessionStorage.getItem(TOKEN_KEY);
-  const hasToken = Boolean(token);
-
-  // Recreate client if we now have a token but didn't before
-  if (realtimeClient && !realtimeClientHadToken && hasToken) {
-    realtimeClient = null;
-  }
-
   if (!realtimeClient) {
-    realtimeClientHadToken = hasToken;
     realtimeClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: {
         params: {
           apikey: SUPABASE_ANON_KEY,
-          ...(token ? { token } : {}),
         },
       },
     });

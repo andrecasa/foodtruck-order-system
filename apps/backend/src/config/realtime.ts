@@ -1,5 +1,5 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { supabaseAdmin } from './supabase.js';
+import { supabase } from './supabase.js';
 
 /**
  * Manages Supabase Realtime broadcast channels.
@@ -23,7 +23,7 @@ async function getChannel(channelName: string): Promise<RealtimeChannel> {
 
   // Create and subscribe
   const promise = new Promise<RealtimeChannel>((resolve, reject) => {
-    const channel = supabaseAdmin.channel(channelName);
+    const channel = supabase.channel(channelName);
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         subscribedChannels.set(channelName, channel);

@@ -8,27 +8,27 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import type { DailySummary } from '@order-system/shared';
+import type { DailySummary, MonthlySummaryResponse } from '@order-system/shared';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Screen, Header } from '../components';
 import { Text } from '../components/Typography';
 import { Button } from '../components/Button';
+import { DateChip } from '../components/DateChip';
+import { CalendarModal } from '../components/CalendarModal';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
-
-/** Formats price in centavos to R$ X,XX */
-function formatPrice(priceInCentavos: number): string {
-  return (priceInCentavos / 100).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-}
+import { formatPrice } from '../utils/format';
 
 /**
  * Resumo Financeiro (Daily Summary) Screen — pixel-perfect match to Penpot design.
  *
+ * Receives optional route param: date (YYYY-MM-DD).
+ * Includes DateChip to open CalendarModal for date navigation.
+ *
  * Penpot specs:
  * - AppBar: bg white, shadow, title "Resumo Financeiro" 18px weight 500, color theme.text
+ * - DateChip: pill button showing selected date, opens CalendarModal
  * - Content: padding 16px, gap 16px
  * - Hero card (Revenue): bg primary (#7B2D2D) at 6% opacity, radius 12px, padding 16px, text-align center
  *   - Label "Faturamento Total": 12px weight 400, color #8B6B5A (textSecondary)
@@ -42,18 +42,56 @@ function formatPrice(priceInCentavos: number): string {
  */
 export function DailySummaryScreen() {
   const theme = useTheme();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ date?: string }>();
+
+  // Parse initial date from route params or use today
+  const initialDate = useMemo(() => {
+    if (params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date)) {
+      const [y, m, d] = params.date.split('-').map(Number);
+      return { year: y!, month: m!, day: d! };
+    }
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+  }, [params.date]);
+
+  const [year, setYear] = useState(initialDate.year);
+  const [month, setMonth] = useState(initialDate.month);
+  const [day, setDay] = useState(initialDate.day);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [daysWithOrders, setDaysWithOrders] = useState<number[]>([]);
 
-  const fetchSummary = useCallback(async () => {
+  const dateStr = useMemo(
+    () => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    [year, month, day]
+  );
+
+  // Navigate back passing the current selected date so the intermediate screen can restore it
+  const handleBack = useCallback(() => {
+    router.navigate({ pathname: '/summary', params: { date: dateStr } });
+  }, [router, dateStr]);
+
+  const fetchSummary = useCallback(async (targetDate: string) => {
     try {
       setError(null);
-      const data = await apiClient.getDailySummary();
+      const data = await apiClient.getDailySummary(targetDate);
       setSummary(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar resumo');
+    }
+  }, []);
+
+  const fetchDaysWithOrders = useCallback(async (fetchYear: number, fetchMonth: number) => {
+    try {
+      const data = await apiClient.getMonthlySummary(fetchYear, fetchMonth);
+      setDaysWithOrders(data.days.map((d) => d.day));
+    } catch {
+      // Non-critical: calendar still works without highlighting
+      setDaysWithOrders([]);
     }
   }, []);
 
@@ -63,12 +101,12 @@ export function DailySummaryScreen() {
   useRealtime({
     channels: realtimeChannels,
     onEvent: useCallback((_event) => {
-      // Refetch summary on any order event
-      fetchSummary();
-    }, [fetchSummary]),
+      fetchSummary(dateStr);
+      fetchDaysWithOrders(year, month);
+    }, [fetchSummary, fetchDaysWithOrders, dateStr, year, month]),
     onReconnect: useCallback(() => {
-      fetchSummary();
-    }, [fetchSummary]),
+      fetchSummary(dateStr);
+    }, [fetchSummary, dateStr]),
   });
 
   // Initial load
@@ -77,9 +115,12 @@ export function DailySummaryScreen() {
     async function load() {
       setLoading(true);
       try {
-        const data = await apiClient.getDailySummary();
+        const [summaryData] = await Promise.all([
+          apiClient.getDailySummary(dateStr),
+          fetchDaysWithOrders(year, month),
+        ]);
         if (!cancelled) {
-          setSummary(data);
+          setSummary(summaryData);
         }
       } catch (err) {
         if (!cancelled) {
@@ -93,14 +134,30 @@ export function DailySummaryScreen() {
     }
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchSummary();
+    await fetchSummary(dateStr);
     setRefreshing(false);
-  }, [fetchSummary]);
+  }, [fetchSummary, dateStr]);
+
+  // Calendar day select handler
+  const handleDaySelect = useCallback(async (selectedDay: number, selectedMonth: number, selectedYear: number) => {
+    setCalendarModalVisible(false);
+    setDay(selectedDay);
+
+    if (selectedYear !== year || selectedMonth !== month) {
+      setYear(selectedYear);
+      setMonth(selectedMonth);
+      await fetchDaysWithOrders(selectedYear, selectedMonth);
+    }
+
+    // Fetch summary for the selected date immediately
+    const newDateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+    fetchSummary(newDateStr);
+  }, [year, month, fetchDaysWithOrders, fetchSummary]);
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
@@ -110,7 +167,7 @@ export function DailySummaryScreen() {
   };
 
   const heroCardStyle: ViewStyle = {
-    backgroundColor: 'rgba(123, 45, 45, 0.06)', // primary at 6% opacity per Penpot
+    backgroundColor: 'rgba(123, 45, 45, 0.06)',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -122,14 +179,14 @@ export function DailySummaryScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#8B6B5A', // textSecondary
+    color: '#8B6B5A',
   };
 
   const heroAmountStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 28,
     fontWeight: '400',
-    color: theme.colors.primary, // #7B2D2D
+    color: theme.colors.primary,
     marginTop: 4,
   };
 
@@ -137,7 +194,7 @@ export function DailySummaryScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#8B6B5A', // textSecondary
+    color: '#8B6B5A',
     marginTop: 4,
   };
 
@@ -180,12 +237,12 @@ export function DailySummaryScreen() {
 
   const rowValuePrimaryStyle: TextStyle = {
     ...rowValueStyle,
-    color: theme.colors.primary,
+    color: '#5A8C5A',
   };
 
   const rowValueWarningStyle: TextStyle = {
     ...rowValueStyle,
-    color: theme.colors.error,
+    color: '#B54040',
   };
 
   const loadingContainerStyle: ViewStyle = {
@@ -208,7 +265,7 @@ export function DailySummaryScreen() {
   if (loading) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo Financeiro" icon="monitoring" />
+        <Header title="Resumo Financeiro" icon="monitoring" onBack={handleBack} />
         <View style={loadingContainerStyle} accessibilityLabel="Carregando resumo">
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text size="md" style={{ marginTop: 8 }}>
@@ -223,7 +280,7 @@ export function DailySummaryScreen() {
   if (error && !summary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo Financeiro" icon="monitoring" />
+        <Header title="Resumo Financeiro" icon="monitoring" onBack={handleBack} />
         <View style={errorContainerStyle}>
           <Text size="lg" color={theme.colors.error}>
             {error}
@@ -233,7 +290,7 @@ export function DailySummaryScreen() {
               title="Tentar novamente"
               onPress={async () => {
                 setLoading(true);
-                await fetchSummary();
+                await fetchSummary(dateStr);
                 setLoading(false);
               }}
               variant="primary"
@@ -247,7 +304,7 @@ export function DailySummaryScreen() {
   if (!summary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo Financeiro" icon="monitoring" />
+        <Header title="Resumo Financeiro" icon="monitoring" onBack={handleBack} />
         <View style={errorContainerStyle}>
           <Text size="md" color="#8B6B5A">
             Nenhum dado disponível.
@@ -257,10 +314,15 @@ export function DailySummaryScreen() {
     );
   }
 
+  const isToday = (() => {
+    const now = new Date();
+    return year === now.getFullYear() && month === now.getMonth() + 1 && day === now.getDate();
+  })();
+
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Resumo Financeiro" icon="monitoring" />
+      <Header title="Resumo Financeiro" icon="monitoring" onBack={handleBack} />
 
       <ScrollView
         contentContainerStyle={contentStyle}
@@ -274,6 +336,14 @@ export function DailySummaryScreen() {
         }
         showsVerticalScrollIndicator
       >
+        {/* Date Chip */}
+        <DateChip
+          day={day}
+          month={month}
+          year={year}
+          onPress={() => setCalendarModalVisible(true)}
+        />
+
         {/* Hero Card — Total Revenue */}
         <View style={heroCardStyle}>
           <RNText style={heroLabelStyle}>Faturamento Total</RNText>
@@ -281,7 +351,7 @@ export function DailySummaryScreen() {
             {formatPrice(summary.paidTotal + summary.pendingTotal)}
           </RNText>
           <RNText style={heroCountStyle}>
-            {summary.totalOrders} pedido{summary.totalOrders !== 1 ? 's' : ''} hoje
+            {summary.totalOrders} pedido{summary.totalOrders !== 1 ? 's' : ''} {isToday ? 'hoje' : 'no dia'}
           </RNText>
         </View>
 
@@ -351,6 +421,17 @@ export function DailySummaryScreen() {
           Puxe para baixo para atualizar
         </RNText>
       </ScrollView>
+
+      {/* Calendar Modal */}
+      <CalendarModal
+        visible={calendarModalVisible}
+        year={year}
+        month={month}
+        selectedDay={day}
+        daysWithOrders={daysWithOrders}
+        onDaySelect={handleDaySelect}
+        onClose={() => setCalendarModalVisible(false)}
+      />
     </Screen>
   );
 }

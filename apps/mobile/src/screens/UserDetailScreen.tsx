@@ -249,7 +249,7 @@ export function UserDetailScreen() {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E8DDD5',
-    height: 75,
+    height: 90,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

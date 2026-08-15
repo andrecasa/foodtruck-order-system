@@ -152,23 +152,7 @@ export function MenuScreen() {
     gap: 12,
   };
 
-  // Icon Button Edit: 24×24, round, subtle bg + border (Penpot specs)
-  const editBtnStyle: ViewStyle = {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(123, 45, 45, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(123, 45, 45, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const editIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 14,
-    color: theme.colors.primary,
-  };
+  // Icon Button Edit removed — no longer in design
 
   // Disabled item text opacity
   const itemDisabledStyle: ViewStyle = {
@@ -269,35 +253,29 @@ export function MenuScreen() {
                 <RNText style={categoryTitleStyle}>{category}</RNText>
               </View>
               {groupedItems[category]!.map((item) => (
-                <View
+                <Pressable
                   key={item.id}
                   style={itemCardStyle}
+                  accessibilityRole="button"
                   accessibilityLabel={`${item.name}, ${formatPrice(item.price)}, ${item.status === 'ativo' ? 'ativado' : 'desativado'}`}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/edit-menu-item',
+                      params: {
+                        id: item.id,
+                        name: item.name,
+                        price: String(item.price),
+                        category: item.category,
+                      },
+                    });
+                  }}
+                  testID={`menu-item-card-${item.id}`}
                 >
                   <View style={[itemInfoStyle, item.status === 'inativo' && itemDisabledStyle]}>
                     <RNText style={itemNameStyle}>{item.name}</RNText>
                     <RNText style={itemPriceStyle}>{formatPrice(item.price)}</RNText>
                   </View>
                   <View style={itemActionsStyle}>
-                    <Pressable
-                      style={editBtnStyle}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Editar ${item.name}`}
-                      onPress={() => {
-                        router.push({
-                          pathname: '/edit-menu-item',
-                          params: {
-                            id: item.id,
-                            name: item.name,
-                            price: String(item.price),
-                            category: item.category,
-                          },
-                        });
-                      }}
-                      testID={`edit-menu-item-${item.id}`}
-                    >
-                      <RNText style={editIconStyle}>edit</RNText>
-                    </Pressable>
                     <ToggleSwitch
                       value={item.status === 'ativo'}
                       onValueChange={() => handleToggleStatus(item.id)}
@@ -306,7 +284,7 @@ export function MenuScreen() {
                       testID={`toggle-menu-item-${item.id}`}
                     />
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
           ))}

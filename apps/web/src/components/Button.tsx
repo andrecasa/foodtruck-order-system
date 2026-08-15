@@ -13,6 +13,8 @@ export interface ButtonProps {
   ariaLabel?: string;
   /** Custom background color override (e.g. for status-colored buttons) */
   color?: string;
+  /** Whether button should stretch full width */
+  fullWidth?: boolean;
 }
 
 /**
@@ -37,6 +39,7 @@ export function Button({
   type = 'button',
   ariaLabel,
   color,
+  fullWidth = false,
 }: ButtonProps) {
   const theme = useTheme();
 
@@ -77,6 +80,7 @@ export function Button({
     transition: 'opacity 0.15s ease',
     opacity: loading ? 0.7 : 1,
     whiteSpace: 'nowrap',
+    ...(fullWidth && { width: '100%' }),
   };
 
   return (

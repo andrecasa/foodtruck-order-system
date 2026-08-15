@@ -9,6 +9,7 @@ import type {
   UpdateOrderItemsRequest,
   RegisterPaymentRequest,
   DailySummary,
+  MonthlySummaryResponse,
 } from '@order-system/shared';
 
 export interface ApiClient {
@@ -33,5 +34,6 @@ export interface ApiClient {
   registerPayment(id: string, data: RegisterPaymentRequest): Promise<Order>;
 
   // Summary
-  getDailySummary(): Promise<DailySummary>;
+  getDailySummary(date?: string): Promise<DailySummary>;
+  getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse>;
 }

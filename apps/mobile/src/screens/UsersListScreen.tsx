@@ -154,14 +154,14 @@ export function UsersListScreen() {
     gap: 12,
   };
 
-  // User card: white bg, borderRadius 12, border 1px #E8DDD5, height 75
+  // User card: white bg, borderRadius 12, border 1px #E8DDD5, height 90
   // flex row, alignItems center, justifyContent space-between, paddingHorizontal 16
   const userCardStyle: ViewStyle = {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E8DDD5',
-    height: 75,
+    height: 90,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -191,6 +191,7 @@ export function UsersListScreen() {
     fontSize: 14,
     fontWeight: '500',
     color: '#3D2020',
+    marginTop: 5,
   };
 
   // User email: Inter 12px weight 400, #8B6B5A
@@ -209,23 +210,7 @@ export function UsersListScreen() {
   };
 
   // Edit button: 24x24, borderRadius 12, bg primary@8%, border 1px primary@30%
-  const editBtnStyle: ViewStyle = {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(123, 45, 45, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(123, 45, 45, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  // Edit icon: 14px, #7B2D2D
-  const editIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 14,
-    color: '#7B2D2D',
-  };
+  // (removed — no longer in design)
 
   // "Novo Usuário" button: full width, height 44, borderRadius 22, white bg, border 1px #E8DDD5
   const novoUsuarioBtnStyle: ViewStyle = {
@@ -269,20 +254,27 @@ export function UsersListScreen() {
     const isToggling = togglingUserId === item.id;
 
     return (
-      <View
+      <Pressable
         style={userCardStyle}
+        accessibilityRole="button"
         accessibilityLabel={`${item.name}, ${item.email}, ${ROLE_LABELS[item.role]}, ${isActive ? 'Ativo' : 'Inativo'}`}
         testID={`user-card-${item.id}`}
+        onPress={() =>
+          router.push({
+            pathname: '/user-detail',
+            params: { id: item.id },
+          })
+        }
       >
         {/* Info: badge + name + email */}
         <View style={userInfoStyle}>
           <View
             style={[
               roleBadgeBaseStyle,
-              { backgroundColor: ROLE_BADGE_COLORS[item.role] + '1F' },
+              { backgroundColor: ROLE_BADGE_COLORS[item.role] },
             ]}
           >
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 8, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 8, fontWeight: '400', color: '#FFFFFF' }}>
               {ROLE_LABELS[item.role]}
             </RNText>
           </View>
@@ -290,24 +282,8 @@ export function UsersListScreen() {
           <RNText style={userEmailStyle}>{item.email}</RNText>
         </View>
 
-        {/* Meta: Edit button + Switch toggle */}
+        {/* Meta: Switch toggle */}
         <View style={userMetaStyle}>
-          <Pressable
-            style={editBtnStyle}
-            onPress={() =>
-              router.push({
-                pathname: '/user-detail',
-                params: { id: item.id },
-              })
-            }
-            accessibilityRole="button"
-            accessibilityLabel={`Editar ${item.name}`}
-            testID={`edit-user-${item.id}`}
-            hitSlop={8}
-          >
-            <RNText style={editIconStyle}>edit</RNText>
-          </Pressable>
-
           <ToggleSwitch
             value={isActive}
             onValueChange={() => handleToggleStatus(item)}
@@ -316,7 +292,7 @@ export function UsersListScreen() {
             testID={`toggle-user-${item.id}`}
           />
         </View>
-      </View>
+      </Pressable>
     );
   };
 

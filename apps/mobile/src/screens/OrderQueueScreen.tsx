@@ -178,12 +178,19 @@ export function OrderQueueScreen() {
 
   const itemsTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '400',
     color: theme.colors.text,
-    lineHeight: 18,
+    lineHeight: 19.6,
     alignSelf: 'center',
     textAlign: 'center',
+  };
+
+  const dividerStyle: ViewStyle = {
+    height: 1,
+    backgroundColor: theme.colors.divider ?? '#E8DDD5',
+    width: '80%',
+    alignSelf: 'center',
   };
 
   const priceTextStyle: TextStyle = {
@@ -298,17 +305,25 @@ export function OrderQueueScreen() {
               {/* Origin badge (Penpot: tinted pill badge) */}
               <OriginBadge origin={order.origin} />
 
-              {/* Items List (Penpot: 13px weight 400, #3D2020) */}
+              {/* Items List (Penpot: 14px, weight 400 uniform, #3D2020) */}
               <RNText style={itemsTextStyle}>
-                {order.items.map((item) => `${item.quantity}x ${item.name}`).join('\n')}
+                {order.items.map((item, idx) => (
+                  <RNText key={idx}>
+                    {idx > 0 ? '\n' : ''}
+                    {`${item.quantity}X - ${item.name} - ${formatCurrency(item.unitPrice * item.quantity)}`}
+                  </RNText>
+                ))}
               </RNText>
+
+              {/* Divider line between items and price */}
+              <View style={dividerStyle} />
 
               {/* Price (Penpot: 18px weight 600, no "Total:" prefix) */}
               <RNText style={priceTextStyle}>
                 {formatCurrency(order.totalAmount)}
               </RNText>
 
-              {/* Action Button (Penpot: sm, auto-width) */}
+              {/* Action Button (Penpot: sm, centered in card, pill shape) */}
               {showButton && (
                 <Button
                   title={ADVANCE_LABEL[order.status]}

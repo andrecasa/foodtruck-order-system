@@ -73,9 +73,10 @@ export function LoginScreen() {
 
   const containerStyle: ViewStyle = {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 24,
+    paddingTop: 50,
     gap: 24,
     backgroundColor: theme.colors.background,
   };

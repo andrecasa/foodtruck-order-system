@@ -9,6 +9,7 @@ import type {
   UpdateOrderItemsRequest,
   RegisterPaymentRequest,
   DailySummary,
+  MonthlySummaryResponse,
 } from '@order-system/shared';
 import { isValidTransition } from '@order-system/shared';
 import type { ApiClient } from '../services/types';
@@ -267,9 +268,9 @@ export const mockClient: ApiClient = {
   },
 
   // Summary
-  async getDailySummary(): Promise<DailySummary> {
+  async getDailySummary(date?: string): Promise<DailySummary> {
     await delay();
-    const today = new Date().toISOString().split('T')[0] ?? '';
+    const targetDate = date ?? (new Date().toISOString().split('T')[0] ?? '');
 
     const paidOrders = ordersState.filter((o) => o.paymentStatus === 'pago');
     const pendingOrders = ordersState.filter((o) => o.paymentStatus === 'pendente');
@@ -285,13 +286,33 @@ export const mockClient: ApiClient = {
     }
 
     return {
-      date: today,
+      date: targetDate,
       totalOrders: ordersState.length,
       paidOrders: paidOrders.length,
       pendingOrders: pendingOrders.length,
       paidTotal,
       pendingTotal,
       byPaymentMethod,
+    };
+  },
+
+  async getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse> {
+    await delay();
+    const totalRevenue = ordersState.reduce((sum, o) => sum + o.totalAmount, 0);
+    const paidOrders = ordersState.filter((o) => o.paymentStatus === 'pago');
+    const totalReceived = paidOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const totalPending = totalRevenue - totalReceived;
+
+    return {
+      year,
+      month,
+      totals: {
+        totalOrders: ordersState.length,
+        totalRevenue,
+        totalReceived,
+        totalPending,
+      },
+      days: [],
     };
   },
 };

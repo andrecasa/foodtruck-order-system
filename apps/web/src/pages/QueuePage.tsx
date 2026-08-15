@@ -294,7 +294,7 @@ export function QueuePage() {
 
   const itemsStyle: React.CSSProperties = {
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: 400,
     color: '#3D2020',
     whiteSpace: 'pre-line',
@@ -311,9 +311,16 @@ export function QueuePage() {
     alignSelf: 'center',
   };
 
+  const dividerStyle: React.CSSProperties = {
+    height: '1px',
+    backgroundColor: '#E8DDD5',
+    width: '80%',
+    alignSelf: 'center',
+  };
+
   const buttonContainerStyle: React.CSSProperties = {
     display: 'flex',
-    justifyContent: 'center',
+    width: '100%',
   };
 
   const loadingStyle: React.CSSProperties = {
@@ -454,8 +461,15 @@ export function QueuePage() {
                   <OriginBadge origin={order.origin} />
 
                   <span style={itemsStyle}>
-                    {order.items.map((item) => `${item.quantity}x ${item.name}`).join('\n')}
+                    {order.items.map((item, idx) => (
+                      <span key={idx}>
+                        {idx > 0 && '\n'}
+                        {item.quantity}X - {item.name} - {formatPrice(item.unitPrice * item.quantity)}
+                      </span>
+                    ))}
                   </span>
+
+                  <div style={dividerStyle} />
 
                   <span style={priceStyle}>
                     {formatPrice(order.totalAmount)}
@@ -467,6 +481,7 @@ export function QueuePage() {
                         variant="primary"
                         color={getButtonColor()}
                         onClick={() => handleAdvanceStatus(order)}
+                        fullWidth
                       >
                         {buttonLabel[order.status]}
                       </Button>

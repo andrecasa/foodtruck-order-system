@@ -14,6 +14,8 @@ export type {
   CreateMenuItemRequest,
   UpdateMenuItemRequest,
   DailySummary,
+  MonthlySummaryResponse,
+  DayBreakdown,
   ThemeConfig,
 } from './types/index';
 

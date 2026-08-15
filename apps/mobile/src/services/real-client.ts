@@ -9,6 +9,7 @@ import type {
   UpdateOrderItemsRequest,
   RegisterPaymentRequest,
   DailySummary,
+  MonthlySummaryResponse,
 } from '@order-system/shared';
 import type { ApiClient } from './types';
 import { tokenStorage } from './token-storage';
@@ -360,8 +361,9 @@ export const realClient: ApiClient = {
     return mapOrder(raw);
   },
 
-  async getDailySummary(): Promise<DailySummary> {
-    const response = await authFetch('/api/summary/today');
+  async getDailySummary(date?: string): Promise<DailySummary> {
+    const url = date ? `/api/summary/today?date=${date}` : '/api/summary/today';
+    const response = await authFetch(url);
     const raw = await response.json();
     return {
       date: raw.date,
@@ -376,5 +378,10 @@ export const realClient: ApiClient = {
         'cartão': 0,
       },
     };
+  },
+
+  async getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse> {
+    const response = await authFetch(`/api/summary/monthly?year=${year}&month=${month}`);
+    return response.json();
   },
 };

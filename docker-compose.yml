@@ -119,9 +119,8 @@ services:
           sleep 1
         done
         sleep 5
-        echo "🔧 Renaming tenant external_id to 'realtime'..."
-        psql -h db -U postgres -d $${DB_NAME} -c "UPDATE _realtime.extensions SET tenant_external_id = 'realtime' WHERE tenant_external_id = 'realtime-dev';"
-        psql -h db -U postgres -d $${DB_NAME} -c "UPDATE _realtime.tenants SET external_id = 'realtime' WHERE external_id = 'realtime-dev';"
+        echo "🔧 Renaming tenant to 'realtime'..."
+        psql -h db -U postgres -d $${DB_NAME} -c "ALTER TABLE _realtime.extensions DROP CONSTRAINT IF EXISTS extensions_tenant_external_id_fkey; UPDATE _realtime.tenants SET external_id = 'realtime' WHERE external_id = 'realtime-dev'; UPDATE _realtime.extensions SET tenant_external_id = 'realtime' WHERE tenant_external_id = 'realtime-dev'; ALTER TABLE _realtime.extensions ADD CONSTRAINT extensions_tenant_external_id_fkey FOREIGN KEY (tenant_external_id) REFERENCES _realtime.tenants(external_id);"
         echo "✅ Done!"
     networks:
       - order-system-network

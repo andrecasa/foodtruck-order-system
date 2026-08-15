@@ -29,7 +29,7 @@ export function Badge({ status, size = 'md' }: BadgeProps) {
       case 'aguardando': return theme.colors.aguardando + '1F'; // 12% opacity
       case 'preparando': return theme.colors.preparando + '1F'; // 12% opacity
       case 'pronto': return theme.colors.pronto + '1F'; // 12% opacity
-      case 'entregue': return '#E8DDD5';
+      case 'entregue': return '#8B6B5A' + '1F'; // 12% opacity
       case 'pago': return '#F0F5EE';
       case 'pendente': return '#FDF5EA';
     }

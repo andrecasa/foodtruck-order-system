@@ -106,32 +106,58 @@ pnpm dev:web
 ### Modo Completo (com infraestrutura)
 
 ```bash
-# Subir serviços (PostgreSQL, Auth, Realtime, Kong, Evolution API)
-docker compose up -d
+# 1. Gerar chaves JWT (atualiza .env e kong.yml)
+./scripts/generate-keys.sh
 
-# Aguardar serviços ficarem saudáveis (PostgreSQL healthcheck)
-docker compose ps
+# 2. Subir tudo
+docker compose down -v
+docker compose up -d --build
 
-# Executar migrations
-pnpm --filter @order-system/backend migrate
+# 3. Aguardar Realtime criar tenant + seed corrigir (~15s)
+sleep 15
 
-# Backend (porta 4000)
-pnpm dev:backend
+# 4. Reiniciar Realtime (pegar jwt_secret atualizado pelo seed)
+docker compose restart realtime
 
-# App mobile (Expo)
-pnpm dev:mobile
+# 5. Criar usuário admin (padrão: admin@foodtruck.com / 12345678)
+sleep 5
+./scripts/seed-admin.sh
 
-# Painel web (porta 3000)
-pnpm dev:web
+# 6. Iniciar apps
+pnpm dev:mobile    # App mobile (Expo)
+pnpm dev:web       # Painel web (porta 3000)
 ```
 
-> **Nota:** No modo completo, configure `PROTOTYPE_MODE=false` no `.env`. As variáveis de conexão com o banco e serviços já possuem valores padrão funcionais para desenvolvimento local.
+> **Nota:** Configure `PROTOTYPE_MODE=false` no `.env` para modo completo.
+
+### Resetar Ambiente
+
+```bash
+docker compose down -v
+docker compose up -d --build
+sleep 15 && docker compose restart realtime
+sleep 5 && ./scripts/seed-admin.sh
+```
+
+### Scripts
+
+| Script | Descrição |
+|---|---|
+| `./scripts/generate-keys.sh` | Gera JWT_SECRET (32 hex), ANON_KEY e SERVICE_ROLE_KEY. Atualiza `.env` e `kong.yml` |
+| `./scripts/seed-admin.sh` | Cria usuário admin no Supabase Auth |
+| `./scripts/seed-realtime.sh` | Corrige tenant do Realtime manualmente (normalmente automático) |
+
+### Rebuildar Backend
+
+```bash
+docker compose up -d --build backend
+```
 
 ## Scripts Disponíveis
 
 | Comando | Descrição |
 |---|---|
-| `pnpm dev:backend` | Inicia backend com hot-reload |
+| `pnpm dev:backend` | Inicia backend com hot-reload (fora do Docker) |
 | `pnpm dev:web` | Inicia painel web (Vite) |
 | `pnpm dev:mobile` | Inicia app mobile (Expo) |
 | `pnpm build` | Build de todos os packages |

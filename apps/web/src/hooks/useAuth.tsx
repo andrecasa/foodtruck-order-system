@@ -30,14 +30,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
+  // Check for existing session on mount — validate with server
   useEffect(() => {
     const token = sessionStorage.getItem(TOKEN_KEY);
     if (token) {
-      // Token exists — restore session without re-authenticating
-      setUser({ email: '' });
+      // Token exists — validate by calling the session endpoint
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      fetch(`${apiUrl}/api/auth/session`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (res.ok) {
+            return res.json();
+          }
+          throw new Error('Invalid session');
+        })
+        .then((data) => {
+          setUser({ email: data?.user?.email || '' });
+        })
+        .catch(() => {
+          // Token is invalid (server reset, expired, etc.) — clear it
+          sessionStorage.removeItem(TOKEN_KEY);
+          setUser(null);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

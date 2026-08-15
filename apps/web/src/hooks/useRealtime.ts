@@ -27,10 +27,19 @@ interface UseRealtimeOptions {
 
 /** Singleton Supabase client for realtime — avoids creating new connections on every render */
 let realtimeClient: SupabaseClient | null = null;
+let realtimeClientHadToken = false;
 
 function getRealtimeClient(): SupabaseClient {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  const hasToken = Boolean(token);
+
+  // Recreate client if we now have a token but didn't before
+  if (realtimeClient && !realtimeClientHadToken && hasToken) {
+    realtimeClient = null;
+  }
+
   if (!realtimeClient) {
-    const token = sessionStorage.getItem(TOKEN_KEY);
+    realtimeClientHadToken = hasToken;
     realtimeClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: {
         params: {

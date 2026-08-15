@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { runMigrations } from './db/run-migrations.js';
+import { initRealtimeChannels } from './config/realtime.js';
 import authRoutes from './routes/auth.routes.js';
 import menuRoutes from './routes/menu.routes.js';
 import orderRoutes from './routes/order.routes.js';
@@ -35,6 +36,10 @@ async function start() {
 
   app.listen(PORT, () => {
     console.log(`Backend running on port ${PORT}`);
+    // Pre-subscribe to realtime channels after a delay to allow seed-realtime to fix the tenant
+    setTimeout(() => {
+      initRealtimeChannels();
+    }, 10000);
   });
 }
 

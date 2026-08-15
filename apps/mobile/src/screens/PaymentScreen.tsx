@@ -174,7 +174,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const paymentButtonStyle = (selected: boolean): ViewStyle => ({
     height: 44,
     borderRadius: 22,
-    backgroundColor: selected ? '#5A8C5A' : '#FFFFFF',
+    backgroundColor: selected ? 'rgba(123, 45, 45, 0.12)' : '#FFFFFF',
     borderWidth: selected ? 0 : 1,
     borderColor: selected ? 'transparent' : '#E8DDD5',
     alignItems: 'center',
@@ -185,7 +185,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: selected ? '#FFFFFF' : theme.colors.text,
+    color: selected ? '#7B2D2D' : theme.colors.text,
   });
 
   const errorContainerStyle: ViewStyle = {
@@ -248,7 +248,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 style={{
                   height: 44,
                   borderRadius: 22,
-                  backgroundColor: `${theme.colors.success}1F`,
+                  backgroundColor: 'rgba(123, 45, 45, 0.12)',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -258,7 +258,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                     fontFamily: theme.typography.fontFamily,
                     fontSize: 14,
                     fontWeight: '400',
-                    color: theme.colors.success,
+                    color: '#7B2D2D',
                   }}
                 >
                   {PAYMENT_METHODS.find((m) => m.value === order.paymentMethod)?.label ?? 'Pago'}
@@ -270,7 +270,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 fontFamily: theme.typography.fontFamily,
                 fontSize: 12,
                 fontWeight: '400',
-                color: theme.colors.success,
+                color: '#5A8C5A',
                 textAlign: 'center',
                 marginTop: 16,
               }}
@@ -331,7 +331,8 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               </RNText>
             </TouchableOpacity>
 
-            {/* "+ Adicionar Item" button */}
+            {/* "+ Adicionar Item" button — only when order is still aguardando */}
+            {order.status === 'aguardando' && (
             <TouchableOpacity
               style={{
                 height: 44,
@@ -377,6 +378,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 Adicionar Item
               </RNText>
             </TouchableOpacity>
+            )}
           </>
         )}
       </ScrollContainer>

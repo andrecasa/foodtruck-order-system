@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const segments = useSegments();
 
-  // Check stored session on mount
+  // Check stored session on mount — validate with server
   useEffect(() => {
     let cancelled = false;
 
@@ -39,10 +39,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const hasToken = await tokenStorage.isAuthenticated();
         if (hasToken) {
-          // We have a valid token — set user from stored info
           const token = await tokenStorage.getAccessToken();
           if (token && !cancelled) {
-            setUser({ email: '', role: 'admin' }); // Default to admin for prototype mode
+            // Validate token with backend
+            const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+            const res = await fetch(`${apiUrl}/api/auth/session`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setUser({ email: data?.user?.email || '', role: 'admin' });
+            } else {
+              // Token invalid — clear session
+              await tokenStorage.clear();
+              setUser(null);
+            }
           }
         }
       } catch {

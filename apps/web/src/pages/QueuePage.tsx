@@ -70,6 +70,15 @@ export function QueuePage() {
     doInitialLoad();
   }, [fetchOrders]);
 
+  // Polling fallback: resync every 30s to catch missed realtime events
+  useEffect(() => {
+    if (isPrototypeMode || !initialLoaded) return;
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchOrders, initialLoaded]);
+
   // ─── Realtime Event Handling ──────────────────────────────────────────────
 
   /** Handle incoming realtime events (Task 17.8) */
@@ -352,8 +361,8 @@ export function QueuePage() {
   return (
     <Screen padding={false}>
       <PrototypeBanner />
-      {/* Task 17.6 / 17.5: Show connection banner when realtime is not connected */}
-      {!isPrototypeMode && <ConnectionBanner status={realtimeStatus} />}
+      {/* Task 17.6 / 17.5: Show connection banner only after debounced stale state */}
+      {!isPrototypeMode && isStale && <ConnectionBanner status={realtimeStatus} />}
       <Header
         title="Fila de Pedidos"
         icon="receipt_long"

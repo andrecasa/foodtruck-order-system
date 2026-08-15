@@ -57,3 +57,17 @@ export async function broadcast(channelName: string, event: string, payload: unk
     console.error(`[realtime] Failed to broadcast "${event}" on "${channelName}":`, err);
   }
 }
+
+/**
+ * Pre-subscribes to all known broadcast channels at startup.
+ * This avoids the first-broadcast delay that causes "connection lost" on the frontend.
+ */
+export function initRealtimeChannels(): void {
+  const channels = ['orders:queue', 'orders:payment'];
+  for (const ch of channels) {
+    getChannel(ch).catch((err) => {
+      console.error(`[realtime] Failed to pre-subscribe to "${ch}":`, err);
+    });
+  }
+  console.log('[realtime] Pre-subscribing to channels:', channels.join(', '));
+}

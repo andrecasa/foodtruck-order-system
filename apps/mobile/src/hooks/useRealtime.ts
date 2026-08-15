@@ -63,8 +63,8 @@ export function useRealtime({ channels, onEvent, onReconnect, enabled = true }: 
   const channelKey = channels.join(',');
 
   useEffect(() => {
-    if (!enabled || channels.length === 0) {
-      // Cleanup if disabled
+    if (!enabled || channels.length === 0 || !SUPABASE_ANON_KEY) {
+      // Cleanup if disabled or no API key configured
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;

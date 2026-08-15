@@ -38,7 +38,7 @@ export function Badge({ status, size = 'md', testID }: BadgeProps) {
       case 'pronto':
         return theme.colors.pronto + '1F'; // 12% opacity
       case 'entregue':
-        return '#E8DDD5';
+        return '#8B6B5A' + '1F'; // 12% opacity
       case 'pago':
         return '#F0F5EE';
       case 'pendente':
@@ -55,7 +55,7 @@ export function Badge({ status, size = 'md', testID }: BadgeProps) {
       case 'pronto':
         return theme.colors.pronto;
       case 'entregue':
-        return '#616161';
+        return '#8B6B5A';
       case 'pago':
         return '#7B2D2D';
       case 'pendente':

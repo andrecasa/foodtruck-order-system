@@ -63,9 +63,9 @@ services:
   # Supabase Realtime - WebSocket events
   # ===========================================
   realtime:
-    # Container name follows Supabase convention: realtime parses subdomain as tenant id
-    container_name: realtime-dev.supabase-realtime
-    image: supabase/realtime:v2.33.70
+    # Container name determines the tenant external_id (part before first '.')
+    container_name: realtime.supabase-realtime
+    image: supabase/realtime:v2.102.3
     restart: unless-stopped
     ports:
       - "${REALTIME_PORT:-4001}:4000"
@@ -83,6 +83,8 @@ services:
       ERL_AFLAGS: -proto_dist inet_tcp
       DNS_NODES: "''"
       SEED_SELF_HOST: "true"
+      SECURE_CHANNELS: "true"
+      METRICS_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
       APP_NAME: realtime
       RLIMIT_NOFILE: "10000"
     depends_on:
@@ -92,6 +94,43 @@ services:
       order-system-network:
         aliases:
           - realtime
+
+  # ===========================================
+  # Seed Realtime Tenant (one-shot init container)
+  # ===========================================
+  # Fixes the Realtime tenant external_id from 'realtime-dev' to 'realtime'
+  # and sets the correct JWT secret. Runs once and exits.
+  seed-realtime:
+    image: postgres:15-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      DB_NAME: ${POSTGRES_DB:-order_system}
+    depends_on:
+      realtime:
+        condition: service_started
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "⏳ Waiting for Realtime to create its tenant..."
+        for i in $$(seq 1 30); do
+          EXISTS=$$(psql -h db -U postgres -d $${DB_NAME} -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = '_realtime' AND table_name = 'tenants';" 2>/dev/null)
+          if [ "$$EXISTS" = "1" ]; then break; fi
+          sleep 1
+        done
+        sleep 5
+        echo "🔧 Fixing tenant..."
+        psql -h db -U postgres -d $${DB_NAME} -c "ALTER TABLE _realtime.extensions DROP CONSTRAINT IF EXISTS extensions_tenant_external_id_fkey;"
+        psql -h db -U postgres -d $${DB_NAME} -c "UPDATE _realtime.tenants SET external_id = 'realtime', jwt_secret = '$${JWT_SECRET}' WHERE external_id = 'realtime-dev';"
+        psql -h db -U postgres -d $${DB_NAME} -c "UPDATE _realtime.tenants SET jwt_secret = '$${JWT_SECRET}' WHERE external_id = 'realtime';"
+        psql -h db -U postgres -d $${DB_NAME} -c "UPDATE _realtime.extensions SET tenant_external_id = 'realtime' WHERE tenant_external_id = 'realtime-dev';"
+        psql -h db -U postgres -d $${DB_NAME} -c "ALTER TABLE _realtime.extensions ADD CONSTRAINT extensions_tenant_external_id_fkey FOREIGN KEY (tenant_external_id) REFERENCES _realtime.tenants(external_id);"
+        echo "✅ Tenant fixed!"
+    networks:
+      - order-system-network
 
   # ===========================================
   # Supabase REST (PostgREST) - API REST auto-gerada

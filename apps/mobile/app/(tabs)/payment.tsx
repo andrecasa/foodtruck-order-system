@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, View, type ViewStyle } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { PaymentScreen } from '../../src/screens/PaymentScreen';
 import { Screen, Text } from '../../src/components';
 import { useTheme } from '../../src/theme/ThemeProvider';
@@ -22,31 +22,35 @@ export default function PaymentRoute() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadOrder() {
-      if (!orderId) {
-        setError('ID do pedido não informado');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const orders = await apiClient.getOrders({});
-        const found = orders.find((o) => o.id === orderId);
-        if (!found) {
-          setError('Pedido não encontrado');
-        } else {
-          setOrder(found);
+  useFocusEffect(
+    useCallback(() => {
+      async function loadOrder() {
+        if (!orderId) {
+          setError('ID do pedido não informado');
+          setLoading(false);
+          return;
         }
-      } catch {
-        setError('Erro ao carregar pedido');
-      } finally {
-        setLoading(false);
-      }
-    }
 
-    loadOrder();
-  }, [orderId]);
+        try {
+          setLoading(true);
+          const orders = await apiClient.getOrders({});
+          const found = orders.find((o) => o.id === orderId);
+          if (!found) {
+            setError('Pedido não encontrado');
+          } else {
+            setOrder(found);
+            setError(null);
+          }
+        } catch {
+          setError('Erro ao carregar pedido');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      loadOrder();
+    }, [orderId])
+  );
 
   const centerStyle: ViewStyle = {
     flex: 1,

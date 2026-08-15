@@ -40,17 +40,6 @@ function formatCurrency(raw: string): string {
 }
 
 /**
- * Formats centavos (integer) to display currency string without prefix.
- * E.g., 1200 → "12,00"
- */
-function formatCentavosToDisplay(centavos: number): string {
-  const str = String(centavos).padStart(3, '0');
-  const integerPart = str.slice(0, str.length - 2);
-  const decimalPart = str.slice(str.length - 2);
-  const trimmedInteger = integerPart.replace(/^0+/, '') || '0';
-  return `${trimmedInteger},${decimalPart}`;
-}
-
 export interface EditMenuItemScreenProps {
   id: string;
   name: string;

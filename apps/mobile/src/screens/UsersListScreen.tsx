@@ -16,7 +16,7 @@ import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { listUsers, toggleUserStatus } from '../services/userService';
-import type { User, UserRole, UserFilters } from '../types/user';
+import type { User, UserRole } from '../types/user';
 
 // ─── Filter chip options (role-based, no "todos") ───────────────────────────
 // Penpot: Admin (#7B2D2D), Atendente (#5B8BA8), Preparador (#5A8C5A)
@@ -123,11 +123,6 @@ export function UsersListScreen() {
 
   // ─── Styles (Penpot pixel-perfect) ────────────────────────────────────────
 
-  const screenStyle: ViewStyle = {
-    flex: 1,
-    backgroundColor: '#FDF8F4',
-  };
-
   // AppBar: height 56, bg white, flex row, paddingHorizontal 16, gap 12, alignItems center
   const appBarStyle: ViewStyle = {
     height: 56,
@@ -188,14 +183,6 @@ export function UsersListScreen() {
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'flex-start',
-  };
-
-  // Badge text: Inter 8px weight 400, white (Penpot spec: ALWAYS white for role badges)
-  const roleBadgeTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 8,
-    fontWeight: '400',
-    color: '#FFFFFF',
   };
 
   // User name: Inter 14px weight 500, #3D2020

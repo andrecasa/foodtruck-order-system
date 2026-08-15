@@ -1,4 +1,3 @@
-import React from 'react';
 import { AuthProvider, useAuth } from './hooks';
 import { LoginPage } from './pages/LoginPage';
 import { QueuePage } from './pages/QueuePage';

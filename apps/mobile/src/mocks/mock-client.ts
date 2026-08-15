@@ -19,7 +19,6 @@ import { orders as initialOrders } from './orders-data';
 let menuState: MenuItem[] = [...initialMenuItems];
 let ordersState: Order[] = [...initialOrders];
 let dailyCounter = initialOrders.length;
-let isAuthenticated = false;
 
 function generateId(): string {
   return `mock-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -37,13 +36,11 @@ export const mockClient: ApiClient = {
   // Auth
   async login(email: string, _password: string): Promise<{ token: string }> {
     await delay();
-    isAuthenticated = true;
     return { token: `mock-token-${email}-${Date.now()}` };
   },
 
   async logout(): Promise<void> {
     await delay();
-    isAuthenticated = false;
   },
 
   // Menu

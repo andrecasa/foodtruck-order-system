@@ -81,7 +81,7 @@ export interface HeaderProps {
  *   - Menu icon: Material Symbols "menu" 24px, color #8B6B5A (textSecondary)
  *   - Title: 18px weight 400 Inter, color #3D2020 (text), flex:1, textAlign: center
  */
-export function Header({ children, title, icon, rightElement, showMenu = true, onBack }: HeaderProps) {
+export function Header({ children, title, icon: _icon, rightElement, showMenu = true, onBack }: HeaderProps) {
   const theme = useTheme();
   const [drawerVisible, setDrawerVisible] = useState(false);
 

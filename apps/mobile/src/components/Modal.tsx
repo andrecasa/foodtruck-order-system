@@ -145,12 +145,12 @@ export function Modal({
       <Pressable
         style={overlayStyle}
         onPress={onClose}
-        accessibilityRole="button"
+        accessibilityRole="none"
         accessibilityLabel="Fechar modal"
       >
         <Pressable
           style={containerStyle}
-          onPress={(e) => e.stopPropagation()}
+          onPress={() => {}}
           accessibilityRole="none"
           accessibilityLabel={title}
         >

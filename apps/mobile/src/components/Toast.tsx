@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Text, TouchableOpacity, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Text, TouchableOpacity, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 
 interface ToastProps {

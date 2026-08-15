@@ -756,8 +756,9 @@ export function UserDetailScreen() {
 
         {/* Danger Button — Excluir */}
         <Pressable
-          style={dangerButtonStyle}
+          style={[dangerButtonStyle, deleting && { opacity: 0.5 }]}
           onPress={() => setDeleteModalVisible(true)}
+          disabled={deleting}
           accessibilityRole="button"
           accessibilityLabel="Excluir usuário"
           testID="delete-user-button"

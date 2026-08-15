@@ -13,7 +13,7 @@ import { Text } from '../components/Typography';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
-import type { MenuItem, Order, OrderOrigin } from '@order-system/shared';
+import type { MenuItem, OrderOrigin } from '@order-system/shared';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;

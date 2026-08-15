@@ -20,6 +20,7 @@ import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
 import { useNetworkError } from '../hooks/useNetworkError';
+import { useAuth } from '../hooks/useAuth';
 
 /** Map current status to the next status in the workflow */
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -54,6 +55,7 @@ const DEFAULT_FILTERS: OrderStatus[] = ['aguardando', 'preparando', 'pronto'];
 export function OrderQueueScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export function OrderQueueScreen() {
   ];
 
   const fetchOrders = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       const data = await apiClient.getOrders({
         status: selectedFilters as OrderStatus[],
@@ -89,7 +92,7 @@ export function OrderQueueScreen() {
     } finally {
       setLoading(false);
     }
-  }, [selectedFilters]);
+  }, [selectedFilters, isAuthenticated]);
 
   useEffect(() => {
     fetchOrders();

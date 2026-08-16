@@ -10,6 +10,10 @@ import type {
   RegisterPaymentRequest,
   DailySummary,
   MonthlySummaryResponse,
+  Category,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  ReorderCategoriesRequest,
 } from '@order-system/shared';
 import { isValidTransition } from '@order-system/shared';
 import type { ApiClient } from '../services/types';
@@ -20,6 +24,11 @@ import { orders as initialOrders } from './orders-data';
 let menuState: MenuItem[] = [...initialMenuItems];
 let ordersState: Order[] = [...initialOrders];
 let dailyCounter = initialOrders.length;
+let categoriesState: Category[] = [
+  { id: 'cat-1', name: 'Pastéis Salgados', sortOrder: 0, status: 'ativo', itemCount: 3, createdAt: '2024-01-01T00:00:00Z' },
+  { id: 'cat-2', name: 'Pastéis Doces', sortOrder: 1, status: 'ativo', itemCount: 2, createdAt: '2024-01-01T00:00:00Z' },
+  { id: 'cat-3', name: 'Bebidas', sortOrder: 2, status: 'ativo', itemCount: 4, createdAt: '2024-01-01T00:00:00Z' },
+];
 
 function generateId(): string {
   return `mock-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -129,6 +138,15 @@ export const mockClient: ApiClient = {
     };
     menuState[index] = updated;
     return updated;
+  },
+
+  async deleteMenuItem(id: string): Promise<void> {
+    await delay();
+    const index = menuState.findIndex((item) => item.id === id);
+    if (index === -1) {
+      throw new Error('Item não encontrado (404)');
+    }
+    menuState.splice(index, 1);
   },
 
   // Orders
@@ -314,5 +332,86 @@ export const mockClient: ApiClient = {
       },
       days: [],
     };
+  },
+
+  // Categories
+  async getCategories(): Promise<Category[]> {
+    await delay();
+    return [...categoriesState].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  },
+
+  async createCategory(data: CreateCategoryRequest): Promise<Category> {
+    await delay();
+    const trimmedName = data.name.trim();
+    const duplicate = categoriesState.find(
+      (c) => c.name.toLowerCase() === trimmedName.toLowerCase(),
+    );
+    if (duplicate) {
+      throw new Error('Já existe uma categoria com este nome');
+    }
+    const maxSortOrder = categoriesState.length > 0
+      ? Math.max(...categoriesState.map((c) => c.sortOrder))
+      : -1;
+    const newCategory: Category = {
+      id: generateId(),
+      name: trimmedName,
+      sortOrder: maxSortOrder + 1,
+      status: 'ativo',
+      itemCount: 0,
+      createdAt: now(),
+    };
+    categoriesState.push(newCategory);
+    return newCategory;
+  },
+
+  async updateCategory(id: string, data: UpdateCategoryRequest): Promise<Category> {
+    await delay();
+    const index = categoriesState.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new Error('Categoria não encontrada');
+    }
+    const trimmedName = data.name.trim();
+    const duplicate = categoriesState.find(
+      (c) => c.id !== id && c.name.toLowerCase() === trimmedName.toLowerCase(),
+    );
+    if (duplicate) {
+      throw new Error('Já existe uma categoria com este nome');
+    }
+    const updated: Category = { ...categoriesState[index]!, name: trimmedName };
+    categoriesState[index] = updated;
+    return updated;
+  },
+
+  async reorderCategories(data: ReorderCategoriesRequest): Promise<Category[]> {
+    await delay();
+    const reordered = data.categoryIds.map((id, index) => {
+      const cat = categoriesState.find((c) => c.id === id);
+      if (!cat) throw new Error('Categoria não encontrada na lista');
+      return { ...cat, sortOrder: index };
+    });
+    categoriesState = reordered;
+    return [...categoriesState];
+  },
+
+  async toggleCategoryStatus(id: string, action: 'activate' | 'deactivate'): Promise<Category> {
+    await delay();
+    const index = categoriesState.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new Error('Categoria não encontrada');
+    }
+    const category = categoriesState[index]!;
+    const newStatus = action === 'activate' ? 'ativo' : 'inativo';
+    const updated: Category = { ...category, status: newStatus };
+    categoriesState[index] = updated;
+    return updated;
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    await delay();
+    const index = categoriesState.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new Error('Categoria não encontrada');
+    }
+    categoriesState.splice(index, 1);
   },
 };

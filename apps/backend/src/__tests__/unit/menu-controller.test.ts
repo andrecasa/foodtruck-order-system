@@ -141,40 +141,19 @@ describe('Menu Controller', () => {
   describe('POST /api/menu (createMenuItem)', () => {
     it('should create item successfully with valid data', async () => {
       // Mock category lookup
-      const catChain = createChain();
-      catChain.single.mockResolvedValue({ data: { id: 'cat-1' }, error: null });
-      catChain.eq.mockReturnValue(catChain);
-      catChain.select.mockReturnValue(catChain);
-
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'cat-1' }] });
       // Mock name uniqueness check
-      const nameChain = createChain();
-      nameChain.eq.mockResolvedValue({ data: [], error: null });
-      nameChain.ilike.mockReturnValue(nameChain);
-      nameChain.select.mockReturnValue(nameChain);
-
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
       // Mock insert
-      const insertChain = createChain();
-      insertChain.single.mockResolvedValue({
-        data: {
+      mockPoolQuery.mockResolvedValueOnce({
+        rows: [{
           id: 'new-1', name: 'Novo Pastel', price_cents: 800, status: 'ativo',
           created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
-          category_id: 'cat-1', categories: { name: 'Pastéis Salgados' },
-        },
-        error: null,
+          category_id: 'cat-1',
+        }],
       });
-      insertChain.select.mockReturnValue(insertChain);
-      insertChain.insert.mockReturnValue(insertChain);
-
-      let callCount = 0;
-      vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-        if (table === 'categories') return catChain as any;
-        if (table === 'menu_items') {
-          callCount++;
-          if (callCount === 1) return nameChain as any; // uniqueness check
-          return insertChain as any; // insert
-        }
-        return createChain() as any;
-      });
+      // Mock category name lookup
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Pastéis Salgados' }] });
 
       const req = mockRequest({ name: 'Novo Pastel', price: 800, category: 'Pastéis Salgados' });
       const res = mockResponse();
@@ -218,15 +197,8 @@ describe('Menu Controller', () => {
     });
 
     it('should return 422 when category does not exist', async () => {
-      const catChain = createChain();
-      catChain.single.mockResolvedValue({ data: null, error: { message: 'not found' } });
-      catChain.eq.mockReturnValue(catChain);
-      catChain.select.mockReturnValue(catChain);
-
-      vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-        if (table === 'categories') return catChain as any;
-        return createChain() as any;
-      });
+      // Category not found
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
       const req = mockRequest({ name: 'Item', price: 500, category: 'Inexistente' });
       const res = mockResponse();
@@ -239,22 +211,9 @@ describe('Menu Controller', () => {
 
     it('should return 409 when name already exists (case-insensitive)', async () => {
       // Category exists
-      const catChain = createChain();
-      catChain.single.mockResolvedValue({ data: { id: 'cat-1' }, error: null });
-      catChain.eq.mockReturnValue(catChain);
-      catChain.select.mockReturnValue(catChain);
-
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'cat-1' }] });
       // Name collision found
-      const nameChain = createChain();
-      nameChain.eq.mockResolvedValue({ data: [{ id: 'existing-1' }], error: null });
-      nameChain.ilike.mockReturnValue(nameChain);
-      nameChain.select.mockReturnValue(nameChain);
-
-      vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-        if (table === 'categories') return catChain as any;
-        if (table === 'menu_items') return nameChain as any;
-        return createChain() as any;
-      });
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'existing-1' }] });
 
       const req = mockRequest({ name: 'PASTEL DE CARNE', price: 750, category: 'Pastéis Salgados' });
       const res = mockResponse();
@@ -269,42 +228,19 @@ describe('Menu Controller', () => {
   describe('PUT /api/menu/:id (updateMenuItem)', () => {
     it('should update item successfully', async () => {
       // Item exists
-      const existChain = createChain();
-      existChain.single.mockResolvedValue({ data: { id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }, error: null });
-      existChain.eq.mockReturnValue(existChain);
-      existChain.select.mockReturnValue(existChain);
-
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }] });
       // No name collision
-      const nameChain = createChain();
-      nameChain.neq.mockResolvedValue({ data: [], error: null });
-      nameChain.eq.mockReturnValue(nameChain);
-      nameChain.ilike.mockReturnValue(nameChain);
-      nameChain.select.mockReturnValue(nameChain);
-
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
       // Update result
-      const updateChain = createChain();
-      updateChain.single.mockResolvedValue({
-        data: {
+      mockPoolQuery.mockResolvedValueOnce({
+        rows: [{
           id: '550e8400-e29b-41d4-a716-446655440001', name: 'Pastel Atualizado', price_cents: 900, status: 'ativo',
           created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-02T00:00:00Z',
-          category_id: 'cat-1', categories: { name: 'Pastéis Salgados' },
-        },
-        error: null,
+          category_id: 'cat-1',
+        }],
       });
-      updateChain.select.mockReturnValue(updateChain);
-      updateChain.eq.mockReturnValue(updateChain);
-      updateChain.update.mockReturnValue(updateChain);
-
-      let menuCallCount = 0;
-      vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-        if (table === 'menu_items') {
-          menuCallCount++;
-          if (menuCallCount === 1) return existChain as any; // exists check
-          if (menuCallCount === 2) return nameChain as any;  // name collision
-          return updateChain as any; // update
-        }
-        return createChain() as any;
-      });
+      // Category name lookup
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Pastéis Salgados' }] });
 
       const req = mockRequest({ name: 'Pastel Atualizado', price: 900 }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
@@ -318,12 +254,7 @@ describe('Menu Controller', () => {
     });
 
     it('should return 404 when item does not exist', async () => {
-      const existChain = createChain();
-      existChain.single.mockResolvedValue({ data: null, error: { message: 'not found' } });
-      existChain.eq.mockReturnValue(existChain);
-      existChain.select.mockReturnValue(existChain);
-
-      vi.mocked(supabaseAdmin.from).mockReturnValue(existChain as any);
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
       const req = mockRequest({ name: 'New Name' }, { id: '550e8400-e29b-41d4-a716-446655440099' });
       const res = mockResponse();
@@ -336,27 +267,9 @@ describe('Menu Controller', () => {
 
     it('should return 409 when new name collides with another active item', async () => {
       // Item exists
-      const existChain = createChain();
-      existChain.single.mockResolvedValue({ data: { id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }, error: null });
-      existChain.eq.mockReturnValue(existChain);
-      existChain.select.mockReturnValue(existChain);
-
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }] });
       // Name collision found
-      const nameChain = createChain();
-      nameChain.neq.mockResolvedValue({ data: [{ id: '550e8400-e29b-41d4-a716-446655440002' }], error: null });
-      nameChain.eq.mockReturnValue(nameChain);
-      nameChain.ilike.mockReturnValue(nameChain);
-      nameChain.select.mockReturnValue(nameChain);
-
-      let menuCallCount = 0;
-      vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-        if (table === 'menu_items') {
-          menuCallCount++;
-          if (menuCallCount === 1) return existChain as any;
-          return nameChain as any;
-        }
-        return createChain() as any;
-      });
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: '550e8400-e29b-41d4-a716-446655440002' }] });
 
       const req = mockRequest({ name: 'Pastel de Queijo' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
@@ -369,26 +282,9 @@ describe('Menu Controller', () => {
 
     it('should return 422 when category is invalid', async () => {
       // Item exists
-      const existChain = createChain();
-      existChain.single.mockResolvedValue({ data: { id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }, error: null });
-      existChain.eq.mockReturnValue(existChain);
-      existChain.select.mockReturnValue(existChain);
-
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }] });
       // Category not found
-      const catChain = createChain();
-      catChain.single.mockResolvedValue({ data: null, error: { message: 'not found' } });
-      catChain.eq.mockReturnValue(catChain);
-      catChain.select.mockReturnValue(catChain);
-
-      let menuCallCount = 0;
-      vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-        if (table === 'categories') return catChain as any;
-        if (table === 'menu_items') {
-          menuCallCount++;
-          return existChain as any;
-        }
-        return createChain() as any;
-      });
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
       const req = mockRequest({ category: 'Inexistente' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
@@ -401,43 +297,25 @@ describe('Menu Controller', () => {
 
     it('should preserve ID on update (ID not in response body as different from param)', async () => {
       // Item exists
-      const existChain = createChain();
-      existChain.single.mockResolvedValue({ data: { id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }, error: null });
-      existChain.eq.mockReturnValue(existChain);
-      existChain.select.mockReturnValue(existChain);
-
-      // Update result - same ID
-      const updateChain = createChain();
-      updateChain.single.mockResolvedValue({
-        data: {
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }] });
+      // Update result (only price changed, no name collision check needed)
+      mockPoolQuery.mockResolvedValueOnce({
+        rows: [{
           id: '550e8400-e29b-41d4-a716-446655440001', name: 'Updated', price_cents: 500, status: 'ativo',
           created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-02T00:00:00Z',
-          category_id: 'cat-1', categories: { name: 'Bebidas' },
-        },
-        error: null,
+          category_id: 'cat-1',
+        }],
       });
-      updateChain.select.mockReturnValue(updateChain);
-      updateChain.eq.mockReturnValue(updateChain);
-      updateChain.update.mockReturnValue(updateChain);
+      // Category name lookup
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Bebidas' }] });
 
-      let menuCallCount = 0;
-      vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-        if (table === 'menu_items') {
-          menuCallCount++;
-          if (menuCallCount === 1) return existChain as any;
-          return updateChain as any;
-        }
-        return createChain() as any;
-      });
-
-      // Sending only price — no name means no collision check needed
       const req = mockRequest({ price: 500 }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
       await updateMenuItem(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.id).toBe('550e8400-e29b-41d4-a716-446655440001'); // ID preserved
+      expect(res.body.id).toBe('550e8400-e29b-41d4-a716-446655440001');
     });
   });
 

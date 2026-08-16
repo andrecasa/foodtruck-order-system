@@ -13,6 +13,7 @@ jest.mock('expo-router', () => ({
     replace: jest.fn(),
     back: jest.fn(),
   }),
+  useLocalSearchParams: () => ({ date: '2026-08-01' }),
 }));
 
 // Capture the onEvent callback from useRealtime
@@ -339,14 +340,14 @@ describe('IntermediateSummaryScreen', () => {
         fireEvent.press(dateChip);
       });
 
+      // Mock API for July (must be set before navigation so onMonthChange returns correct days)
+      apiClient.getMonthlySummary.mockResolvedValue(julySummary);
+
       // Navigate to July
       const prevButton = await findByTestId('date-selector-previous');
       await act(async () => {
         fireEvent.press(prevButton);
       });
-
-      // Mock API for July
-      apiClient.getMonthlySummary.mockResolvedValue(julySummary);
 
       // Select day 7 in July (the first day with orders)
       const day7Cell = await findByTestId('calendar-day-7');

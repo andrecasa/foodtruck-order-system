@@ -4,7 +4,6 @@ import {
   updateMenuItemRequestSchema,
 } from '@order-system/shared';
 import { pool } from '../config/database.js';
-import { supabaseAdmin } from '../config/supabase.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 /**
@@ -26,7 +25,7 @@ export async function getMenu(req: AuthenticatedRequest, res: Response): Promise
                 c.name AS category_name, c.sort_order AS category_sort_order
          FROM menu_items mi
          LEFT JOIN categories c ON mi.category_id = c.id
-         WHERE mi.status = 'ativo'
+         WHERE mi.status = 'ativo' AND c.status = 'ativo'
          ORDER BY c.sort_order ASC, mi.name ASC`;
 
     const result = await pool.query(query);
@@ -111,14 +110,13 @@ export async function createMenuItem(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // 3. Check category exists
-    const { data: categoryData, error: catError } = await supabaseAdmin
-      .from('categories')
-      .select('id')
-      .eq('name', category)
-      .single();
+    // 3. Check category exists (case-insensitive, active only)
+    const categoryResult = await pool.query(
+      `SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND status = 'ativo' LIMIT 1`,
+      [category]
+    );
 
-    if (catError || !categoryData) {
+    if (categoryResult.rows.length === 0) {
       res.status(422).json({
         statusCode: 422,
         error: 'VALIDATION_ERROR',
@@ -127,14 +125,15 @@ export async function createMenuItem(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // 4. Check name uniqueness (case-insensitive) among active items
-    const { data: existing } = await supabaseAdmin
-      .from('menu_items')
-      .select('id')
-      .ilike('name', name)
-      .eq('status', 'ativo');
+    const categoryData = categoryResult.rows[0];
 
-    if (existing && existing.length > 0) {
+    // 4. Check name uniqueness (case-insensitive) among active items
+    const existingResult = await pool.query(
+      `SELECT id FROM menu_items WHERE LOWER(name) = LOWER($1) AND status = 'ativo'`,
+      [name]
+    );
+
+    if (existingResult.rows.length > 0) {
       res.status(409).json({
         statusCode: 409,
         error: 'CONFLICT',
@@ -144,27 +143,14 @@ export async function createMenuItem(req: AuthenticatedRequest, res: Response): 
     }
 
     // 5. Insert item
-    const { data: newItem, error: insertError } = await supabaseAdmin
-      .from('menu_items')
-      .insert({
-        name,
-        price_cents: price,
-        category_id: categoryData.id,
-        status: 'ativo',
-      })
-      .select('id, name, price_cents, status, created_at, updated_at, category_id, categories(name)')
-      .single();
+    const insertResult = await pool.query(
+      `INSERT INTO menu_items (name, price_cents, category_id, status)
+       VALUES ($1, $2, $3, 'ativo')
+       RETURNING id, name, price_cents, status, created_at, updated_at, category_id`,
+      [name, price, categoryData.id]
+    );
 
-    if (insertError) {
-      // Handle unique constraint violation from the DB index as a fallback
-      if (insertError.code === '23505') {
-        res.status(409).json({
-          statusCode: 409,
-          error: 'CONFLICT',
-          message: 'Item com este nome já existe',
-        });
-        return;
-      }
+    if (insertResult.rows.length === 0) {
       res.status(500).json({
         statusCode: 500,
         error: 'INTERNAL_ERROR',
@@ -173,13 +159,20 @@ export async function createMenuItem(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const cat = newItem.categories as unknown as { name: string } | null;
+    const newItem = insertResult.rows[0];
+
+    // Get category name
+    const catNameResult = await pool.query(
+      `SELECT name FROM categories WHERE id = $1`,
+      [newItem.category_id]
+    );
+    const catName = catNameResult.rows[0]?.name || category;
 
     res.status(201).json({
       id: newItem.id,
       name: newItem.name,
       price: newItem.price_cents,
-      category: cat?.name || category,
+      category: catName,
       status: newItem.status,
       createdAt: newItem.created_at,
       updatedAt: newItem.updated_at,
@@ -225,13 +218,12 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
     const { name, price, category } = parsed.data;
 
     // 2. Check item exists
-    const { data: existingItem, error: fetchError } = await supabaseAdmin
-      .from('menu_items')
-      .select('id, status')
-      .eq('id', id)
-      .single();
+    const itemResult = await pool.query(
+      `SELECT id, status FROM menu_items WHERE id = $1`,
+      [id]
+    );
 
-    if (fetchError || !existingItem) {
+    if (itemResult.rows.length === 0) {
       res.status(404).json({
         statusCode: 404,
         error: 'NOT_FOUND',
@@ -253,13 +245,12 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
     // 4. If category provided, validate it exists
     let categoryId: string | undefined;
     if (category !== undefined) {
-      const { data: catData, error: catError } = await supabaseAdmin
-        .from('categories')
-        .select('id')
-        .eq('name', category)
-        .single();
+      const catResult = await pool.query(
+        `SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND status = 'ativo' LIMIT 1`,
+        [category]
+      );
 
-      if (catError || !catData) {
+      if (catResult.rows.length === 0) {
         res.status(422).json({
           statusCode: 422,
           error: 'VALIDATION_ERROR',
@@ -267,19 +258,17 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
         });
         return;
       }
-      categoryId = catData.id;
+      categoryId = catResult.rows[0].id;
     }
 
     // 5. If name provided, check collision with other active items (excluding this one)
     if (name !== undefined) {
-      const { data: collision } = await supabaseAdmin
-        .from('menu_items')
-        .select('id')
-        .ilike('name', name)
-        .eq('status', 'ativo')
-        .neq('id', id);
+      const collisionResult = await pool.query(
+        `SELECT id FROM menu_items WHERE LOWER(name) = LOWER($1) AND status = 'ativo' AND id != $2`,
+        [name, id]
+      );
 
-      if (collision && collision.length > 0) {
+      if (collisionResult.rows.length > 0) {
         res.status(409).json({
           statusCode: 409,
           error: 'CONFLICT',
@@ -289,31 +278,37 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
       }
     }
 
-    // 6. Build update payload (never change ID)
-    const updatePayload: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
-    if (name !== undefined) updatePayload.name = name;
-    if (price !== undefined) updatePayload.price_cents = price;
-    if (categoryId !== undefined) updatePayload.category_id = categoryId;
+    // 6. Build update query dynamically
+    const setClauses: string[] = ['updated_at = NOW()'];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+      setClauses.push(`name = $${paramIndex}`);
+      values.push(name);
+      paramIndex++;
+    }
+    if (price !== undefined) {
+      setClauses.push(`price_cents = $${paramIndex}`);
+      values.push(price);
+      paramIndex++;
+    }
+    if (categoryId !== undefined) {
+      setClauses.push(`category_id = $${paramIndex}`);
+      values.push(categoryId);
+      paramIndex++;
+    }
+
+    values.push(id);
 
     // 7. Execute update
-    const { data: updated, error: updateError } = await supabaseAdmin
-      .from('menu_items')
-      .update(updatePayload)
-      .eq('id', id)
-      .select('id, name, price_cents, status, created_at, updated_at, category_id, categories(name)')
-      .single();
+    const updateResult = await pool.query(
+      `UPDATE menu_items SET ${setClauses.join(', ')} WHERE id = $${paramIndex}
+       RETURNING id, name, price_cents, status, created_at, updated_at, category_id`,
+      values
+    );
 
-    if (updateError) {
-      if (updateError.code === '23505') {
-        res.status(409).json({
-          statusCode: 409,
-          error: 'CONFLICT',
-          message: 'Item com este nome já existe',
-        });
-        return;
-      }
+    if (updateResult.rows.length === 0) {
       res.status(500).json({
         statusCode: 500,
         error: 'INTERNAL_ERROR',
@@ -322,13 +317,19 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const cat = updated.categories as unknown as { name: string } | null;
+    const updated = updateResult.rows[0];
+
+    // Get category name
+    const catNameResult = await pool.query(
+      `SELECT name FROM categories WHERE id = $1`,
+      [updated.category_id]
+    );
 
     res.status(200).json({
       id: updated.id,
       name: updated.name,
       price: updated.price_cents,
-      category: cat?.name || category || '',
+      category: catNameResult.rows[0]?.name || category || '',
       status: updated.status,
       createdAt: updated.created_at,
       updatedAt: updated.updated_at,
@@ -338,6 +339,60 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
       statusCode: 500,
       error: 'INTERNAL_ERROR',
       message: 'Erro ao atualizar item.',
+    });
+  }
+}
+
+/**
+ * DELETE /api/menu/:id
+ * Delete a menu item if it has no associated order items.
+ */
+export async function deleteMenuItem(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    // 1. Check item exists
+    const itemResult = await pool.query(
+      `SELECT id FROM menu_items WHERE id = $1`,
+      [id]
+    );
+
+    if (itemResult.rows.length === 0) {
+      res.status(404).json({
+        statusCode: 404,
+        error: 'NOT_FOUND',
+        message: 'Item não encontrado.',
+      });
+      return;
+    }
+
+    // 2. Guard: check for associated order items
+    const orderItemsResult = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM order_items WHERE menu_item_id = $1`,
+      [id]
+    );
+
+    if (orderItemsResult.rows[0].count > 0) {
+      res.status(422).json({
+        statusCode: 422,
+        error: 'VALIDATION_ERROR',
+        message: 'Item possui pedidos associados. Desative o item em vez de excluí-lo.',
+      });
+      return;
+    }
+
+    // 3. Delete item
+    await pool.query(`DELETE FROM menu_items WHERE id = $1`, [id]);
+
+    res.status(200).json({
+      message: 'Item excluído com sucesso',
+    });
+  } catch (err) {
+    console.error('[menu] deleteMenuItem error:', err);
+    res.status(500).json({
+      statusCode: 500,
+      error: 'INTERNAL_ERROR',
+      message: 'Erro ao excluir item.',
     });
   }
 }

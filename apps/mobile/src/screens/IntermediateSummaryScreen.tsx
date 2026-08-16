@@ -301,6 +301,16 @@ export function IntermediateSummaryScreen() {
           onPress={() => setCalendarModalVisible(true)}
         />
 
+        {/* Selected Day Card */}
+        <SelectedDayCard
+          date={selectedDate}
+          orderCount={selectedDayData?.orderCount ?? 0}
+          revenue={selectedDayData?.revenue ?? 0}
+          paidOrders={selectedDayData?.paidOrders ?? 0}
+          totalOrders={selectedDayData?.orderCount ?? 0}
+          onViewFullSummary={handleViewFullSummary}
+        />
+
         {/* Monthly Summary Card */}
         {monthlySummary && (
           <MonthlySummaryCard
@@ -311,16 +321,6 @@ export function IntermediateSummaryScreen() {
             totalPending={monthlySummary.totals.totalPending}
           />
         )}
-
-        {/* Selected Day Card */}
-        <SelectedDayCard
-          date={selectedDate}
-          orderCount={selectedDayData?.orderCount ?? 0}
-          revenue={selectedDayData?.revenue ?? 0}
-          paidOrders={selectedDayData?.paidOrders ?? 0}
-          totalOrders={selectedDayData?.orderCount ?? 0}
-          onViewFullSummary={handleViewFullSummary}
-        />
       </ScrollView>
 
       {/* Calendar Modal */}

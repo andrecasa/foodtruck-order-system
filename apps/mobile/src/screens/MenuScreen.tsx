@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -7,7 +7,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import type { MenuItem } from '@order-system/shared';
 import { Screen, ScrollContainer, Header, Text } from '../components';
 import { ToggleSwitch } from '../components/ToggleSwitch';
@@ -74,9 +74,11 @@ export function MenuScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadMenu();
-  }, [loadMenu]);
+  useFocusEffect(
+    useCallback(() => {
+      loadMenu();
+    }, [loadMenu])
+  );
 
   const handleToggleStatus = useCallback(async (id: string) => {
     try {

@@ -1,10 +1,10 @@
 -- Migration 010: Seed categories and menu items
 
 -- Categories
-INSERT INTO categories (id, name, sort_order) VALUES
-  ('a1b2c3d4-1111-4000-8000-000000000001', 'Pastéis Salgados', 1),
-  ('a1b2c3d4-2222-4000-8000-000000000002', 'Pastéis Doces', 2),
-  ('a1b2c3d4-3333-4000-8000-000000000003', 'Bebidas', 3)
+INSERT INTO categories (id, name, sort_order, status) VALUES
+  ('a1b2c3d4-1111-4000-8000-000000000001', 'Pastéis Salgados', 1, 'ativo'),
+  ('a1b2c3d4-2222-4000-8000-000000000002', 'Pastéis Doces', 2, 'ativo'),
+  ('a1b2c3d4-3333-4000-8000-000000000003', 'Bebidas', 3, 'ativo')
 ON CONFLICT (name) DO NOTHING;
 
 -- Menu Items - Pastéis Salgados

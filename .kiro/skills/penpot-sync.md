@@ -55,7 +55,7 @@ pnpm --filter @order-system/mobile exec tsc --noEmit
 ```
 
 ## Regras Críticas (não violar)
-- Font-family: "Inter Tight" (não "Inter")
+- Font-family: "Inter"
 - Todos os botões: 20px radius, 40px height, 14px font, weight 400
 - Cards: bg #FFFFFF, border 1px, radius 12px, gap 8px, sem tinted bg
 - Input error: #E91E63 (pink), não #D32F2F

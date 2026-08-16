@@ -10,6 +10,10 @@ import type {
   RegisterPaymentRequest,
   DailySummary,
   MonthlySummaryResponse,
+  Category,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  ReorderCategoriesRequest,
 } from '@order-system/shared';
 import type { ApiClient } from './types';
 import { tokenStorage } from './token-storage';
@@ -221,6 +225,20 @@ function mapMenuItem(raw: any): MenuItem {
   };
 }
 
+/**
+ * Maps a backend category response to the shared Category interface.
+ */
+function mapCategory(raw: any): Category {
+  return {
+    id: raw.id,
+    name: raw.name,
+    sortOrder: raw.sortOrder ?? raw.sort_order,
+    status: raw.status,
+    itemCount: raw.itemCount ?? raw.item_count ?? 0,
+    createdAt: raw.createdAt ?? raw.created_at,
+  };
+}
+
 export const realClient: ApiClient = {
   async login(email: string, password: string): Promise<{ token: string }> {
     const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -298,6 +316,12 @@ export const realClient: ApiClient = {
     });
     const raw = await response.json();
     return mapMenuItem(raw);
+  },
+
+  async deleteMenuItem(id: string): Promise<void> {
+    await authFetch(`/api/menu/${id}`, {
+      method: 'DELETE',
+    });
   },
 
   async getOrders(filter?: { status?: OrderStatus[] }): Promise<Order[]> {
@@ -383,5 +407,53 @@ export const realClient: ApiClient = {
   async getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse> {
     const response = await authFetch(`/api/summary/monthly?year=${year}&month=${month}`);
     return response.json();
+  },
+
+  async getCategories(): Promise<Category[]> {
+    const response = await authFetch('/api/categories');
+    const data = await response.json();
+    return (data as any[]).map(mapCategory);
+  },
+
+  async createCategory(data: CreateCategoryRequest): Promise<Category> {
+    const response = await authFetch('/api/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const raw = await response.json();
+    return mapCategory(raw);
+  },
+
+  async updateCategory(id: string, data: UpdateCategoryRequest): Promise<Category> {
+    const response = await authFetch(`/api/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    const raw = await response.json();
+    return mapCategory(raw);
+  },
+
+  async reorderCategories(data: ReorderCategoriesRequest): Promise<Category[]> {
+    const response = await authFetch('/api/categories/reorder', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    const rawList = await response.json();
+    return (rawList as any[]).map(mapCategory);
+  },
+
+  async toggleCategoryStatus(id: string, action: 'activate' | 'deactivate'): Promise<Category> {
+    const response = await authFetch(`/api/categories/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action }),
+    });
+    const raw = await response.json();
+    return mapCategory(raw);
+  },
+
+  async deleteCategory(id: string): Promise<void> {
+    await authFetch(`/api/categories/${id}`, {
+      method: 'DELETE',
+    });
   },
 };

@@ -4,6 +4,7 @@ import {
   createMenuItem,
   updateMenuItem,
   toggleMenuItemStatus,
+  deleteMenuItem,
 } from '../controllers/menu.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { syncUserMiddleware } from '../middleware/sync-user.middleware.js';
@@ -21,5 +22,8 @@ router.put('/:id', authMiddleware, syncUserMiddleware, updateMenuItem);
 
 // PATCH /api/menu/:id/status - Toggle item active/inactive
 router.patch('/:id/status', authMiddleware, syncUserMiddleware, toggleMenuItemStatus);
+
+// DELETE /api/menu/:id - Delete a menu item
+router.delete('/:id', authMiddleware, syncUserMiddleware, deleteMenuItem);
 
 export default router;

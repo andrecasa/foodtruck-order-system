@@ -8,6 +8,7 @@ import orderRoutes from './routes/order.routes.js';
 import summaryRoutes from './routes/summary.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import userRoutes from './routes/user.routes.js';
+import categoryRoutes from './routes/category.routes.js';
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 4000;
@@ -25,6 +26,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/summary', summaryRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes);
 
 async function start() {
   try {

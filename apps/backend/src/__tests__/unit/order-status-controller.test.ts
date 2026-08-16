@@ -3,15 +3,17 @@ import { Response } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 
 // Mock supabaseAdmin
-const mockChannel = vi.fn();
-const mockSend = vi.fn();
-
 vi.mock('../../config/supabase.js', () => ({
   supabase: { auth: { getUser: vi.fn() } },
   supabaseAdmin: {
     from: vi.fn(),
-    channel: (...args: any[]) => mockChannel(...args),
   },
+}));
+
+const mockBroadcast = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../../config/realtime.js', () => ({
+  broadcast: (...args: any[]) => mockBroadcast(...args),
 }));
 
 // Mock pg Pool
@@ -79,10 +81,6 @@ describe('Order Controller - updateOrderStatus', () => {
     mockConnect.mockResolvedValue({
       query: mockQuery,
       release: mockRelease,
-    });
-
-    mockChannel.mockReturnValue({
-      send: mockSend.mockResolvedValue(undefined),
     });
   });
 
@@ -300,15 +298,10 @@ describe('Order Controller - updateOrderStatus', () => {
       await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(mockChannel).toHaveBeenCalledWith('orders:queue');
-      expect(mockSend).toHaveBeenCalledWith({
-        type: 'broadcast',
-        event: 'status_updated',
-        payload: expect.objectContaining({
-          id: 'order-uuid-1',
-          status: 'preparando',
-        }),
-      });
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue', 'status_updated', expect.objectContaining({
+        id: 'order-uuid-1',
+        status: 'preparando',
+      }));
     });
 
     it('should still return 200 even if Realtime publish fails', async () => {
@@ -320,7 +313,7 @@ describe('Order Controller - updateOrderStatus', () => {
           started_at: '2024-06-15T13:05:00.000Z',
         }],
       });
-      mockSend.mockRejectedValueOnce(new Error('Realtime error'));
+      mockBroadcast.mockRejectedValueOnce(new Error('Realtime error'));
 
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'preparando' });
       const res = mockResponse();

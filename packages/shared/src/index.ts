@@ -17,6 +17,11 @@ export type {
   MonthlySummaryResponse,
   DayBreakdown,
   ThemeConfig,
+  CategoryStatus,
+  Category,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  ReorderCategoriesRequest,
 } from './types/index';
 
 export {
@@ -31,6 +36,12 @@ export {
 } from './validators/menu.validator';
 
 export { registerPaymentRequestSchema } from './validators/payment.validator';
+
+export {
+  createCategoryRequestSchema,
+  updateCategoryRequestSchema,
+  reorderCategoriesRequestSchema,
+} from './validators/category.validator';
 
 export {
   ORDER_STATUSES,

@@ -14,7 +14,7 @@ Todos os tokens são definidos pela interface `ThemeConfig` em `packages/shared/
 
 - **Clean & Minimal** — Superfícies brancas, sombras sutis, foco no conteúdo
 - **Material Design Influence** — Ícones Material Symbols Outlined, elevation scale, pill buttons
-- **Fonte Inter Tight** — Legibilidade máxima em todas as densidades
+- **Fonte Inter** — Legibilidade máxima em todas as densidades
 - **Stroke 1px** — Bordas sempre com 1px, alinhamento inner
 - **Pill-shaped** — Inputs (border-radius 24px) e botões (border-radius 20px)
 - **WCAG AA** — Contraste mínimo de 4.5:1 em texto sobre fundo
@@ -58,7 +58,7 @@ Os valores abaixo representam o tema padrão ("Pastel das Meninas") e servem com
 
 | Token              | Valor         | Descrição                         |
 | ------------------ | ------------- | --------------------------------- |
-| `fontFamily`       | `Inter Tight` | Fonte principal (NÃO "Inter")     |
+| `fontFamily`       | `Inter` | Fonte principal    |
 | `iconFont`         | `Material Symbols Outlined` | Fonte de ícones   |
 
 #### Escala Tipográfica (extraída do Penpot)
@@ -219,7 +219,7 @@ Layout: flex row, justify-content space-around, align-items center
 Cada item:
 - Layout: flex column, gap 2px, align-items center
 - Ícone: Material Symbols Outlined 22px weight 400
-- Label: 10px Inter Tight
+- Label: 10px Inter
 - Ativo: cor primary (#1B5E20), label weight 600
 - Inativo: cor #757575, label weight 400
 
@@ -238,7 +238,7 @@ Border: none
 Border-radius: 20px
 Height: 40px
 Padding: 0 20px
-Font: 14px weight 400, Inter Tight
+Font: 14px weight 400, Inter
 ```
 
 #### Filled (sm — in-card actions)
@@ -250,7 +250,7 @@ Border: none
 Border-radius: 18px
 Height: 36px
 Padding: 0 16px
-Font: 12px weight 500, Inter Tight
+Font: 12px weight 500, Inter
 Align-self: flex-start (não full-width)
 ```
 
@@ -263,7 +263,7 @@ Border: none
 Border-radius: 22px
 Height: 44px
 Padding: 0 20px
-Font: 14px weight 500, Inter Tight
+Font: 14px weight 500, Inter
 ```
 
 #### Outlined
@@ -317,7 +317,7 @@ Font: 14px weight 400
 Border-radius: 14px
 Height: 28px
 Padding: 0 12px
-Font: 11px weight 400, Inter Tight
+Font: 11px weight 400, Inter
 Text: capitalizado (ex: "Aguardando", não "aguardando")
 ```
 
@@ -327,7 +327,7 @@ Text: capitalizado (ex: "Aguardando", não "aguardando")
 Border-radius: 11px
 Height: 22px
 Padding: 0 12px
-Font: 10px weight 600, Inter Tight
+Font: 10px weight 600, Inter
 ```
 
 #### Tinted (informativo)
@@ -349,7 +349,7 @@ Mesmas dimensões do badge md (28px, 14px radius, 11px font, weight 400)
 Shape: Pill (border-radius 24px)
 Height: 48px
 Padding: 0 16px
-Font: 14px weight 400, Inter Tight
+Font: 14px weight 400, Inter
 Leading icon: Material Symbols Outlined 20px, color #757575 (default) / #212121 (focus)
 
 Label acima do campo:
@@ -437,7 +437,7 @@ Action buttons:
 7. **Ícones via fonte Material Symbols Outlined** — weight 400
 8. **Botão de ação por status**: aguardando → primary #1B5E20, preparando → azul #1976D2
 9. **Inputs com label externo acima** — 13px weight 600, campo com placeholder + leading icon
-10. **Font-family: "Inter Tight"** — Não usar "Inter" regular
+10. **Font-family: "Inter"**
 11. **Font-weight nos botões md: 400** — Não usar 500 nem 600
 12. **Todos os botões md: 40px height, 20px radius, 14px font** — Consistentes
 13. **Input error border cor é #E91E63** (pink), não #D32F2F (red)

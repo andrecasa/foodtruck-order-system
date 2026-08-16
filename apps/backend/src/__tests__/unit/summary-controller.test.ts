@@ -25,6 +25,7 @@ import { getDailySummary } from '../../controllers/summary.controller.js';
 function mockRequest(): Partial<AuthenticatedRequest> {
   return {
     user: { id: 'user-1', email: 'test@test.com' },
+    query: {},
   };
 }
 

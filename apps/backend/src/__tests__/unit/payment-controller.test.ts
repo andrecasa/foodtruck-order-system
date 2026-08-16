@@ -3,15 +3,17 @@ import { Response } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 
 // Mock supabaseAdmin
-const mockChannel = vi.fn();
-const mockSend = vi.fn();
-
 vi.mock('../../config/supabase.js', () => ({
   supabase: { auth: { getUser: vi.fn() } },
   supabaseAdmin: {
     from: vi.fn(),
-    channel: (...args: any[]) => mockChannel(...args),
   },
+}));
+
+const mockBroadcast = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../../config/realtime.js', () => ({
+  broadcast: (...args: any[]) => mockBroadcast(...args),
 }));
 
 // Mock pg Pool
@@ -81,10 +83,6 @@ describe('Order Controller - registerPayment', () => {
     mockConnect.mockResolvedValue({
       query: mockQuery,
       release: mockRelease,
-    });
-
-    mockChannel.mockReturnValue({
-      send: mockSend.mockResolvedValue(undefined),
     });
   });
 
@@ -264,16 +262,11 @@ describe('Order Controller - registerPayment', () => {
       await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(mockChannel).toHaveBeenCalledWith('orders:payment');
-      expect(mockSend).toHaveBeenCalledWith({
-        type: 'broadcast',
-        event: 'payment_registered',
-        payload: expect.objectContaining({
-          id: 'order-uuid-1',
-          paymentStatus: 'pago',
-          paymentMethod: 'dinheiro',
-        }),
-      });
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:payment', 'payment_registered', expect.objectContaining({
+        id: 'order-uuid-1',
+        paymentStatus: 'pago',
+        paymentMethod: 'dinheiro',
+      }));
     });
 
     it('should still return 200 even if Realtime publish fails', async () => {
@@ -286,7 +279,7 @@ describe('Order Controller - registerPayment', () => {
           paid_at: '2024-06-15T14:00:00.000Z',
         }],
       });
-      mockSend.mockRejectedValueOnce(new Error('Realtime error'));
+      mockBroadcast.mockRejectedValueOnce(new Error('Realtime error'));
 
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
       const res = mockResponse();

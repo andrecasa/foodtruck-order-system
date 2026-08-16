@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text as RNText,
@@ -13,8 +13,9 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { Screen, ScrollContainer } from '../components/Layout';
 import { Button } from '../components/Button';
+import { Modal } from '../components/Modal';
+import { Text } from '../components/Typography';
 import { apiClient } from '../services/api-client';
-import { CATEGORIES } from '../mocks/menu-data';
 
 /**
  * Parses a formatted currency string (R$ X,XX) to centavos (integer).
@@ -39,7 +40,6 @@ function formatCurrency(raw: string): string {
   return `R$ ${trimmedInteger},${decimalPart}`;
 }
 
-/**
 export interface EditMenuItemScreenProps {
   id: string;
   name: string;
@@ -77,6 +77,9 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   const [category, setCategory] = useState<string>(initialCategory);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  // Categories from API
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
@@ -84,6 +87,18 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   const [categoryError, setCategoryError] = useState('');
   const [apiError, setApiError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+
+  // Load categories from API
+  useEffect(() => {
+    apiClient.getCategories().then((cats) => {
+      setCategoryNames(cats.filter(c => c.status === 'ativo').map(c => c.name));
+    }).catch(() => {
+      // Fallback silently
+    });
+  }, []);
 
   // Price input handler — keeps only digits and reformats
   const handlePriceChange = (text: string) => {
@@ -151,7 +166,11 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
       await apiClient.updateMenuItem(id, updates);
       setSuccess(true);
       setTimeout(() => {
-        router.back();
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/menu');
+        }
       }, 1500);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar item';
@@ -163,6 +182,39 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     } finally {
       setLoading(false);
     }
+  };
+
+  // Delete handler
+  const handleDeletePress = () => {
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteModalVisible(false);
+    setDeleting(true);
+    setApiError('');
+
+    try {
+      await apiClient.deleteMenuItem(id);
+      setDeleted(true);
+      setSuccess(true);
+      setTimeout(() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/menu');
+        }
+      }, 1500);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir item';
+      setApiError(message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
   };
 
   // ─── Styles (Penpot-aligned) ────────────────────────────────────────────────
@@ -260,21 +312,29 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     color: '#8B6B5A',
   };
 
-  const cancelButtonStyle: ViewStyle = {
+  const deleteButtonStyle: ViewStyle = {
     height: 44,
     borderRadius: 22,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.error,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   };
 
-  const cancelButtonTextStyle: TextStyle = {
+  const deleteButtonTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: theme.colors.text,
+    color: theme.colors.error,
+  };
+
+  const deleteIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 18,
+    color: theme.colors.error,
   };
 
   const errorTextStyle: TextStyle = {
@@ -344,7 +404,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
               textAlign: 'center',
             }}
           >
-            Item atualizado com sucesso!
+            Item {deleted ? 'excluído' : 'atualizado'} com sucesso!
           </RNText>
           <RNText
             style={{
@@ -398,12 +458,12 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           </TouchableOpacity>
           {showCategoryPicker && (
             <View style={categoryDropdownStyle}>
-              {CATEGORIES.map((cat, index) => (
+              {categoryNames.map((cat, index) => (
                 <TouchableOpacity
                   key={cat}
                   style={[
                     categoryOptionStyle,
-                    index === CATEGORIES.length - 1 && { borderBottomWidth: 0 },
+                    index === categoryNames.length - 1 && { borderBottomWidth: 0 },
                   ]}
                   onPress={() => {
                     setCategory(cat);
@@ -480,22 +540,45 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           fullWidth
           onPress={handleSubmit}
           loading={loading}
-          disabled={loading}
+          disabled={loading || deleting}
           testID="submit-menu-item"
         />
 
-        {/* Cancel Button */}
+        {/* Delete Button */}
         <TouchableOpacity
-          style={cancelButtonStyle}
-          onPress={() => router.back()}
+          style={deleteButtonStyle}
+          onPress={handleDeletePress}
           activeOpacity={0.7}
+          disabled={deleting || loading}
           accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-          testID="cancel-menu-item"
+          accessibilityLabel="Excluir item"
+          testID="delete-menu-item"
         >
-          <RNText style={cancelButtonTextStyle}>Cancelar</RNText>
+          <RNText style={deleteIconStyle}>delete</RNText>
+          <RNText style={deleteButtonTextStyle}>Excluir item</RNText>
         </TouchableOpacity>
       </ScrollContainer>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={deleteModalVisible}
+        onClose={handleCancelDelete}
+        title="Excluir item"
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        variant="danger"
+        testID="delete-confirmation-modal"
+      >
+        <Text size="md">
+          Deseja excluir o item{' '}
+          <Text size="md" weight="bold">
+            {initialName}
+          </Text>
+          ? Esta ação não pode ser desfeita.
+        </Text>
+      </Modal>
     </Screen>
   );
 }

@@ -16,3 +16,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_menu_items_name ON menu_items (LOWER(name)
 
 -- Sessões WhatsApp ativas (para timeout)
 CREATE INDEX IF NOT EXISTS idx_whatsapp_sessions_activity ON whatsapp_sessions (last_activity_at);
+
+-- Busca case-insensitive de email
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_idx ON users (LOWER(email));
+
+-- Filtro por role e status
+CREATE INDEX IF NOT EXISTS users_role_status_idx ON users (role, status);

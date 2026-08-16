@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text as RNText,
@@ -12,7 +12,6 @@ import { useTheme } from '../theme/ThemeProvider';
 import { Screen, ScrollContainer } from '../components/Layout';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
-import { CATEGORIES } from '../mocks/menu-data';
 
 /**
  * Parses a formatted currency string (R$ X,XX) to centavos (integer).
@@ -54,7 +53,7 @@ function formatCurrency(raw: string): string {
  *   - Categoria: dropdown style with "Selecione..." placeholder and "expand_more" arrow
  *   - Nome: placeholder "Ex: Pastel de Frango"
  *   - Preço: prefix "R$" + value "0,00"
- *   - Confirm Button: height 44, borderRadius 22, bg #7B2D2D, text "Criar Item" white 14px
+ *   - Confirm Button: height 44, borderRadius 22, bg #7B2D2D, text "Adicionar" white 14px
  *   - Cancel Button: height 44, borderRadius 22, bg #FFFFFF, border 1px #E8DDD5, text "Cancelar" #3D2020 14px
  */
 export function CreateMenuItemScreen() {
@@ -67,6 +66,9 @@ export function CreateMenuItemScreen() {
   const [category, setCategory] = useState<string>('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  // Categories from API
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
@@ -74,6 +76,15 @@ export function CreateMenuItemScreen() {
   const [categoryError, setCategoryError] = useState('');
   const [apiError, setApiError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  // Load categories from API
+  useEffect(() => {
+    apiClient.getCategories().then((cats) => {
+      setCategoryNames(cats.filter(c => c.status === 'ativo').map(c => c.name));
+    }).catch(() => {
+      // Fallback silently — user will see empty dropdown
+    });
+  }, []);
 
   // Price input handler — keeps only digits and reformats
   const handlePriceChange = (text: string) => {
@@ -138,7 +149,11 @@ export function CreateMenuItemScreen() {
       });
       setSuccess(true);
       setTimeout(() => {
-        router.back();
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/menu');
+        }
       }, 1500);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar item';
@@ -400,12 +415,12 @@ export function CreateMenuItemScreen() {
           </TouchableOpacity>
           {showCategoryPicker && (
             <View style={categoryDropdownStyle}>
-              {CATEGORIES.map((cat, index) => (
+              {categoryNames.map((cat, index) => (
                 <TouchableOpacity
                   key={cat}
                   style={[
                     categoryOptionStyle,
-                    index === CATEGORIES.length - 1 && { borderBottomWidth: 0 },
+                    index === categoryNames.length - 1 && { borderBottomWidth: 0 },
                   ]}
                   onPress={() => {
                     setCategory(cat);
@@ -481,7 +496,7 @@ export function CreateMenuItemScreen() {
 
         {/* Confirm Button */}
         <Button
-          title="Criar Item"
+          title="Adicionar"
           variant="primary"
           size="lg"
           fullWidth

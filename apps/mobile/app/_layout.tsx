@@ -92,6 +92,20 @@ export default function RootLayout() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="categories-list"
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="category-form"
+              options={{
+                presentation: 'card',
+                headerShown: false,
+              }}
+            />
           </Stack>
         </AuthProvider>
       </ThemeProvider>

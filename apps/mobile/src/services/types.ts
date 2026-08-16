@@ -10,6 +10,10 @@ import type {
   RegisterPaymentRequest,
   DailySummary,
   MonthlySummaryResponse,
+  Category,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  ReorderCategoriesRequest,
 } from '@order-system/shared';
 
 export interface ApiClient {
@@ -23,6 +27,7 @@ export interface ApiClient {
   createMenuItem(data: CreateMenuItemRequest): Promise<MenuItem>;
   updateMenuItem(id: string, data: UpdateMenuItemRequest): Promise<MenuItem>;
   toggleMenuItemStatus(id: string): Promise<MenuItem>;
+  deleteMenuItem(id: string): Promise<void>;
 
   // Orders
   getOrders(filter?: { status?: OrderStatus[] }): Promise<Order[]>;
@@ -36,4 +41,12 @@ export interface ApiClient {
   // Summary
   getDailySummary(date?: string): Promise<DailySummary>;
   getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse>;
+
+  // Categories
+  getCategories(): Promise<Category[]>;
+  createCategory(data: CreateCategoryRequest): Promise<Category>;
+  updateCategory(id: string, data: UpdateCategoryRequest): Promise<Category>;
+  reorderCategories(data: ReorderCategoriesRequest): Promise<Category[]>;
+  toggleCategoryStatus(id: string, action: 'activate' | 'deactivate'): Promise<Category>;
+  deleteCategory(id: string): Promise<void>;
 }

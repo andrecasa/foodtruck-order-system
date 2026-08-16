@@ -13,7 +13,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../theme';
 import { Screen, ScrollContainer } from '../components/Layout';
 import { BottomNav } from '../components/BottomNav';
-import { createUser, updateUser, getUserById } from '../services/userService';
+import { Modal } from '../components/Modal';
+import { Text } from '../components/Typography';
+import { createUser, updateUser, getUserById, deleteUser } from '../services/userService';
 import type { CreateUserInput, UpdateUserInput, UserRole } from '../types/user';
 
 // ─── Role options for the selector ─────────────────────────────────────────
@@ -68,6 +70,8 @@ export function UserFormScreen() {
   const [fetchLoading, setFetchLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ─── Load user data in edit mode ────────────────────────────────────────────
 
@@ -186,6 +190,33 @@ export function UserFormScreen() {
     }
   };
 
+  // ─── Delete ─────────────────────────────────────────────────────────────────
+
+  const handleDeletePress = () => {
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!params.id) return;
+    setDeleteModalVisible(false);
+    setDeleting(true);
+    setApiError('');
+
+    try {
+      await deleteUser(params.id);
+      router.back();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao excluir usuário';
+      setApiError(message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
+  };
+
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
   const appBarStyle: ViewStyle = {
@@ -284,16 +315,24 @@ export function UserFormScreen() {
     borderRadius: 22,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.error,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   };
 
   const cancelButtonTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.error,
+  };
+
+  const deleteIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 18,
+    color: theme.colors.error,
   };
 
   const errorTextStyle: TextStyle = {
@@ -618,35 +657,60 @@ export function UserFormScreen() {
 
         {/* Confirm Button */}
         <TouchableOpacity
-          style={[confirmButtonStyle, loading && { opacity: 0.7 }]}
+          style={[confirmButtonStyle, (loading || deleting) && { opacity: 0.7 }]}
           onPress={handleSubmit}
-          disabled={loading}
+          disabled={loading || deleting}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={isEditMode ? 'Editar Usuário' : 'Criar Usuário'}
+          accessibilityLabel={isEditMode ? 'Editar Usuário' : 'Adicionar'}
           testID="submit-user"
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <RNText style={confirmButtonTextStyle}>
-              {isEditMode ? 'Editar Usuário' : 'Criar Usuário'}
+              {isEditMode ? 'Editar Usuário' : 'Adicionar'}
             </RNText>
           )}
         </TouchableOpacity>
 
-        {/* Cancel Button */}
-        <TouchableOpacity
-          style={cancelButtonStyle}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-          testID="cancel-user"
-        >
-          <RNText style={cancelButtonTextStyle}>Cancelar</RNText>
-        </TouchableOpacity>
+        {/* Delete Button — only in edit mode */}
+        {isEditMode && (
+          <TouchableOpacity
+            style={cancelButtonStyle}
+            onPress={handleDeletePress}
+            disabled={deleting || loading}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Excluir usuário"
+            testID="delete-user"
+          >
+            <RNText style={deleteIconStyle}>delete</RNText>
+            <RNText style={cancelButtonTextStyle}>Excluir usuário</RNText>
+          </TouchableOpacity>
+        )}
       </ScrollContainer>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={deleteModalVisible}
+        onClose={handleCancelDelete}
+        title="Excluir usuário"
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        variant="danger"
+        testID="delete-user-modal"
+      >
+        <Text size="md">
+          Deseja excluir o usuário{' '}
+          <Text size="md" weight="bold">
+            {name}
+          </Text>
+          ? Esta ação não pode ser desfeita.
+        </Text>
+      </Modal>
 
       {/* Bottom Navigation */}
       <BottomNav />

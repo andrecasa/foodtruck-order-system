@@ -15,31 +15,20 @@ import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
  * **Validates: Requirements 4.2**
  */
 
-// --- Helpers ---
-
-function createChain() {
-  const chain: any = {
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn().mockReturnThis(),
-    ilike: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
-    order: vi.fn().mockResolvedValue({ data: [], error: null }),
-  };
-  return chain;
-}
-
-// Mock supabaseAdmin
+// Mock supabaseAdmin (still imported but not used for create/update)
 vi.mock('../../config/supabase.js', () => ({
   supabase: { auth: { getUser: vi.fn() } },
-  supabaseAdmin: {
-    from: vi.fn(),
+  supabaseAdmin: { from: vi.fn() },
+}));
+
+// Mock pg Pool
+const mockPoolQuery = vi.fn();
+vi.mock('../../config/database.js', () => ({
+  pool: {
+    query: (...args: any[]) => mockPoolQuery(...args),
   },
 }));
 
-import { supabaseAdmin } from '../../config/supabase.js';
 import { createMenuItem } from '../../controllers/menu.controller.js';
 
 function mockRequest(body: any): Partial<AuthenticatedRequest> {
@@ -67,31 +56,13 @@ function mockResponse(): { statusCode: number; body: any; status: (code: number)
 }
 
 /**
- * Generator: produces a random valid menu item name using Latin characters
- * (letters, spaces, accents common in Portuguese menu items).
- * Constrained to characters where toUpperCase/toLowerCase is reversible.
+ * Generator: produces a random valid menu item name using Latin characters.
  */
 function validMenuNameArb(): fc.Arbitrary<string> {
   const latinChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ áàãâéêíóôõúçÁÀÃÂÉÊÍÓÔÕÚÇ0123456789'.split('');
   return fc.array(fc.constantFrom(...latinChars), { minLength: 1, maxLength: 50 })
     .map((chars) => chars.join(''))
     .filter((s) => s.trim().length > 0);
-}
-
-/**
- * Generates a case variant of the given string by randomly toggling
- * the case of each character.
- */
-function caseVariantArb(base: string): fc.Arbitrary<string> {
-  if (base.length === 0) return fc.constant(base);
-
-  return fc.array(fc.boolean(), { minLength: base.length, maxLength: base.length }).map(
-    (toggles) =>
-      base
-        .split('')
-        .map((ch, i) => (toggles[i] ? ch.toUpperCase() : ch.toLowerCase()))
-        .join('')
-  );
 }
 
 // --- Property Tests ---
@@ -109,40 +80,24 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
         async (baseName, price) => {
           vi.clearAllMocks();
 
-          // Generate a case variant of baseName
           const variant = baseName
             .split('')
             .map((ch, i) => (i % 2 === 0 ? ch.toUpperCase() : ch.toLowerCase()))
             .join('');
 
-          // Verify the property precondition: they are case-insensitively equal
           expect(baseName.toLowerCase()).toBe(variant.toLowerCase());
 
-          // Mock: category exists
-          const catChain = createChain();
-          catChain.single.mockResolvedValue({ data: { id: 'cat-1' }, error: null });
-          catChain.eq.mockReturnValue(catChain);
-          catChain.select.mockReturnValue(catChain);
+          // Mock pool.query calls in order:
+          // 1. Category lookup -> found
+          mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'cat-1' }] });
+          // 2. Name uniqueness check -> collision found
+          mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'existing-item-1' }] });
 
-          // Mock: name uniqueness check returns existing item (simulating first item already exists)
-          const nameChain = createChain();
-          nameChain.eq.mockResolvedValue({ data: [{ id: 'existing-item-1' }], error: null });
-          nameChain.ilike.mockReturnValue(nameChain);
-          nameChain.select.mockReturnValue(nameChain);
-
-          vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-            if (table === 'categories') return catChain as any;
-            if (table === 'menu_items') return nameChain as any;
-            return createChain() as any;
-          });
-
-          // Attempt to create the second item with the case variant name
           const req = mockRequest({ name: variant, price, category: 'Pastéis' });
           const res = mockResponse();
 
           await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
 
-          // The system must reject with 409
           expect(res.statusCode).toBe(409);
           expect(res.body.error).toBe('CONFLICT');
           expect(res.body.message).toBe('Item com este nome já existe');
@@ -161,58 +116,29 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
         async (baseName, transformType, price) => {
           vi.clearAllMocks();
 
-          // Apply different case transformations
           let transformed: string;
           switch (transformType) {
-            case 'upper':
-              transformed = baseName.toUpperCase();
-              break;
-            case 'lower':
-              transformed = baseName.toLowerCase();
-              break;
+            case 'upper': transformed = baseName.toUpperCase(); break;
+            case 'lower': transformed = baseName.toLowerCase(); break;
             case 'alternating':
-              transformed = baseName
-                .split('')
-                .map((ch, i) => (i % 2 === 0 ? ch.toUpperCase() : ch.toLowerCase()))
-                .join('');
-              break;
-            case 'random':
-              transformed = baseName
-                .split('')
-                .map((ch, i) => (i % 3 === 0 ? ch.toUpperCase() : ch.toLowerCase()))
-                .join('');
+              transformed = baseName.split('').map((ch, i) => (i % 2 === 0 ? ch.toUpperCase() : ch.toLowerCase())).join('');
               break;
             default:
-              transformed = baseName;
+              transformed = baseName.split('').map((ch, i) => (i % 3 === 0 ? ch.toUpperCase() : ch.toLowerCase())).join('');
           }
 
-          // Verify they are case-insensitively equal
           expect(baseName.toLowerCase()).toBe(transformed.toLowerCase());
 
-          // Mock: category exists
-          const catChain = createChain();
-          catChain.single.mockResolvedValue({ data: { id: 'cat-1' }, error: null });
-          catChain.eq.mockReturnValue(catChain);
-          catChain.select.mockReturnValue(catChain);
-
-          // Mock: ilike finds the existing item (simulates DB behavior)
-          const nameChain = createChain();
-          nameChain.eq.mockResolvedValue({ data: [{ id: 'existing-item-1' }], error: null });
-          nameChain.ilike.mockReturnValue(nameChain);
-          nameChain.select.mockReturnValue(nameChain);
-
-          vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-            if (table === 'categories') return catChain as any;
-            if (table === 'menu_items') return nameChain as any;
-            return createChain() as any;
-          });
+          // 1. Category lookup -> found
+          mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'cat-1' }] });
+          // 2. Name uniqueness -> collision
+          mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'existing-item-1' }] });
 
           const req = mockRequest({ name: transformed, price, category: 'Pastéis' });
           const res = mockResponse();
 
           await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
 
-          // Must always reject with 409
           expect(res.statusCode).toBe(409);
           expect(res.body.error).toBe('CONFLICT');
         }
@@ -221,7 +147,7 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
     );
   });
 
-  it('ilike query is called with the exact name provided (enabling case-insensitive DB match)', async () => {
+  it('pool.query is called with LOWER comparison for case-insensitive matching', async () => {
     await fc.assert(
       fc.asyncProperty(
         validMenuNameArb(),
@@ -229,54 +155,30 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
         async (name, price) => {
           vi.clearAllMocks();
 
-          // Mock: category exists
-          const catChain = createChain();
-          catChain.single.mockResolvedValue({ data: { id: 'cat-1' }, error: null });
-          catChain.eq.mockReturnValue(catChain);
-          catChain.select.mockReturnValue(catChain);
-
-          // Mock: no collision (allows us to check the call)
-          const nameChain = createChain();
-          nameChain.eq.mockResolvedValue({ data: [], error: null });
-          nameChain.ilike.mockReturnValue(nameChain);
-          nameChain.select.mockReturnValue(nameChain);
-
-          // Mock: successful insert
-          const insertChain = createChain();
-          insertChain.single.mockResolvedValue({
-            data: {
-              id: 'new-1',
-              name,
-              price_cents: price,
-              status: 'ativo',
-              created_at: '2024-01-01T00:00:00Z',
-              updated_at: '2024-01-01T00:00:00Z',
+          // 1. Category lookup -> found
+          mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'cat-1' }] });
+          // 2. Name uniqueness -> no collision
+          mockPoolQuery.mockResolvedValueOnce({ rows: [] });
+          // 3. Insert -> success
+          mockPoolQuery.mockResolvedValueOnce({
+            rows: [{
+              id: 'new-1', name, price_cents: price, status: 'ativo',
+              created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
               category_id: 'cat-1',
-              categories: { name: 'Pastéis' },
-            },
-            error: null,
+            }],
           });
-          insertChain.select.mockReturnValue(insertChain);
-          insertChain.insert.mockReturnValue(insertChain);
-
-          let menuCallCount = 0;
-          vi.mocked(supabaseAdmin.from).mockImplementation((table: string) => {
-            if (table === 'categories') return catChain as any;
-            if (table === 'menu_items') {
-              menuCallCount++;
-              if (menuCallCount === 1) return nameChain as any;
-              return insertChain as any;
-            }
-            return createChain() as any;
-          });
+          // 4. Category name lookup
+          mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Pastéis' }] });
 
           const req = mockRequest({ name, price, category: 'Pastéis' });
           const res = mockResponse();
 
           await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
 
-          // Verify ilike was called with the name (case-insensitive matching mechanism)
-          expect(nameChain.ilike).toHaveBeenCalledWith('name', name);
+          // Verify the uniqueness check query uses LOWER for case-insensitive match
+          const uniquenessCall = mockPoolQuery.mock.calls[1];
+          expect(uniquenessCall[0]).toContain('LOWER(name) = LOWER($1)');
+          expect(uniquenessCall[1]).toContain(name);
         }
       ),
       { numRuns: 100 }

@@ -3,14 +3,15 @@ import { Response } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 
 // Mock supabaseAdmin
-const mockChannel = vi.fn();
-const mockSend = vi.fn();
-
 vi.mock('../../config/supabase.js', () => ({
   supabase: { auth: { getUser: vi.fn() } },
-  supabaseAdmin: {
-    channel: (...args: any[]) => mockChannel(...args),
-  },
+  supabaseAdmin: {},
+}));
+
+const mockBroadcast = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../../config/realtime.js', () => ({
+  broadcast: (...args: any[]) => mockBroadcast(...args),
 }));
 
 // Mock pg Pool - the controller uses pool.query for menu lookups and pool.connect for transactions
@@ -66,11 +67,6 @@ describe('Order Controller - createOrder', () => {
     mockConnect.mockResolvedValue({
       query: mockQuery,
       release: mockRelease,
-    });
-
-    // Setup default channel mock
-    mockChannel.mockReturnValue({
-      send: mockSend.mockResolvedValue(undefined),
     });
   });
 
@@ -198,15 +194,10 @@ describe('Order Controller - createOrder', () => {
       await createOrder(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
-      expect(mockChannel).toHaveBeenCalledWith('orders:queue');
-      expect(mockSend).toHaveBeenCalledWith({
-        type: 'broadcast',
-        event: 'new_order',
-        payload: expect.objectContaining({
-          id: 'order-uuid-1',
-          dailyNumber: 5,
-        }),
-      });
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue', 'new_order', expect.objectContaining({
+        id: 'order-uuid-1',
+        dailyNumber: 5,
+      }));
     });
   });
 

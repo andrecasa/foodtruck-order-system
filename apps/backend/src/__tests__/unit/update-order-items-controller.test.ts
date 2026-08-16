@@ -3,14 +3,15 @@ import { Response } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 
 // Mock supabaseAdmin
-const mockChannel = vi.fn();
-const mockSend = vi.fn();
-
 vi.mock('../../config/supabase.js', () => ({
   supabase: { auth: { getUser: vi.fn() } },
-  supabaseAdmin: {
-    channel: (...args: any[]) => mockChannel(...args),
-  },
+  supabaseAdmin: {},
+}));
+
+const mockBroadcast = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../../config/realtime.js', () => ({
+  broadcast: (...args: any[]) => mockBroadcast(...args),
 }));
 
 // Mock pg Pool
@@ -65,10 +66,6 @@ describe('Order Controller - updateOrderItems', () => {
     mockConnect.mockResolvedValue({
       query: mockQuery,
       release: mockRelease,
-    });
-
-    mockChannel.mockReturnValue({
-      send: mockSend.mockResolvedValue(undefined),
     });
   });
 
@@ -208,25 +205,20 @@ describe('Order Controller - updateOrderItems', () => {
       await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(mockChannel).toHaveBeenCalledWith('orders:queue');
-      expect(mockSend).toHaveBeenCalledWith({
-        type: 'broadcast',
-        event: 'order_updated',
-        payload: expect.objectContaining({
-          id: orderId,
-          totalAmountCents: 1800,
-          items: expect.arrayContaining([
-            expect.objectContaining({ menuItemId: '11111111-1111-1111-1111-111111111111' }),
-          ]),
-        }),
-      });
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue', 'order_updated', expect.objectContaining({
+        id: orderId,
+        totalAmountCents: 1800,
+        items: expect.arrayContaining([
+          expect.objectContaining({ menuItemId: '11111111-1111-1111-1111-111111111111' }),
+        ]),
+      }));
     });
 
     it('should still return 200 when realtime broadcast fails', async () => {
       setupOrderLookup();
       setupMenuLookup();
       setupSuccessfulTransaction();
-      mockSend.mockRejectedValueOnce(new Error('Realtime unavailable'));
+      mockBroadcast.mockRejectedValueOnce(new Error('Realtime unavailable'));
 
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();

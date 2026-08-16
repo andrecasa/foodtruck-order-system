@@ -254,20 +254,23 @@ export function UsersListScreen() {
     const isToggling = togglingUserId === item.id;
 
     return (
-      <Pressable
+      <View
         style={userCardStyle}
-        accessibilityRole="button"
         accessibilityLabel={`${item.name}, ${item.email}, ${ROLE_LABELS[item.role]}, ${isActive ? 'Ativo' : 'Inativo'}`}
         testID={`user-card-${item.id}`}
-        onPress={() =>
-          router.push({
-            pathname: '/user-detail',
-            params: { id: item.id },
-          })
-        }
       >
-        {/* Info: badge + name + email */}
-        <View style={userInfoStyle}>
+        {/* Info: badge + name + email (tappable to navigate) */}
+        <Pressable
+          style={userInfoStyle}
+          onPress={() =>
+            router.push({
+              pathname: '/user-detail',
+              params: { id: item.id },
+            })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`Editar ${item.name}`}
+        >
           <View
             style={[
               roleBadgeBaseStyle,
@@ -280,7 +283,7 @@ export function UsersListScreen() {
           </View>
           <RNText style={userNameStyle}>{item.name}</RNText>
           <RNText style={userEmailStyle}>{item.email}</RNText>
-        </View>
+        </Pressable>
 
         {/* Meta: Switch toggle */}
         <View style={userMetaStyle}>
@@ -292,7 +295,7 @@ export function UsersListScreen() {
             testID={`toggle-user-${item.id}`}
           />
         </View>
-      </Pressable>
+      </View>
     );
   };
 

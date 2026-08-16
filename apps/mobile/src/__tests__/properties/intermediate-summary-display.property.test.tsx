@@ -8,6 +8,7 @@ import type { MonthlySummaryResponse } from '@order-system/shared';
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
 const mockPush = jest.fn();
+let mockSearchParams: Record<string, string> = {};
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({
@@ -15,6 +16,7 @@ jest.mock('expo-router', () => ({
     replace: jest.fn(),
     back: jest.fn(),
   }),
+  useLocalSearchParams: () => mockSearchParams,
 }));
 
 jest.mock('../../hooks/useRealtime', () => ({
@@ -108,6 +110,7 @@ describe('Property 3: Intermediate screen displays all required accumulated tota
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearchParams = {};
   });
 
   it('renders the monthly summary card with correct month name and formatted totals for any valid MonthlySummaryResponse', async () => {
@@ -115,6 +118,12 @@ describe('Property 3: Intermediate screen displays all required accumulated tota
       fc.asyncProperty(monthlySummaryArb, async (summary: MonthlySummaryResponse) => {
         // Mock API to return the generated summary
         apiClient.getMonthlySummary.mockResolvedValue(summary);
+
+        // Set search params to match the generated summary's year/month so the screen fetches the right month
+        const firstDay = summary.days.length > 0 ? summary.days[0]!.day : 1;
+        const monthStr = String(summary.month).padStart(2, '0');
+        const dayStr = String(firstDay).padStart(2, '0');
+        mockSearchParams = { date: `${summary.year}-${monthStr}-${dayStr}` };
 
         const { findByText, unmount } = render(<IntermediateSummaryScreen />);
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, type TextStyle, type ViewStyle } from 'react-native';
-import { formatPrice, formatSelectedDate } from '../utils/format';
+import { formatPrice } from '../utils/format';
 
 export interface SelectedDayCardProps {
   date: Date;
@@ -32,11 +32,6 @@ export function SelectedDayCard({
 }: SelectedDayCardProps) {
   return (
     <View style={cardStyle}>
-      {/* Date label */}
-      <Text style={dateLabelStyle}>
-        {formatSelectedDate(date.getDate(), date.getMonth() + 1, date.getFullYear())}
-      </Text>
-
       {/* Stats row with sub-cards */}
       <View style={statsRowStyle}>
         <View style={subCardStyle}>
@@ -67,12 +62,6 @@ export function SelectedDayCard({
 }
 
 // Static styles
-
-const dateLabelStyle: TextStyle = {
-  fontSize: 14,
-  fontWeight: '500',
-  color: '#3D2020',
-};
 
 const cardStyle: ViewStyle = {
   backgroundColor: 'rgba(123,45,45,0.06)',

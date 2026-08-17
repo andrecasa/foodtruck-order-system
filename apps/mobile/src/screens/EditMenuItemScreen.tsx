@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text as RNText,
@@ -91,6 +91,10 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
 
+  // Refs for focus management
+  const nameRef = useRef<TextInput>(null);
+  const priceRef = useRef<TextInput>(null);
+
   // Load categories from API
   useEffect(() => {
     apiClient.getCategories().then((cats) => {
@@ -114,10 +118,12 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   // Validation
   const validate = (): boolean => {
     let isValid = true;
+    let firstErrorField: 'category' | 'name' | 'price' | null = null;
 
     if (!category) {
       setCategoryError('Selecione uma categoria');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'category';
     } else {
       setCategoryError('');
     }
@@ -126,9 +132,11 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     if (!trimmedName) {
       setNameError('Informe o nome do item');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'name';
     } else if (trimmedName.length > 100) {
       setNameError('Nome deve ter no máximo 100 caracteres');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'name';
     } else {
       setNameError('');
     }
@@ -137,11 +145,22 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     if (centavos <= 0) {
       setPriceError('Informe um preço válido');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'price';
     } else if (centavos > 999999) {
       setPriceError('Preço máximo é R$ 9.999,99');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'price';
     } else {
       setPriceError('');
+    }
+
+    // Focus on the first field with error
+    if (firstErrorField === 'category') {
+      setShowCategoryPicker(true);
+    } else if (firstErrorField === 'name') {
+      nameRef.current?.focus();
+    } else if (firstErrorField === 'price') {
+      priceRef.current?.focus();
     }
 
     return isValid;
@@ -383,7 +402,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           >
             <RNText style={backIconStyle}>arrow_back</RNText>
           </Pressable>
-          <RNText style={titleStyle}>Editar Item</RNText>
+          <RNText style={titleStyle}>Cardápio</RNText>
           <View style={{ width: 24 }} />
         </View>
         <View
@@ -434,7 +453,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
         >
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
-        <RNText style={titleStyle}>Editar Item</RNText>
+        <RNText style={titleStyle}>Cardápio</RNText>
         <View style={{ width: 24 }} />
       </View>
 
@@ -492,6 +511,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           <RNText style={labelStyle}>Nome do item</RNText>
           <View style={nameError ? inputContainerErrorStyle : inputContainerStyle}>
             <InputInline
+              ref={nameRef}
               value={name}
               onChangeText={(text) => {
                 setName(text.slice(0, 100));
@@ -514,6 +534,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           <View style={priceError ? inputContainerErrorStyle : inputContainerStyle}>
             <RNText style={prefixStyle}>R$</RNText>
             <InputInline
+              ref={priceRef}
               value={price ? price.replace('R$ ', '') : ''}
               onChangeText={handlePriceChange}
               placeholder="0,00"
@@ -551,11 +572,11 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           activeOpacity={0.7}
           disabled={deleting || loading}
           accessibilityRole="button"
-          accessibilityLabel="Excluir item"
+          accessibilityLabel="Excluir"
           testID="delete-menu-item"
         >
           <RNText style={deleteIconStyle}>delete</RNText>
-          <RNText style={deleteButtonTextStyle}>Excluir item</RNText>
+          <RNText style={deleteButtonTextStyle}>Excluir</RNText>
         </TouchableOpacity>
       </ScrollContainer>
 
@@ -600,32 +621,31 @@ interface InputInlineProps {
  * - Inter 14px weight 400, color #3D2020
  * - Placeholder color rgba(139,107,90,0.6)
  */
-function InputInline({
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType = 'default',
-  testID,
-  accessibilityLabel,
-}: InputInlineProps) {
-  return (
-    <TextInput
-      style={{
-        flex: 1,
-        fontFamily: 'Inter',
-        fontSize: 14,
-        fontWeight: '400',
-        color: '#3D2020',
-        paddingVertical: 0,
-        height: 52,
-      }}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor="rgba(139, 107, 90, 0.6)"
-      keyboardType={keyboardType}
-      testID={testID}
-      accessibilityLabel={accessibilityLabel}
-    />
-  );
-}
+const InputInline = React.forwardRef<TextInput, InputInlineProps>(
+  function InputInline(
+    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel },
+    ref,
+  ) {
+    return (
+      <TextInput
+        ref={ref}
+        style={{
+          flex: 1,
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: '400',
+          color: '#3D2020',
+          paddingVertical: 0,
+          height: 52,
+        }}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="rgba(139, 107, 90, 0.6)"
+        keyboardType={keyboardType}
+        testID={testID}
+        accessibilityLabel={accessibilityLabel}
+      />
+    );
+  },
+);

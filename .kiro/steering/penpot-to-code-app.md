@@ -530,20 +530,19 @@ backgroundColor: #FFFFFF
 borderRadius: 12px
 borderWidth: 1px
 borderColor: #E8DDD5
-height: 75px
+height: 90px
 flexDirection: row, alignItems: center, justifyContent: space-between
 paddingHorizontal: 16px
 
 Info section (flex: 1, column, gap: 2):
   - Role badge: height 15px, borderRadius 10px, paddingHorizontal 8px
-    backgroundColor: admin=#7B2D2D, atendente=#5B8BA8, preparador=#5A8C5A
-    text: 8px, weight 400, color #FFFFFF
+    backgroundColor: admin=rgba(123,45,45,0.12), atendente=rgba(91,139,168,0.12), preparador=rgba(90,140,90,0.12)
+    text: 8px, weight 400, color = cor do role (admin=#7B2D2D, atendente=#5B8BA8, preparador=#5A8C5A)
   - Name: 14px, weight 500, color #3D2020
   - Email: 12px, weight 400, color #8B6B5A
 
 Actions (row, gap: 12px, alignItems: center):
-  - Edit button (Icon Button Edit specs acima)
   - Toggle Switch (specs acima)
 
-Interação: apenas Edit e Toggle são pressáveis. Card info é estático (View).
+Interação: card inteiro é Pressable (navega para detalhe). Sem botão edit separado.
 ```

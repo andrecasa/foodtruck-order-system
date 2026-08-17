@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text as RNText,
@@ -15,13 +15,7 @@ import { Screen, ScrollContainer } from '../components/Layout';
 import { Modal } from '../components/Modal';
 import { BottomNav } from '../components/BottomNav';
 import { ToggleSwitch } from '../components/ToggleSwitch';
-import {
-  getUserById,
-  updateUser,
-  resetPassword,
-  deleteUser,
-  toggleUserStatus,
-} from '../services/userService';
+import { apiClient } from '../services/api-client';
 import type { UpdateUserInput, UserRole, User } from '../types/user';
 
 // ─── Role options for the selector ─────────────────────────────────────────
@@ -79,6 +73,12 @@ export function UserDetailScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Refs for focus management
+  const nameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -96,7 +96,7 @@ export function UserDetailScreen() {
     try {
       setFetchLoading(true);
       setApiError('');
-      const userData = await getUserById(params.id);
+      const userData = await apiClient.getUserById(params.id);
       setUser(userData);
       setName(userData.name);
       setEmail(userData.email);
@@ -116,47 +116,72 @@ export function UserDetailScreen() {
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
+    let firstErrorField: 'role' | 'name' | 'email' | 'password' | 'confirmPassword' | null = null;
+
+    // Role: required
+    if (!role) {
+      newErrors.role = 'Função é obrigatória';
+      if (!firstErrorField) firstErrorField = 'role';
+    }
 
     // Name: 1-100 chars, not only spaces
     const trimmedName = name.trim();
     if (!trimmedName) {
       newErrors.name = 'Nome é obrigatório';
+      if (!firstErrorField) firstErrorField = 'name';
     } else if (trimmedName.length > 100) {
       newErrors.name = 'Nome deve ter no máximo 100 caracteres';
+      if (!firstErrorField) firstErrorField = 'name';
     } else if (/^\s+$/.test(name)) {
       newErrors.name = 'Nome não pode conter apenas espaços';
+      if (!firstErrorField) firstErrorField = 'name';
     }
 
     // Email: valid format, ≤254 chars
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       newErrors.email = 'E-mail é obrigatório';
+      if (!firstErrorField) firstErrorField = 'email';
     } else if (trimmedEmail.length > 254) {
       newErrors.email = 'E-mail deve ter no máximo 254 caracteres';
+      if (!firstErrorField) firstErrorField = 'email';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       newErrors.email = 'E-mail inválido';
+      if (!firstErrorField) firstErrorField = 'email';
     }
 
     // Password: optional in edit mode, but if filled must be 8-72
     if (password) {
       if (password.length < 8) {
         newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
+        if (!firstErrorField) firstErrorField = 'password';
       } else if (password.length > 72) {
         newErrors.password = 'Senha deve ter no máximo 72 caracteres';
+        if (!firstErrorField) firstErrorField = 'password';
       }
     }
 
     // Confirm password: must match if password is filled
     if (password && confirmPassword !== password) {
       newErrors.confirmPassword = 'Senhas não coincidem';
-    }
-
-    // Role: required
-    if (!role) {
-      newErrors.role = 'Função é obrigatória';
+      if (!firstErrorField) firstErrorField = 'confirmPassword';
     }
 
     setErrors(newErrors);
+
+    // Focus on the first field with error
+    if (firstErrorField === 'role') {
+      setShowRolePicker(true);
+    } else if (firstErrorField === 'name') {
+      nameRef.current?.focus();
+    } else if (firstErrorField === 'email') {
+      emailRef.current?.focus();
+    } else if (firstErrorField === 'password') {
+      passwordRef.current?.focus();
+    } else if (firstErrorField === 'confirmPassword') {
+      confirmPasswordRef.current?.focus();
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -178,12 +203,12 @@ export function UserDetailScreen() {
 
       // Only call updateUser if there are changes
       if (Object.keys(updateData).length > 0) {
-        await updateUser(params.id, updateData);
+        await apiClient.updateUser(params.id, updateData);
       }
 
       // If password was filled, reset password separately
       if (password) {
-        await resetPassword(params.id, password);
+        await apiClient.resetPassword(params.id, password);
       }
 
       router.back();
@@ -201,7 +226,7 @@ export function UserDetailScreen() {
     if (!params.id) return;
     try {
       setDeleting(true);
-      await deleteUser(params.id);
+      await apiClient.deleteUser(params.id);
       setDeleteModalVisible(false);
       router.back();
     } catch (err) {
@@ -222,6 +247,8 @@ export function UserDetailScreen() {
     paddingHorizontal: 16,
     gap: 12,
     alignItems: 'center',
+    boxShadow: '0px 1px 3px 0px rgba(0, 0, 0, 0.06)',
+    elevation: 2,
   };
 
   const backIconStyle: TextStyle = {
@@ -235,6 +262,8 @@ export function UserDetailScreen() {
     fontSize: 18,
     fontWeight: '400',
     color: '#3D2020',
+    flex: 1,
+    textAlign: 'center',
   };
 
   const contentStyle: ViewStyle = {
@@ -284,6 +313,7 @@ export function UserDetailScreen() {
     fontSize: 14,
     fontWeight: '500',
     color: '#3D2020',
+    marginTop: 5,
   };
 
   const userEmailStyle: TextStyle = {
@@ -436,7 +466,8 @@ export function UserDetailScreen() {
           >
             <RNText style={backIconStyle}>arrow_back</RNText>
           </Pressable>
-          <RNText style={titleStyle}>Editar Usuário</RNText>
+          <RNText style={titleStyle}>Usuário</RNText>
+          <View style={{ width: 24 }} />
         </View>
         <View style={centeredContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -470,7 +501,8 @@ export function UserDetailScreen() {
           >
             <RNText style={backIconStyle}>arrow_back</RNText>
           </Pressable>
-          <RNText style={titleStyle}>Editar Usuário</RNText>
+          <RNText style={titleStyle}>Usuário</RNText>
+          <View style={{ width: 24 }} />
         </View>
         <View style={centeredContainerStyle}>
           <RNText
@@ -519,7 +551,8 @@ export function UserDetailScreen() {
         >
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
-        <RNText style={titleStyle}>Editar Usuário</RNText>
+        <RNText style={titleStyle}>Usuário</RNText>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollContainer padding={false} style={contentStyle}>
@@ -540,7 +573,7 @@ export function UserDetailScreen() {
               onValueChange={async () => {
                 const newStatus = user.status === 'ativo' ? 'inativo' : 'ativo';
                 try {
-                  await toggleUserStatus(params.id!, newStatus);
+                  await apiClient.toggleUserStatus(params.id!, newStatus);
                   setUser({ ...user, status: newStatus });
                 } catch {
                   // Silently fail
@@ -618,6 +651,7 @@ export function UserDetailScreen() {
           <RNText style={labelStyle}>Nome</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={nameRef}
               style={inputStyle}
               value={name}
               onChangeText={(text) => {
@@ -641,6 +675,7 @@ export function UserDetailScreen() {
           <RNText style={labelStyle}>E-mail</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={emailRef}
               style={inputStyle}
               value={email}
               onChangeText={(text) => {
@@ -667,6 +702,7 @@ export function UserDetailScreen() {
           <RNText style={labelStyle}>Senha</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={passwordRef}
               style={inputStyle}
               value={password}
               onChangeText={(text) => {
@@ -702,6 +738,7 @@ export function UserDetailScreen() {
           <RNText style={labelStyle}>Confirmar Senha</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={confirmPasswordRef}
               style={inputStyle}
               value={confirmPassword}
               onChangeText={(text) => {
@@ -744,13 +781,13 @@ export function UserDetailScreen() {
           disabled={loading}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Editar Usuário"
+          accessibilityLabel="Salvar"
           testID="submit-user"
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <RNText style={confirmButtonTextStyle}>Editar Usuário</RNText>
+            <RNText style={confirmButtonTextStyle}>Salvar</RNText>
           )}
         </TouchableOpacity>
 
@@ -760,11 +797,11 @@ export function UserDetailScreen() {
           onPress={() => setDeleteModalVisible(true)}
           disabled={deleting}
           accessibilityRole="button"
-          accessibilityLabel="Excluir usuário"
+          accessibilityLabel="Excluir"
           testID="delete-user-button"
         >
           <RNText style={dangerIconStyle}>delete</RNText>
-          <RNText style={dangerTextStyle}>Excluir usuário</RNText>
+          <RNText style={dangerTextStyle}>Excluir</RNText>
         </Pressable>
       </ScrollContainer>
 

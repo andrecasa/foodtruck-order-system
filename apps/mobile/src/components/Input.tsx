@@ -8,6 +8,7 @@ import {
   type ViewStyle,
   type TextInputProps,
 } from 'react-native';
+import type { RefObject } from 'react';
 import { useTheme } from '../theme/ThemeProvider';
 
 export type InputMask = 'currency' | 'none';
@@ -45,6 +46,8 @@ export interface InputProps {
   backgroundColor?: string;
   /** Show a trailing toggle icon for password visibility (eye icon) */
   showPasswordToggle?: boolean;
+  /** Ref forwarded to the internal TextInput (for programmatic focus) */
+  inputRef?: RefObject<TextInput | null>;
 }
 
 /**
@@ -111,6 +114,7 @@ export function Input({
   iconColor,
   backgroundColor,
   showPasswordToggle = false,
+  inputRef,
 }: InputProps) {
   const theme = useTheme();
   const [isFocused, setIsFocused] = useState(false);
@@ -210,6 +214,7 @@ export function Input({
           </Text>
         ) : null}
         <TextInput
+          ref={inputRef}
           style={inputStyle}
           value={value}
           onChangeText={handleChangeText}

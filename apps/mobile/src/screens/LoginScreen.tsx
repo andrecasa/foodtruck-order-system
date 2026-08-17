@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text as RNText, type ViewStyle, type TextStyle } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text as RNText, TextInput, type ViewStyle, type TextStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
@@ -30,12 +30,18 @@ export function LoginScreen() {
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Refs for focus management
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
   function validate(): boolean {
     let valid = true;
+    let firstErrorField: 'email' | 'password' | null = null;
 
     if (!email.trim()) {
       setEmailError('E-mail é obrigatório');
       valid = false;
+      if (!firstErrorField) firstErrorField = 'email';
     } else {
       setEmailError('');
     }
@@ -43,8 +49,16 @@ export function LoginScreen() {
     if (!password.trim()) {
       setPasswordError('Senha é obrigatória');
       valid = false;
+      if (!firstErrorField) firstErrorField = 'password';
     } else {
       setPasswordError('');
+    }
+
+    // Focus on the first field with error
+    if (firstErrorField === 'email') {
+      emailRef.current?.focus();
+    } else if (firstErrorField === 'password') {
+      passwordRef.current?.focus();
     }
 
     return valid;
@@ -164,6 +178,7 @@ export function LoginScreen() {
             icon="mail"
             error={emailError}
             testID="login-email-input"
+            inputRef={emailRef}
           />
 
           <Input
@@ -176,6 +191,7 @@ export function LoginScreen() {
             error={passwordError}
             testID="login-password-input"
             showPasswordToggle
+            inputRef={passwordRef}
           />
 
           <Button

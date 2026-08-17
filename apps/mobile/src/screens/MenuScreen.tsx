@@ -301,14 +301,14 @@ export function MenuScreen() {
           <Pressable
             style={novoItemBtnStyle}
             accessibilityRole="button"
-            accessibilityLabel="Novo Item"
+            accessibilityLabel="Adicionar"
             accessibilityHint="Navega para a tela de criação de item do cardápio"
             onPress={() => {
               router.push('/create-menu-item');
             }}
           >
             <RNText style={novoItemPlusStyle}>+</RNText>
-            <RNText style={novoItemTextStyle}>Novo Item</RNText>
+            <RNText style={novoItemTextStyle}>Adicionar</RNText>
           </Pressable>
         </ScrollContainer>
       </View>

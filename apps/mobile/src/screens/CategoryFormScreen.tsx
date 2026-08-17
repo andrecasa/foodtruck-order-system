@@ -142,6 +142,8 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
     fontSize: 18,
     fontWeight: '400',
     color: '#3D2020',
+    flex: 1,
+    textAlign: 'center',
   };
 
   const contentStyle: ViewStyle = {
@@ -163,13 +165,13 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
   };
 
   const inputStyle: TextStyle = {
-    height: 48,
-    borderRadius: 8,
+    height: 52,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: fieldError ? theme.colors.error : '#E8DDD5',
     paddingHorizontal: 16,
     fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
     color: '#3D2020',
     backgroundColor: '#FFFFFF',
@@ -244,8 +246,9 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
         <RNText style={titleStyle}>
-          {isEditMode ? 'Editar Categoria' : 'Nova Categoria'}
+          {isEditMode ? 'Salvar' : 'Categoria'}
         </RNText>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollContainer padding={false} style={contentStyle}>
@@ -288,13 +291,13 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
           disabled={loading || deleting}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={isEditMode ? 'Salvar' : 'Adicionar'}
+          accessibilityLabel="Salvar"
           testID="submit-category"
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <RNText style={submitButtonTextStyle}>{isEditMode ? 'Salvar' : 'Adicionar'}</RNText>
+            <RNText style={submitButtonTextStyle}>Salvar</RNText>
           )}
         </TouchableOpacity>
 
@@ -306,11 +309,11 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
             disabled={deleting || loading}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Excluir categoria"
+            accessibilityLabel="Excluir"
             testID="delete-category"
           >
             <RNText style={deleteIconStyle}>delete</RNText>
-            <RNText style={deleteButtonTextStyle}>Excluir categoria</RNText>
+            <RNText style={deleteButtonTextStyle}>Excluir</RNText>
           </TouchableOpacity>
         )}
       </ScrollContainer>

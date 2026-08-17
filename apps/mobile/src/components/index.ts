@@ -30,7 +30,5 @@ export { MonthlySummaryCard } from './MonthlySummaryCard';
 export type { MonthlySummaryCardProps } from './MonthlySummaryCard';
 export { CalendarCard } from './CalendarCard';
 export type { CalendarCardProps } from './CalendarCard';
-export { SelectedDayCard } from './SelectedDayCard';
-export type { SelectedDayCardProps } from './SelectedDayCard';
 export { CalendarModal } from './CalendarModal';
 export type { CalendarModalProps } from './CalendarModal';

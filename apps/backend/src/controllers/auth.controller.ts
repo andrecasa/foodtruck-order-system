@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
-import { SESSION_DURATION_HOURS } from '@order-system/shared';
-import { supabase } from '../config/supabase.js';
 import {
   recordFailedAttempt,
   resetRateLimit,
 } from '../middleware/rate-limit.middleware.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import * as authService from '../services/auth.service.js';
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers['x-forwarded-for'];
@@ -30,35 +29,19 @@ export async function login(req: Request, res: Response): Promise<void> {
   const ip = getClientIp(req);
 
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error || !data.session) {
-      recordFailedAttempt(ip);
-      res.status(401).json({
-        statusCode: 401,
-        error: 'INVALID_CREDENTIALS',
-        message: 'E-mail ou senha incorretos',
+    const result = await authService.login({ email, password });
+    resetRateLimit(ip);
+    res.status(200).json(result);
+  } catch (err) {
+    recordFailedAttempt(ip);
+    if (err instanceof authService.ServiceError) {
+      res.status(err.statusCode).json({
+        statusCode: err.statusCode,
+        error: err.code,
+        message: err.message,
       });
       return;
     }
-
-    // Reset rate limit on successful login
-    resetRateLimit(ip);
-
-    res.status(200).json({
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresIn: SESSION_DURATION_HOURS * 3600,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-      },
-    });
-  } catch {
-    recordFailedAttempt(ip);
     res.status(401).json({
       statusCode: 401,
       error: 'INVALID_CREDENTIALS',
@@ -80,19 +63,17 @@ export async function logout(req: AuthenticatedRequest, res: Response): Promise<
   }
 
   try {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      res.status(500).json({
-        statusCode: 500,
-        error: 'LOGOUT_FAILED',
-        message: 'Falha ao encerrar sessão.',
+    await authService.logout();
+    res.status(200).json({ message: 'Sessão encerrada com sucesso.' });
+  } catch (err) {
+    if (err instanceof authService.ServiceError) {
+      res.status(err.statusCode).json({
+        statusCode: err.statusCode,
+        error: err.code,
+        message: err.message,
       });
       return;
     }
-
-    res.status(200).json({ message: 'Sessão encerrada com sucesso.' });
-  } catch {
     res.status(500).json({
       statusCode: 500,
       error: 'LOGOUT_FAILED',
@@ -122,9 +103,9 @@ export async function getSession(req: AuthenticatedRequest, res: Response): Prom
  * No auth middleware required (the access token may already be expired).
  */
 export async function refreshToken(req: Request, res: Response): Promise<void> {
-  const { refreshToken } = req.body;
+  const { refreshToken: token } = req.body;
 
-  if (!refreshToken) {
+  if (!token) {
     res.status(400).json({
       statusCode: 400,
       error: 'BAD_REQUEST',
@@ -134,25 +115,17 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const { data, error } = await supabase.auth.refreshSession({
-      refresh_token: refreshToken,
-    });
-
-    if (error || !data.session) {
-      res.status(401).json({
-        statusCode: 401,
-        error: 'INVALID_REFRESH_TOKEN',
-        message: 'Refresh token inválido ou expirado.',
+    const result = await authService.refreshToken(token);
+    res.status(200).json(result);
+  } catch (err) {
+    if (err instanceof authService.ServiceError) {
+      res.status(err.statusCode).json({
+        statusCode: err.statusCode,
+        error: err.code,
+        message: err.message,
       });
       return;
     }
-
-    res.status(200).json({
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresIn: SESSION_DURATION_HOURS * 3600,
-    });
-  } catch {
     res.status(401).json({
       statusCode: 401,
       error: 'INVALID_REFRESH_TOKEN',

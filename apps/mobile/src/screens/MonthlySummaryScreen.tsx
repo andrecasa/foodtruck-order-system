@@ -1,85 +1,68 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
-  TouchableOpacity,
   View,
   Text as RNText,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import type { DailySummary } from '@order-system/shared';
-import { useRouter, useFocusEffect } from 'expo-router';
+import type { MonthlySummaryResponse } from '@order-system/shared';
+import { useRouter } from 'expo-router';
 import { Screen, Header } from '../components';
-import { DateChip } from '../components/DateChip';
-import { CalendarModal } from '../components/CalendarModal';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
-import { formatPrice } from '../utils/format';
+import { formatPrice, getPortugueseMonthName } from '../utils/format';
 
 /**
- * Resumo do Dia — Daily financial summary screen.
+ * Resumo do Mês — Monthly accumulated summary screen.
  *
- * Penpot design: "Resumo Financeiro" (with AppBar title "Resumo do Dia")
- * - DateChip for day selection (opens CalendarModal)
- * - "Resumo do Dia" section with 4 sub-cards (Pedidos, Faturamento, Recebido, Pendente)
- * - "Formas de Pagamento" section with icon rows
- * - "Acumulado do Mês" button -> navigates to MonthlySummaryScreen
+ * Penpot design: "Resumo Financeiro Acumulado"
+ * - AppBar: "Resumo do Mês" centered
+ * - Month selector pill with arrows (chevron_left / chevron_right) + calendar icon
+ * - "Resumo do Mês" section title
+ * - 4 sub-cards in 2×2 grid (Pedidos, Faturamento, Recebido, Pendente)
+ * - "Formas de Pagamento" section title
+ * - Payment methods card with icon rows (PIX, Cartão, Dinheiro)
  */
-export function DailySummaryScreen() {
+export function MonthlySummaryScreen() {
   const theme = useTheme();
   const router = useRouter();
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [day, setDay] = useState(now.getDate());
-  const [summary, setSummary] = useState<DailySummary | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<MonthlySummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
-  const [daysWithOrders, setDaysWithOrders] = useState<number[]>([]);
 
-  const dateStr = useMemo(
-    () => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-    [year, month, day]
-  );
+  const monthName = useMemo(() => getPortugueseMonthName(month), [month]);
 
   // ─── Data Fetching ──────────────────────────────────────────────────────────
 
-  const fetchSummary = useCallback(async (targetDate: string) => {
+  const fetchMonthlySummary = useCallback(async (fetchYear: number, fetchMonth: number) => {
     try {
       setError(null);
-      const data = await apiClient.getDailySummary(targetDate);
-      setSummary(data);
+      const data = await apiClient.getMonthlySummary(fetchYear, fetchMonth);
+      setMonthlySummary(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar resumo');
     }
   }, []);
 
-  const fetchDaysWithOrders = useCallback(async (fetchYear: number, fetchMonth: number) => {
-    try {
-      const data = await apiClient.getMonthlySummary(fetchYear, fetchMonth);
-      setDaysWithOrders(data.days.map(d => d.day));
-    } catch {
-      setDaysWithOrders([]);
-    }
-  }, []);
-
+  // Initial load
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       try {
-        const [summaryData] = await Promise.all([
-          apiClient.getDailySummary(dateStr),
-          fetchDaysWithOrders(year, month),
-        ]);
-        if (!cancelled) setSummary(summaryData);
+        const data = await apiClient.getMonthlySummary(year, month);
+        if (!cancelled) setMonthlySummary(data);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao carregar resumo');
       } finally {
@@ -90,46 +73,54 @@ export function DailySummaryScreen() {
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Realtime updates
   const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
   useRealtime({
     channels: realtimeChannels,
-    onEvent: useCallback(() => { fetchSummary(dateStr); }, [fetchSummary, dateStr]),
-    onReconnect: useCallback(() => { fetchSummary(dateStr); }, [fetchSummary, dateStr]),
+    onEvent: useCallback(() => { fetchMonthlySummary(year, month); }, [fetchMonthlySummary, year, month]),
+    onReconnect: useCallback(() => { fetchMonthlySummary(year, month); }, [fetchMonthlySummary, year, month]),
   });
-
-  // Refetch when screen regains focus (e.g., returning from payment)
-  useFocusEffect(
-    useCallback(() => {
-      fetchSummary(dateStr);
-    }, [fetchSummary, dateStr])
-  );
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
+  const handlePreviousMonth = useCallback(async () => {
+    const newMonth = month === 1 ? 12 : month - 1;
+    const newYear = month === 1 ? year - 1 : year;
+    setMonth(newMonth);
+    setYear(newYear);
+    setLoading(true);
+    await fetchMonthlySummary(newYear, newMonth);
+    setLoading(false);
+  }, [year, month, fetchMonthlySummary]);
+
+  const handleNextMonth = useCallback(async () => {
+    const newMonth = month === 12 ? 1 : month + 1;
+    const newYear = month === 12 ? year + 1 : year;
+    setMonth(newMonth);
+    setYear(newYear);
+    setLoading(true);
+    await fetchMonthlySummary(newYear, newMonth);
+    setLoading(false);
+  }, [year, month, fetchMonthlySummary]);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchSummary(dateStr);
+    await fetchMonthlySummary(year, month);
     setRefreshing(false);
-  }, [fetchSummary, dateStr]);
-
-  const handleDaySelect = useCallback(async (selectedDay: number, selectedMonth: number, selectedYear: number) => {
-    setCalendarModalVisible(false);
-    setDay(selectedDay);
-    if (selectedYear !== year || selectedMonth !== month) {
-      setYear(selectedYear);
-      setMonth(selectedMonth);
-      await fetchDaysWithOrders(selectedYear, selectedMonth);
-    }
-    const newDateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
-    fetchSummary(newDateStr);
-  }, [year, month, fetchDaysWithOrders, fetchSummary]);
+  }, [fetchMonthlySummary, year, month]);
 
   const handleRetry = useCallback(async () => {
     setLoading(true);
     setError(null);
-    await fetchSummary(dateStr);
+    await fetchMonthlySummary(year, month);
     setLoading(false);
-  }, [fetchSummary, dateStr]);
+  }, [year, month, fetchMonthlySummary]);
+
+  // ─── Payment method breakdown from daily data ───────────────────────────────
+  // The monthly API doesn't include payment method breakdown,
+  // so we compute it from daily summaries or show from totals.
+  // For now, we'll show the monthly totals only.
+  // Payment breakdown would require a new API endpoint.
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
@@ -137,10 +128,44 @@ export function DailySummaryScreen() {
   const loadingContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
   const errorContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
 
+  const monthSelectorStyle: ViewStyle = {
+    backgroundColor: '#7B2D2D',
+    borderRadius: 17,
+    height: 34,
+    width: 175,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    paddingHorizontal: 12,
+    gap: 4,
+  };
+
+  const arrowStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 22,
+    color: 'rgba(255,255,255,0.8)',
+  };
+
+  const monthLabelStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+  };
+
+  const calendarIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.7)',
+    marginLeft: 4,
+  };
+
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
-    fontWeight: '400',
+    fontWeight: '600',
     color: '#3D2020',
   };
 
@@ -160,27 +185,19 @@ export function DailySummaryScreen() {
     paddingVertical: 4,
   };
 
-  const ctaButtonStyle: ViewStyle = {
-    backgroundColor: '#7B2D2D',
-    borderRadius: 22,
-    height: 44,
+  const paymentRowStyle: ViewStyle = {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const ctaTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#FFFFFF',
+    height: 44,
+    gap: 12,
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
-  if (loading && !summary) {
+  if (loading && !monthlySummary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Dia" onBack={() => router.back()} />
+        <Header title="Resumo do Mês" onBack={() => router.back()} />
         <View style={loadingContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
           <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: '#8B6B5A', marginTop: 8 }}>
@@ -191,10 +208,10 @@ export function DailySummaryScreen() {
     );
   }
 
-  if (error && !summary) {
+  if (error && !monthlySummary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Dia" onBack={() => router.back()} />
+        <Header title="Resumo do Mês" onBack={() => router.back()} />
         <View style={errorContainerStyle}>
           <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: theme.colors.error, textAlign: 'center' }}>
             {error}
@@ -207,34 +224,73 @@ export function DailySummaryScreen() {
     );
   }
 
-  const totalRevenue = (summary?.paidTotal ?? 0) + (summary?.pendingTotal ?? 0);
+  const totals = monthlySummary?.totals;
 
   return (
     <Screen padding={false}>
-      <Header title="Resumo do Dia" onBack={() => router.back()} />
+      <Header title="Resumo do Mês" onBack={() => router.back()} />
 
       <ScrollView
         contentContainerStyle={contentStyle}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.colors.primary]} tintColor={theme.colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
         }
         showsVerticalScrollIndicator
       >
-        {/* Date Chip */}
-        <DateChip day={day} month={month} year={year} onPress={() => setCalendarModalVisible(true)} />
+        {/* Month Selector */}
+        <View style={monthSelectorStyle}>
+          <Pressable onPress={handlePreviousMonth} accessibilityLabel="Mês anterior" hitSlop={12}>
+            <RNText style={arrowStyle}>chevron_left</RNText>
+          </Pressable>
+          <RNText style={monthLabelStyle}>
+            {monthName} {year}
+          </RNText>
+          <Pressable onPress={handleNextMonth} accessibilityLabel="Próximo mês" hitSlop={12}>
+            <RNText style={arrowStyle}>chevron_right</RNText>
+          </Pressable>
+        </View>
 
-        {/* Section: Resumo do Dia */}
-        <RNText style={sectionTitleStyle}>Resumo do Dia</RNText>
+        {/* Section: Resumo do Mês */}
+        <RNText style={sectionTitleStyle}>Resumo do Mês</RNText>
 
-        {/* Sub-cards grid 2x2 */}
+        {/* Sub-cards grid 2×2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>
-            <SubCard icon="receipt_long" color="#7B2D2D" backgroundColor="#FDF8F4" value={String(summary?.totalOrders ?? 0)} label="Pedidos" />
-            <SubCard icon="payments" color="#D4812B" backgroundColor="#FFF8F0" value={formatPrice(totalRevenue)} label="Faturamento" />
+            <SubCard
+              icon="receipt_long"
+              color="#7B2D2D"
+              backgroundColor="#FDF8F4"
+              value={String(totals?.totalOrders ?? 0)}
+              label="Pedidos"
+            />
+            <SubCard
+              icon="payments"
+              color="#D4812B"
+              backgroundColor="#FFF8F0"
+              value={formatPrice(totals?.totalRevenue ?? 0)}
+              label="Faturamento"
+            />
           </View>
           <View style={rowStyle}>
-            <SubCard icon="check_circle" color="#2E7D32" backgroundColor="#F0F8F0" value={formatPrice(summary?.paidTotal ?? 0)} label="Recebido" />
-            <SubCard icon="schedule" color="#C62828" backgroundColor="#FEF2F2" value={formatPrice(summary?.pendingTotal ?? 0)} label="Pendente" />
+            <SubCard
+              icon="check_circle"
+              color="#2E7D32"
+              backgroundColor="#F0F8F0"
+              value={formatPrice(totals?.totalReceived ?? 0)}
+              label="Recebido"
+            />
+            <SubCard
+              icon="schedule"
+              color="#C62828"
+              backgroundColor="#FEF2F2"
+              value={formatPrice(totals?.totalPending ?? 0)}
+              label="Pendente"
+            />
           </View>
         </View>
 
@@ -242,41 +298,11 @@ export function DailySummaryScreen() {
         <RNText style={sectionTitleStyle}>Formas de Pagamento</RNText>
 
         <View style={paymentCardStyle}>
-          <PaymentRow icon="qr_code" iconColor="#5A8C5A" label="PIX" value={formatPrice(summary?.byPaymentMethod.pix ?? 0)} />
-          <PaymentRow icon="credit_card" iconColor="#5B8BA8" label="Cartão" value={formatPrice(summary?.byPaymentMethod['cartão'] ?? 0)} />
-          <PaymentRow icon="payments" iconColor="#7B2D2D" label="Dinheiro" value={formatPrice(summary?.byPaymentMethod.dinheiro ?? 0)} />
+          <PaymentRow icon="qr_code" iconColor="#5A8C5A" label="PIX" value={formatPrice(monthlySummary?.byPaymentMethod?.pix ?? 0)} />
+          <PaymentRow icon="credit_card" iconColor="#5B8BA8" label="Cartão" value={formatPrice(monthlySummary?.byPaymentMethod?.['cartão'] ?? 0)} />
+          <PaymentRow icon="payments" iconColor="#7B2D2D" label="Dinheiro" value={formatPrice(monthlySummary?.byPaymentMethod?.dinheiro ?? 0)} />
         </View>
-
-        {/* CTA: Acumulado do Mês */}
-        <TouchableOpacity
-          style={ctaButtonStyle}
-          onPress={() => router.push('/summary/monthly')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Acumulado do Mês"
-        >
-          <RNText style={ctaTextStyle}>Acumulado do Mês</RNText>
-        </TouchableOpacity>
       </ScrollView>
-
-      {/* Calendar Modal */}
-      <CalendarModal
-        visible={calendarModalVisible}
-        year={year}
-        month={month}
-        selectedDay={day}
-        daysWithOrders={daysWithOrders}
-        onDaySelect={handleDaySelect}
-        onMonthChange={async (newYear, newMonth) => {
-          try {
-            const data = await apiClient.getMonthlySummary(newYear, newMonth);
-            return data.days.map(d => d.day);
-          } catch {
-            return [];
-          }
-        }}
-        onClose={() => setCalendarModalVisible(false)}
-      />
     </Screen>
   );
 }
@@ -316,7 +342,9 @@ function SubCard({ icon, color, backgroundColor, value, label }: SubCardProps) {
   return (
     <View style={subCardStyle} accessibilityLabel={`${label}: ${value}`}>
       <View style={iconWrapStyle}>
-        <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18, color }}>{icon}</RNText>
+        <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18, color }}>
+          {icon}
+        </RNText>
       </View>
       <View style={{ flex: 1 }}>
         <RNText style={{ fontSize: 15, fontWeight: '600', color }} numberOfLines={1}>{value}</RNText>
@@ -339,8 +367,8 @@ function PaymentRow({ icon, iconColor, label, value }: PaymentRowProps) {
       <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: iconColor + '1F', alignItems: 'center', justifyContent: 'center' }}>
         <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16, color: iconColor }}>{icon}</RNText>
       </View>
-      <RNText style={{ flex: 1, fontSize: 14, fontWeight: '400', color: '#3D2020' }}>{label}</RNText>
-      <RNText style={{ fontSize: 14, fontWeight: '600', color: '#3D2020' }}>{value}</RNText>
+      <RNText style={{ flex: 1, fontSize: 14, fontWeight: '400', color: '#7B2D2D' }}>{label}</RNText>
+      <RNText style={{ fontSize: 14, fontWeight: '600', color: '#7B2D2D' }}>{value}</RNText>
     </View>
   );
 }

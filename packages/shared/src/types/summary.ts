@@ -21,6 +21,11 @@ export interface MonthlySummaryResponse {
     totalReceived: number;  // cents (paid only)
     totalPending: number;   // cents
   };
+  byPaymentMethod: {
+    dinheiro: number;       // cents
+    pix: number;            // cents
+    cartão: number;         // cents
+  };
   days: DayBreakdown[];
 }
 

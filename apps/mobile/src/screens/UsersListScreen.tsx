@@ -15,7 +15,7 @@ import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
-import { listUsers, toggleUserStatus } from '../services/userService';
+import { apiClient } from '../services/api-client';
 import type { User, UserRole } from '../types/user';
 
 // ─── Filter chip options (role-based, no "todos") ───────────────────────────
@@ -27,13 +27,20 @@ const FILTER_OPTIONS: FilterChipOption[] = [
   { key: 'preparador', label: 'Preparador', color: '#5A8C5A' },
 ];
 
-// ─── Role badge colors (solid background, white text) ───────────────────────
+// ─── Role badge colors (transparent background, colored text) ───────────────
 // Penpot: admin=#7B2D2D, atendente=#5B8BA8 (steel blue), preparador=#5A8C5A (sage green)
 
 const ROLE_BADGE_COLORS: Record<UserRole, string> = {
   admin: '#7B2D2D',
   atendente: '#5B8BA8',
   preparador: '#5A8C5A',
+};
+
+// Transparent badge backgrounds (12% opacity of role color)
+const ROLE_BADGE_BG_COLORS: Record<UserRole, string> = {
+  admin: 'rgba(123, 45, 45, 0.12)',
+  atendente: 'rgba(91, 139, 168, 0.12)',
+  preparador: 'rgba(90, 140, 90, 0.12)',
 };
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -75,15 +82,15 @@ export function UsersListScreen() {
 
       // If all roles selected or none, load all users
       if (activeFilters.length === 3 || activeFilters.length === 0) {
-        const response = await listUsers();
+        const response = await apiClient.listUsers();
         setUsers(response.users);
       } else if (activeFilters.length === 1) {
         // Single role filter
-        const response = await listUsers({ role: activeFilters[0] as UserRole });
+        const response = await apiClient.listUsers({ role: activeFilters[0] as UserRole });
         setUsers(response.users);
       } else {
         // Multiple roles: fetch all and filter client-side
-        const response = await listUsers();
+        const response = await apiClient.listUsers();
         setUsers(response.users.filter(u => activeFilters.includes(u.role)));
       }
     } catch (err) {
@@ -109,7 +116,7 @@ export function UsersListScreen() {
     const newStatus = user.status === 'ativo' ? 'inativo' : 'ativo';
     try {
       setTogglingUserId(user.id);
-      await toggleUserStatus(user.id, newStatus);
+      await apiClient.toggleUserStatus(user.id, newStatus);
       // Update local state
       setUsers(prev =>
         prev.map(u => u.id === user.id ? { ...u, status: newStatus } : u)
@@ -144,6 +151,8 @@ export function UsersListScreen() {
     fontSize: 18,
     fontWeight: '400',
     color: '#3D2020',
+    flex: 1,
+    textAlign: 'center',
   };
 
   // Content area: flex column, gap 12, padding 16
@@ -209,9 +218,6 @@ export function UsersListScreen() {
     alignItems: 'center',
   };
 
-  // Edit button: 24x24, borderRadius 12, bg primary@8%, border 1px primary@30%
-  // (removed — no longer in design)
-
   // "Novo Usuário" button: full width, height 44, borderRadius 22, white bg, border 1px #E8DDD5
   const novoUsuarioBtnStyle: ViewStyle = {
     backgroundColor: '#FFFFFF',
@@ -254,38 +260,35 @@ export function UsersListScreen() {
     const isToggling = togglingUserId === item.id;
 
     return (
-      <View
+      <Pressable
         style={userCardStyle}
+        onPress={() =>
+          router.push({
+            pathname: '/user-detail',
+            params: { id: item.id },
+          })
+        }
+        accessibilityRole="button"
         accessibilityLabel={`${item.name}, ${item.email}, ${ROLE_LABELS[item.role]}, ${isActive ? 'Ativo' : 'Inativo'}`}
         testID={`user-card-${item.id}`}
       >
-        {/* Info: badge + name + email (tappable to navigate) */}
-        <Pressable
-          style={userInfoStyle}
-          onPress={() =>
-            router.push({
-              pathname: '/user-detail',
-              params: { id: item.id },
-            })
-          }
-          accessibilityRole="button"
-          accessibilityLabel={`Editar ${item.name}`}
-        >
+        {/* Info: badge + name + email */}
+        <View style={userInfoStyle}>
           <View
             style={[
               roleBadgeBaseStyle,
-              { backgroundColor: ROLE_BADGE_COLORS[item.role] },
+              { backgroundColor: ROLE_BADGE_BG_COLORS[item.role] },
             ]}
           >
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 8, fontWeight: '400', color: '#FFFFFF' }}>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 8, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
               {ROLE_LABELS[item.role]}
             </RNText>
           </View>
           <RNText style={userNameStyle}>{item.name}</RNText>
           <RNText style={userEmailStyle}>{item.email}</RNText>
-        </Pressable>
+        </View>
 
-        {/* Meta: Switch toggle */}
+        {/* Meta: Switch toggle only */}
         <View style={userMetaStyle}>
           <ToggleSwitch
             value={isActive}
@@ -295,7 +298,7 @@ export function UsersListScreen() {
             testID={`toggle-user-${item.id}`}
           />
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -369,12 +372,12 @@ export function UsersListScreen() {
             style={[novoUsuarioBtnStyle, { marginTop: 12 }]}
             onPress={() => router.push('/user-form')}
             accessibilityRole="button"
-            accessibilityLabel="Novo Usuário"
+            accessibilityLabel="Adicionar"
             accessibilityHint="Navega para a tela de criação de usuário"
             testID="new-user-button"
           >
             <RNText style={novoUsuarioPlusStyle}>+</RNText>
-            <RNText style={novoUsuarioTextStyle}>Novo Usuário</RNText>
+            <RNText style={novoUsuarioTextStyle}>Adicionar</RNText>
           </Pressable>
         }
       />
@@ -400,6 +403,7 @@ export function UsersListScreen() {
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
         <RNText style={titleStyle}>Usuários</RNText>
+        <View style={{ width: 24 }} />
       </View>
 
       {/* Content */}

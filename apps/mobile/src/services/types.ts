@@ -15,6 +15,14 @@ import type {
   UpdateCategoryRequest,
   ReorderCategoriesRequest,
 } from '@order-system/shared';
+import type {
+  UserResponse,
+  ListUsersResponse,
+  CreateUserInput,
+  UpdateUserInput,
+  UserFilters,
+  UserStatus,
+} from '../types/user';
 
 export interface ApiClient {
   // Auth
@@ -49,4 +57,13 @@ export interface ApiClient {
   reorderCategories(data: ReorderCategoriesRequest): Promise<Category[]>;
   toggleCategoryStatus(id: string, action: 'activate' | 'deactivate'): Promise<Category>;
   deleteCategory(id: string): Promise<void>;
+
+  // Users
+  listUsers(filters?: UserFilters): Promise<ListUsersResponse>;
+  getUserById(id: string): Promise<UserResponse>;
+  createUser(data: CreateUserInput): Promise<UserResponse>;
+  updateUser(id: string, data: UpdateUserInput): Promise<UserResponse>;
+  toggleUserStatus(id: string, status: UserStatus): Promise<UserResponse>;
+  deleteUser(id: string): Promise<void>;
+  resetPassword(id: string, password: string): Promise<void>;
 }

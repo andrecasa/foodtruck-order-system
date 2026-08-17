@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text as RNText,
@@ -15,7 +15,7 @@ import { Screen, ScrollContainer } from '../components/Layout';
 import { BottomNav } from '../components/BottomNav';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
-import { createUser, updateUser, getUserById, deleteUser } from '../services/userService';
+import { apiClient } from '../services/api-client';
 import type { CreateUserInput, UpdateUserInput, UserRole } from '../types/user';
 
 // ─── Role options for the selector ─────────────────────────────────────────
@@ -65,6 +65,12 @@ export function UserFormScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Refs for focus management
+  const nameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
@@ -79,7 +85,7 @@ export function UserFormScreen() {
     if (!params.id) return;
     try {
       setFetchLoading(true);
-      const user = await getUserById(params.id);
+      const user = await apiClient.getUserById(params.id);
       setName(user.name);
       setEmail(user.email);
       setRole(user.role);
@@ -100,58 +106,87 @@ export function UserFormScreen() {
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
+    let firstErrorField: 'role' | 'name' | 'email' | 'password' | 'confirmPassword' | null = null;
+
+    // Role: required
+    if (!role) {
+      newErrors.role = 'Função é obrigatória';
+      if (!firstErrorField) firstErrorField = 'role';
+    }
 
     // Name: 1-100 chars, not only spaces
     const trimmedName = name.trim();
     if (!trimmedName) {
       newErrors.name = 'Nome é obrigatório';
+      if (!firstErrorField) firstErrorField = 'name';
     } else if (trimmedName.length > 100) {
       newErrors.name = 'Nome deve ter no máximo 100 caracteres';
+      if (!firstErrorField) firstErrorField = 'name';
     } else if (/^\s+$/.test(name)) {
       newErrors.name = 'Nome não pode conter apenas espaços';
+      if (!firstErrorField) firstErrorField = 'name';
     }
 
     // Email: valid format, ≤254 chars
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       newErrors.email = 'E-mail é obrigatório';
+      if (!firstErrorField) firstErrorField = 'email';
     } else if (trimmedEmail.length > 254) {
       newErrors.email = 'E-mail deve ter no máximo 254 caracteres';
+      if (!firstErrorField) firstErrorField = 'email';
     } else if (!isValidEmail(trimmedEmail)) {
       newErrors.email = 'E-mail inválido';
+      if (!firstErrorField) firstErrorField = 'email';
     }
 
     // Password: 8-72 chars (required in creation, optional in edit)
     if (!isEditMode) {
       if (!password) {
         newErrors.password = 'Senha é obrigatória';
+        if (!firstErrorField) firstErrorField = 'password';
       } else if (password.length < 8) {
         newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
+        if (!firstErrorField) firstErrorField = 'password';
       } else if (password.length > 72) {
         newErrors.password = 'Senha deve ter no máximo 72 caracteres';
+        if (!firstErrorField) firstErrorField = 'password';
       }
     } else if (password) {
       // In edit mode, only validate if filled
       if (password.length < 8) {
         newErrors.password = 'Senha deve ter no mínimo 8 caracteres';
+        if (!firstErrorField) firstErrorField = 'password';
       } else if (password.length > 72) {
         newErrors.password = 'Senha deve ter no máximo 72 caracteres';
+        if (!firstErrorField) firstErrorField = 'password';
       }
     }
 
     // Confirm password: must match
     if (password && confirmPassword !== password) {
       newErrors.confirmPassword = 'Senhas não coincidem';
+      if (!firstErrorField) firstErrorField = 'confirmPassword';
     } else if (!isEditMode && !confirmPassword) {
       newErrors.confirmPassword = 'Confirmação de senha é obrigatória';
-    }
-
-    // Role: required
-    if (!role) {
-      newErrors.role = 'Função é obrigatória';
+      if (!firstErrorField) firstErrorField = 'confirmPassword';
     }
 
     setErrors(newErrors);
+
+    // Focus on the first field with error
+    if (firstErrorField === 'role') {
+      setShowRolePicker(true);
+    } else if (firstErrorField === 'name') {
+      nameRef.current?.focus();
+    } else if (firstErrorField === 'email') {
+      emailRef.current?.focus();
+    } else if (firstErrorField === 'password') {
+      passwordRef.current?.focus();
+    } else if (firstErrorField === 'confirmPassword') {
+      confirmPasswordRef.current?.focus();
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -170,7 +205,7 @@ export function UserFormScreen() {
         if (email.trim()) updateData.email = email.trim();
         if (role) updateData.role = role as UserRole;
 
-        await updateUser(params.id, updateData);
+        await apiClient.updateUser(params.id, updateData);
       } else {
         const createData: CreateUserInput = {
           name: name.trim(),
@@ -178,7 +213,7 @@ export function UserFormScreen() {
           password,
           role: role as UserRole,
         };
-        await createUser(createData);
+        await apiClient.createUser(createData);
       }
 
       router.back();
@@ -203,7 +238,7 @@ export function UserFormScreen() {
     setApiError('');
 
     try {
-      await deleteUser(params.id);
+      await apiClient.deleteUser(params.id);
       router.back();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao excluir usuário';
@@ -239,6 +274,8 @@ export function UserFormScreen() {
     fontSize: 18,
     fontWeight: '400',
     color: '#3D2020',
+    flex: 1,
+    textAlign: 'center',
   };
 
   const contentStyle: ViewStyle = {
@@ -381,7 +418,7 @@ export function UserFormScreen() {
           >
             <RNText style={backIconStyle}>arrow_back</RNText>
           </Pressable>
-          <RNText style={titleStyle}>Editar Usuário</RNText>
+          <RNText style={titleStyle}>Usuário</RNText>
         </View>
         <View style={centeredContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -415,7 +452,7 @@ export function UserFormScreen() {
           >
             <RNText style={backIconStyle}>arrow_back</RNText>
           </Pressable>
-          <RNText style={titleStyle}>Editar Usuário</RNText>
+          <RNText style={titleStyle}>Usuário</RNText>
         </View>
         <View style={centeredContainerStyle}>
           <RNText
@@ -465,8 +502,9 @@ export function UserFormScreen() {
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
         <RNText style={titleStyle}>
-          {isEditMode ? 'Editar Usuário' : 'Novo Usuário'}
+          Usuário
         </RNText>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollContainer padding={false} style={contentStyle}>
@@ -536,6 +574,7 @@ export function UserFormScreen() {
           <RNText style={labelStyle}>Nome</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={nameRef}
               style={inputStyle}
               value={name}
               onChangeText={(text) => {
@@ -559,6 +598,7 @@ export function UserFormScreen() {
           <RNText style={labelStyle}>E-mail</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={emailRef}
               style={inputStyle}
               value={email}
               onChangeText={(text) => {
@@ -585,6 +625,7 @@ export function UserFormScreen() {
           <RNText style={labelStyle}>Senha</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={passwordRef}
               style={inputStyle}
               value={password}
               onChangeText={(text) => {
@@ -620,6 +661,7 @@ export function UserFormScreen() {
           <RNText style={labelStyle}>Confirmar Senha</RNText>
           <View style={inputContainerStyle}>
             <TextInput
+              ref={confirmPasswordRef}
               style={inputStyle}
               value={confirmPassword}
               onChangeText={(text) => {
@@ -662,14 +704,14 @@ export function UserFormScreen() {
           disabled={loading || deleting}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={isEditMode ? 'Editar Usuário' : 'Adicionar'}
+          accessibilityLabel="Salvar"
           testID="submit-user"
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <RNText style={confirmButtonTextStyle}>
-              {isEditMode ? 'Editar Usuário' : 'Adicionar'}
+              Salvar
             </RNText>
           )}
         </TouchableOpacity>
@@ -682,11 +724,11 @@ export function UserFormScreen() {
             disabled={deleting || loading}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Excluir usuário"
+            accessibilityLabel="Excluir"
             testID="delete-user"
           >
             <RNText style={deleteIconStyle}>delete</RNText>
-            <RNText style={cancelButtonTextStyle}>Excluir usuário</RNText>
+            <RNText style={cancelButtonTextStyle}>Excluir</RNText>
           </TouchableOpacity>
         )}
       </ScrollContainer>

@@ -341,7 +341,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   if (menuLoading) {
     return (
       <Screen padding={false}>
-        <Header title="Editar Itens" icon="edit" />
+        <Header title="Salvar" icon="edit" />
         <View style={centerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
           <Text size="sm" color="#8B6B5A" style={{ marginTop: 12 }}>
@@ -356,7 +356,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   if (menuError) {
     return (
       <Screen padding={false}>
-        <Header title="Editar Itens" icon="edit" />
+        <Header title="Salvar" icon="edit" />
         <View style={centerStyle}>
           <RNText style={{ ...errorTextStyle, fontSize: 14 }} testID="menu-error">
             {menuError}
@@ -369,7 +369,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Editar Itens" icon="edit" />
+      <Header title="Salvar" icon="edit" />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* Menu Items Selection */}

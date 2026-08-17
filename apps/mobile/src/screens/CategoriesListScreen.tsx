@@ -147,10 +147,12 @@ export function CategoriesListScreen() {
   };
 
   const titleStyle: TextStyle = {
+    flex: 1,
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: '400',
     color: '#3D2020',
+    textAlign: 'center',
   };
 
   const contentStyle: ViewStyle = {
@@ -386,12 +388,12 @@ export function CategoriesListScreen() {
             style={[novaCategoriaButtonStyle, { marginTop: 12 }]}
             onPress={() => router.push('/category-form')}
             accessibilityRole="button"
-            accessibilityLabel="Nova Categoria"
+            accessibilityLabel="Adicionar"
             accessibilityHint="Navega para a tela de criação de categoria"
             testID="new-category-button"
           >
             <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '400', color: '#3D2020' }}>+</RNText>
-            <RNText style={novaCategoriaTextStyle}>Nova Categoria</RNText>
+            <RNText style={novaCategoriaTextStyle}>Adicionar</RNText>
           </Pressable>
         }
       />
@@ -417,6 +419,7 @@ export function CategoriesListScreen() {
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
         <RNText style={titleStyle}>Categorias</RNText>
+        <View style={{ width: 24 }} />
       </View>
 
       {/* Content */}

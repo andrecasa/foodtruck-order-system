@@ -414,4 +414,40 @@ export const mockClient: ApiClient = {
     }
     categoriesState.splice(index, 1);
   },
+
+  // Users
+  async listUsers(filters?) {
+    const usersMock = await import('./users.mock');
+    return usersMock.listUsers(filters);
+  },
+
+  async getUserById(id: string) {
+    const usersMock = await import('./users.mock');
+    return usersMock.getUserById(id);
+  },
+
+  async createUser(data) {
+    const usersMock = await import('./users.mock');
+    return usersMock.createUser(data);
+  },
+
+  async updateUser(id: string, data) {
+    const usersMock = await import('./users.mock');
+    return usersMock.updateUser(id, data);
+  },
+
+  async toggleUserStatus(id: string, status) {
+    const usersMock = await import('./users.mock');
+    return usersMock.toggleUserStatus(id, status);
+  },
+
+  async deleteUser(id: string) {
+    const usersMock = await import('./users.mock');
+    return usersMock.deleteUser(id);
+  },
+
+  async resetPassword(id: string, password: string) {
+    const usersMock = await import('./users.mock');
+    return usersMock.resetPassword(id, password);
+  },
 };

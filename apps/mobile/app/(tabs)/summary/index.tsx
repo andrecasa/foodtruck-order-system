@@ -1,5 +1,5 @@
-import { IntermediateSummaryScreen } from '../../../src/screens/IntermediateSummaryScreen';
+import { DailySummaryScreen } from '../../../src/screens/DailySummaryScreen';
 
 export default function SummaryIndex() {
-  return <IntermediateSummaryScreen />;
+  return <DailySummaryScreen />;
 }

@@ -456,4 +456,58 @@ export const realClient: ApiClient = {
       method: 'DELETE',
     });
   },
+
+  // ─── Users ────────────────────────────────────────────────────────────────
+
+  async listUsers(filters?) {
+    const params = new URLSearchParams();
+    if (filters?.role) params.set('role', filters.role);
+    if (filters?.status) params.set('status', filters.status);
+    const query = params.toString();
+    const path = query ? `/api/users?${query}` : '/api/users';
+    const response = await authFetch(path);
+    return response.json();
+  },
+
+  async getUserById(id: string) {
+    const response = await authFetch(`/api/users/${id}`);
+    return response.json();
+  },
+
+  async createUser(data) {
+    const response = await authFetch('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async updateUser(id: string, data) {
+    const response = await authFetch(`/api/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async toggleUserStatus(id: string, status) {
+    const response = await authFetch(`/api/users/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    return response.json();
+  },
+
+  async deleteUser(id: string) {
+    await authFetch(`/api/users/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async resetPassword(id: string, password: string) {
+    await authFetch(`/api/users/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ password }),
+    });
+  },
 };

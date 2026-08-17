@@ -143,7 +143,7 @@ describe('EditOrderItemsScreen', () => {
         <EditOrderItemsScreen orderId={order.id} order={order} />,
       );
 
-      const header = await findByText('Editar Itens');
+      const header = await findByText('Salvar');
       expect(header).toBeTruthy();
     });
   });

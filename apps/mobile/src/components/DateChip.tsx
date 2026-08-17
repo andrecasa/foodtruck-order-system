@@ -45,22 +45,24 @@ export function DateChip({ day, month, year, onPress }: DateChipProps) {
 const containerStyle: ViewStyle = {
   flexDirection: 'row',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: 6,
-  paddingHorizontal: 14,
-  paddingVertical: 8,
-  borderRadius: 20,
+  paddingHorizontal: 12,
+  height: 34,
+  borderRadius: 15,
   backgroundColor: '#7B2D2D',
   alignSelf: 'flex-end',
 };
 
 const dateTextStyle: TextStyle = {
-  fontSize: 14,
+  fontSize: 13,
   fontWeight: '400',
   color: '#FFFFFF',
 };
 
 const calendarIconStyle: TextStyle = {
   fontFamily: 'Material Symbols Outlined',
-  fontSize: 16,
+  fontSize: 18,
+  fontWeight: '400',
   color: '#FFFFFF',
 };

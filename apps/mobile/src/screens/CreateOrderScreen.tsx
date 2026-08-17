@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text as RNText,
+  TextInput,
   TouchableOpacity,
   type ViewStyle,
   type TextStyle,
@@ -80,6 +81,9 @@ export function CreateOrderScreen() {
   const [itemsError, setItemsError] = useState('');
   const [apiError, setApiError] = useState('');
 
+  // Refs for focus management
+  const customerNameRef = useRef<TextInput>(null);
+
   // Load menu items when screen gains focus (e.g., after editing menu)
   useFocusEffect(
     useCallback(() => {
@@ -148,10 +152,12 @@ export function CreateOrderScreen() {
   // Validation
   const validate = (): boolean => {
     let isValid = true;
+    let firstErrorField: 'customerName' | 'items' | null = null;
 
     if (!customerName.trim()) {
       setCustomerNameError('Informe o nome do cliente');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'customerName';
     } else {
       setCustomerNameError('');
     }
@@ -160,8 +166,14 @@ export function CreateOrderScreen() {
     if (!hasItems) {
       setItemsError('Adicione ao menos um item ao pedido');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'items';
     } else {
       setItemsError('');
+    }
+
+    // Focus on the first field with error
+    if (firstErrorField === 'customerName') {
+      customerNameRef.current?.focus();
     }
 
     return isValid;
@@ -378,7 +390,7 @@ export function CreateOrderScreen() {
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Novo Pedido" icon="add_circle" />
+      <Header title="Adicionar" icon="add_circle" />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* Customer Name */}
@@ -394,6 +406,7 @@ export function CreateOrderScreen() {
           iconColor="#8B6B5A"
           error={customerNameError}
           testID="input-customer-name"
+          inputRef={customerNameRef}
         />
 
         {/* Origin Selector */}

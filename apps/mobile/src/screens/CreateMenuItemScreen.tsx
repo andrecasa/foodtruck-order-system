@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text as RNText,
+  TextInput,
   TouchableOpacity,
   Pressable,
   type ViewStyle,
   type TextStyle,
+  type TextInputProps,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
@@ -66,6 +68,10 @@ export function CreateMenuItemScreen() {
   const [category, setCategory] = useState<string>('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  // Refs for focus management
+  const nameRef = useRef<TextInput>(null);
+  const priceRef = useRef<TextInput>(null);
+
   // Categories from API
   const [categoryNames, setCategoryNames] = useState<string[]>([]);
 
@@ -100,10 +106,12 @@ export function CreateMenuItemScreen() {
   // Validation
   const validate = (): boolean => {
     let isValid = true;
+    let firstErrorField: 'category' | 'name' | 'price' | null = null;
 
     if (!category) {
       setCategoryError('Selecione uma categoria');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'category';
     } else {
       setCategoryError('');
     }
@@ -112,9 +120,11 @@ export function CreateMenuItemScreen() {
     if (!trimmedName) {
       setNameError('Informe o nome do item');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'name';
     } else if (trimmedName.length > 100) {
       setNameError('Nome deve ter no máximo 100 caracteres');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'name';
     } else {
       setNameError('');
     }
@@ -123,11 +133,22 @@ export function CreateMenuItemScreen() {
     if (centavos <= 0) {
       setPriceError('Informe um preço válido');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'price';
     } else if (centavos > 999999) {
       setPriceError('Preço máximo é R$ 9.999,99');
       isValid = false;
+      if (!firstErrorField) firstErrorField = 'price';
     } else {
       setPriceError('');
+    }
+
+    // Focus on the first field with error
+    if (firstErrorField === 'category') {
+      setShowCategoryPicker(true);
+    } else if (firstErrorField === 'name') {
+      nameRef.current?.focus();
+    } else if (firstErrorField === 'price') {
+      priceRef.current?.focus();
     }
 
     return isValid;
@@ -273,24 +294,7 @@ export function CreateMenuItemScreen() {
     color: '#8B6B5A',
   };
 
-  // Cancel button: height 44, borderRadius 22, bg white, border 1px #E8DDD5
-  const cancelButtonStyle: ViewStyle = {
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8DDD5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
 
-  // Cancel button text: Inter 14px weight 400, color #3D2020
-  const cancelButtonTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
 
   // Error text: Inter 12px weight 400, color error
   const errorTextStyle: TextStyle = {
@@ -340,7 +344,7 @@ export function CreateMenuItemScreen() {
           >
             <RNText style={backIconStyle}>arrow_back</RNText>
           </Pressable>
-          <RNText style={titleStyle}>Novo Item</RNText>
+          <RNText style={titleStyle}>Cardápio</RNText>
           <View style={{ width: 24 }} />
         </View>
         <View
@@ -391,7 +395,7 @@ export function CreateMenuItemScreen() {
         >
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
-        <RNText style={titleStyle}>Novo Item</RNText>
+        <RNText style={titleStyle}>Cardápio</RNText>
         <View style={{ width: 24 }} />
       </View>
 
@@ -454,6 +458,7 @@ export function CreateMenuItemScreen() {
             />
             {/* Using a TextInput inline to keep Penpot styling exact */}
             <InputInline
+              ref={nameRef}
               value={name}
               onChangeText={(text) => {
                 setName(text.slice(0, 100));
@@ -476,6 +481,7 @@ export function CreateMenuItemScreen() {
           <View style={priceError ? inputContainerErrorStyle : inputContainerStyle}>
             <RNText style={prefixStyle}>R$</RNText>
             <InputInline
+              ref={priceRef}
               value={price ? price.replace('R$ ', '') : ''}
               onChangeText={handlePriceChange}
               placeholder="0,00"
@@ -496,7 +502,7 @@ export function CreateMenuItemScreen() {
 
         {/* Confirm Button */}
         <Button
-          title="Adicionar"
+          title="Salvar"
           variant="primary"
           size="lg"
           fullWidth
@@ -505,26 +511,12 @@ export function CreateMenuItemScreen() {
           disabled={loading}
           testID="submit-menu-item"
         />
-
-        {/* Cancel Button */}
-        <TouchableOpacity
-          style={cancelButtonStyle}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Cancelar"
-          testID="cancel-menu-item"
-        >
-          <RNText style={cancelButtonTextStyle}>Cancelar</RNText>
-        </TouchableOpacity>
       </ScrollContainer>
     </Screen>
   );
 }
 
 // ─── InputInline ──────────────────────────────────────────────────────────────
-
-import { TextInput, type TextInputProps } from 'react-native';
 
 interface InputInlineProps {
   value: string;
@@ -541,32 +533,31 @@ interface InputInlineProps {
  * - Inter 14px weight 400, color #3D2020
  * - Placeholder color rgba(139,107,90,0.6)
  */
-function InputInline({
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType = 'default',
-  testID,
-  accessibilityLabel,
-}: InputInlineProps) {
-  return (
-    <TextInput
-      style={{
-        flex: 1,
-        fontFamily: 'Inter',
-        fontSize: 14,
-        fontWeight: '400',
-        color: '#3D2020',
-        paddingVertical: 0,
-        height: 52,
-      }}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor="rgba(139, 107, 90, 0.6)"
-      keyboardType={keyboardType}
-      testID={testID}
-      accessibilityLabel={accessibilityLabel}
-    />
-  );
-}
+const InputInline = React.forwardRef<TextInput, InputInlineProps>(
+  function InputInline(
+    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel },
+    ref,
+  ) {
+    return (
+      <TextInput
+        ref={ref}
+        style={{
+          flex: 1,
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: '400',
+          color: '#3D2020',
+          paddingVertical: 0,
+          height: 52,
+        }}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="rgba(139, 107, 90, 0.6)"
+        keyboardType={keyboardType}
+        testID={testID}
+        accessibilityLabel={accessibilityLabel}
+      />
+    );
+  },
+);

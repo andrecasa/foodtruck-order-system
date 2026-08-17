@@ -306,7 +306,7 @@ export function OrderQueueScreen() {
           </Pressable>
 
           {/* Line 6: CTA Button (separate from tappable area) */}
-          {showButton && (
+          {showButton ? (
             <TouchableOpacity
               onPress={() => handleAdvanceStatus(order)}
               disabled={isAdvancing}
@@ -334,6 +334,23 @@ export function OrderQueueScreen() {
                 </>
               )}
             </TouchableOpacity>
+          ) : (
+            <View
+              style={{
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: theme.colors.divider,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                opacity: 0.6,
+              }}
+              accessibilityLabel="Entregue"
+            >
+              <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16, color: theme.colors.textSecondary }}>check_circle</RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 13, color: theme.colors.textSecondary }}>Entregue</RNText>
+            </View>
           )}
         </View>
       </View>

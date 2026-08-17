@@ -17,6 +17,8 @@ import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
 import { formatPrice, getPortugueseMonthName } from '../utils/format';
+import { SubCard } from '../components/SubCard';
+import { PaymentRow } from '../components/PaymentRow';
 
 /**
  * Resumo do Mês — Monthly accumulated summary screen.
@@ -129,28 +131,27 @@ export function MonthlySummaryScreen() {
   const errorContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
 
   const monthSelectorStyle: ViewStyle = {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 17,
-    height: 34,
-    width: 175,
+    backgroundColor: theme.colors.primary + '1F',
+    borderRadius: 22,
+    height: 44,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-end',
-    paddingHorizontal: 12,
-    gap: 4,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
   };
 
   const arrowStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
-    fontSize: 22,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 20,
+    color: theme.colors.primary,
   };
 
   const monthLabelStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 13,
-    fontWeight: '400',
-    color: theme.colors.surface,
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.primary,
     flex: 1,
     textAlign: 'center',
   };
@@ -158,8 +159,9 @@ export function MonthlySummaryScreen() {
   const calendarIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 18,
-    color: 'rgba(255,255,255,0.7)',
+    color: theme.colors.primary,
     marginLeft: 4,
+
   };
 
   const sectionTitleStyle: TextStyle = {
@@ -305,73 +307,5 @@ export function MonthlySummaryScreen() {
         </View>
       </ScrollView>
     </Screen>
-  );
-}
-
-// ─── Sub-components ─────────────────────────────────────────────────────────
-
-interface SubCardProps {
-  icon: string;
-  color: string;
-  backgroundColor: string;
-  value: string;
-  label: string;
-  labelColor: string;
-}
-
-function SubCard({ icon, color, backgroundColor, value, label, labelColor }: SubCardProps) {
-  const subCardStyle: ViewStyle = {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    height: 60,
-    backgroundColor,
-    gap: 8,
-  };
-
-  const iconWrapStyle: ViewStyle = {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: color + '1F',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  return (
-    <View style={subCardStyle} accessibilityLabel={`${label}: ${value}`}>
-      <View style={iconWrapStyle}>
-        <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18, color }}>
-          {icon}
-        </RNText>
-      </View>
-      <View style={{ flex: 1 }}>
-        <RNText style={{ fontSize: 15, fontWeight: '600', color }} numberOfLines={1}>{value}</RNText>
-        <RNText style={{ fontSize: 10, fontWeight: '400', color: labelColor }}>{label}</RNText>
-      </View>
-    </View>
-  );
-}
-
-interface PaymentRowProps {
-  icon: string;
-  iconColor: string;
-  label: string;
-  value: string;
-  textColor: string;
-}
-
-function PaymentRow({ icon, iconColor, label, value, textColor }: PaymentRowProps) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', height: 44, gap: 12 }}>
-      <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: iconColor + '1F', alignItems: 'center', justifyContent: 'center' }}>
-        <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16, color: iconColor }}>{icon}</RNText>
-      </View>
-      <RNText style={{ flex: 1, fontSize: 14, fontWeight: '400', color: textColor }}>{label}</RNText>
-      <RNText style={{ fontSize: 14, fontWeight: '600', color: textColor }}>{value}</RNText>
-    </View>
   );
 }

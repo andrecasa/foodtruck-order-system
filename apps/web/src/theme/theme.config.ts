@@ -15,7 +15,7 @@ import type { ThemeConfig } from '@order-system/shared';
  */
 export const defaultTheme: ThemeConfig = {
   businessName: 'Pastel das Meninas',
-  logo: '',
+  logo: '/assets/logo.png',
   colors: {
     // Burgundy/maroon primary — brand identity
     primary: '#7B2D2D',

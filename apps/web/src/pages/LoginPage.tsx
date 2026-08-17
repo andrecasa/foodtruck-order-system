@@ -144,7 +144,16 @@ export function LoginPage() {
       <div style={formContainerStyle}>
         <form onSubmit={handleSubmit} style={formStyle}>
           <div style={headerStyle}>
-            <span style={iconStyle}>restaurant</span>
+            {/* Logo */}
+            {theme.logo ? (
+              <img
+                src={theme.logo}
+                alt={theme.businessName}
+                style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'contain' }}
+              />
+            ) : (
+              <span style={iconStyle}>restaurant</span>
+            )}
             <h2 style={{
               fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
               fontSize: '28px',

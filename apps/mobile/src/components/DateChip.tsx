@@ -10,18 +10,13 @@ export interface DateChipProps {
 }
 
 /**
- * DateChip — Touchable pill-shaped date button positioned at the top-right.
+ * DateChip — Full-width pill date selector.
  *
- * Displays the currently selected date formatted as "DD/MM/YYYY" with a
- * chevron-down icon. Dark red pill background with white text.
- * Opens the CalendarModal on press.
- *
- * Pixel-perfect specs (from design):
- * - Pill container: bg #7B2D2D, borderRadius 20, paddingHorizontal 14, paddingVertical 8
- * - alignSelf: flex-end (right-aligned)
- * - flexDirection row, alignItems center, gap 6
- * - Date text: 14px, weight 400, color #FFFFFF, format "DD/MM/YYYY"
- * - Calendar icon: white, 16px
+ * Penpot specs (source of truth - "Resumo Financeiro"):
+ * - Container: bg primary@12%, borderRadius 22, height 44, full width
+ * - flexDirection row, alignItems center, justifyContent center, gap 6
+ * - Icon: Material Symbols "calendar_today" 18px, color primary
+ * - Text: 14px weight 500, color primary, format "DD/MM/YYYY"
  */
 export function DateChip({ day, month, year, onPress }: DateChipProps) {
   const theme = useTheme();
@@ -32,24 +27,24 @@ export function DateChip({ day, month, year, onPress }: DateChipProps) {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    height: 34,
-    borderRadius: 15,
-    backgroundColor: theme.colors.primary,
-    alignSelf: 'flex-end',
+    width: '100%',
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primary + '1F', // 12% opacity
   };
 
   const dateTextStyle: TextStyle = {
-    fontSize: 13,
-    fontWeight: '400',
-    color: theme.colors.surface,
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.primary,
   };
 
   const calendarIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 18,
     fontWeight: '400',
-    color: theme.colors.surface,
+    color: theme.colors.primary,
   };
 
   return (
@@ -61,10 +56,10 @@ export function DateChip({ day, month, year, onPress }: DateChipProps) {
       accessibilityLabel={`Data selecionada: ${dateText}. Toque para abrir calendário`}
       testID="date-chip"
     >
-      <Text style={dateTextStyle}>{dateText}</Text>
       <Text style={calendarIconStyle} accessibilityElementsHidden importantForAccessibility="no">
         calendar_today
       </Text>
+      <Text style={dateTextStyle}>{dateText}</Text>
     </TouchableOpacity>
   );
 }

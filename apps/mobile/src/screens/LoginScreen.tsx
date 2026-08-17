@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text as RNText, TextInput, type ViewStyle, type TextStyle } from 'react-native';
+import { View, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
@@ -145,9 +145,18 @@ export function LoginScreen() {
       <View style={containerStyle}>
         {/* Header with logo, title, subtitle */}
         <View style={headerStyle}>
+          {/* Logo image from assets */}
+          <Image
+            source={require('../../assets/logo.png')}
+            style={{ width: 80, height: 80, borderRadius: 12 } as ImageStyle}
+            accessibilityLabel={`Logo ${theme.businessName}`}
+            resizeMode="contain"
+          />
+          {/* Fallback icon (commented — kept for reference)
           <RNText style={logoTextStyle} accessibilityLabel="Logo restaurante">
             restaurant
           </RNText>
+          */}
           <RNText style={titleStyle}>
             {theme.businessName}
           </RNText>

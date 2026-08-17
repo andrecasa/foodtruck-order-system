@@ -323,12 +323,13 @@ export function OrderQueueScreen() {
                 {formatCurrency(order.totalAmount)}
               </RNText>
 
-              {/* Action Button (Penpot: sm, centered in card, pill shape) */}
+              {/* Action Button (Penpot: sm, full width in card, pill shape) */}
               {showButton && (
                 <Button
                   title={ADVANCE_LABEL[order.status]}
                   variant="primary"
                   size="sm"
+                  fullWidth
                   color={getButtonColor()}
                   onPress={() => handleAdvanceStatus(order)}
                   loading={isAdvancing}

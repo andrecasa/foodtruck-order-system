@@ -106,8 +106,8 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
   const menuItems: DrawerMenuItem[] = [
     { icon: 'receipt_long', label: 'Pedidos', route: '/(tabs)' },
     { icon: 'add_circle', label: 'Novo Pedido', route: '/(tabs)/new-order' },
-    { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
     { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
+    { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
     ...(user?.role === 'admin'
       ? [
           { icon: 'folder_open', label: 'Categorias', route: '/categories-list' },
@@ -266,7 +266,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
               <RNText style={closeIconStyle}>close</RNText>
             </Pressable>
             <RNText style={headerTitleStyle}>Menu</RNText>
-            <RNText style={spacerStyle}>close</RNText>
+            <View style={{ width: 24 }} />
           </View>
 
           {/* Menu Items */}

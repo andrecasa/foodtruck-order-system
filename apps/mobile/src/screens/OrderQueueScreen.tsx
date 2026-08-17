@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
@@ -17,6 +17,7 @@ import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
 import { useNetworkError } from '../hooks/useNetworkError';
 import { useAuth } from '../hooks/useAuth';
+import { formatPrice } from '../utils/format';
 
 /** Map current status to the next status in the workflow */
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -78,6 +79,7 @@ export function OrderQueueScreen() {
   const [loading, setLoading] = useState(true);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
+  const userToggledFilters = useRef(false);
   const { error: networkError, dismiss: dismissError, withRetry } = useNetworkError();
 
   /** Filter chip options — colors and icons match Penpot status palette */
@@ -94,6 +96,19 @@ export function OrderQueueScreen() {
       const data = await apiClient.getOrders({
         status: selectedFilters as OrderStatus[],
       });
+
+      // If no results but entregue filter is off, check if there are entregue orders
+      // Only do this auto-fallback if the user hasn't manually toggled filters
+      if (data.length === 0 && !selectedFilters.includes('entregue') && !userToggledFilters.current) {
+        const allData = await apiClient.getOrders({
+          status: [...selectedFilters, 'entregue'] as OrderStatus[],
+        });
+        if (allData.length > 0 && allData.every(o => o.status === 'entregue')) {
+          setOrders(allData);
+          setSelectedFilters(prev => [...prev, 'entregue']);
+          return;
+        }
+      }
 
       // Sort delivered orders by deliveredAt descending
       if (selectedFilters.includes('entregue') && selectedFilters.length === 1) {
@@ -157,9 +172,7 @@ export function OrderQueueScreen() {
     router.push({ pathname: '/(tabs)/payment', params: { orderId: order.id } });
   };
 
-  const formatCurrency = (cents: number): string => {
-    return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
-  };
+
 
   // Styles using theme tokens
   const loadingContainerStyle: ViewStyle = {
@@ -272,12 +285,17 @@ export function OrderQueueScreen() {
 
             {/* Line 3: Items */}
             <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text }}>
-              {order.items.map(item => `${item.quantity}x ${item.name}`).join(' • ')}
+              {order.items.map(item => {
+                const subtotal = item.quantity * item.unitPrice;
+                return item.quantity >= 1
+                  ? `${item.quantity}x ${item.name} (${formatPrice(subtotal)})`
+                  : `${item.quantity}x ${item.name}`;
+              }).join('\n')}
             </RNText>
 
             {/* Line 4: Price */}
             <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '600', color: theme.colors.text }}>
-              {formatCurrency(order.totalAmount)}
+              {formatPrice(order.totalAmount)}
             </RNText>
 
             {/* Line 5: Time */}
@@ -325,7 +343,7 @@ export function OrderQueueScreen() {
   if (loading) {
     return (
       <Screen>
-        <Header title="Fila de Pedidos" icon="receipt_long" />
+        <Header title="Pedidos" icon="receipt_long" />
         <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
         <View style={loadingContainerStyle} accessibilityLabel="Carregando pedidos">
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -340,19 +358,60 @@ export function OrderQueueScreen() {
   if (orders.length === 0 && !loading) {
     return (
       <Screen padding={false}>
-        <Header title="Fila de Pedidos" icon="receipt_long" />
+        <Header title="Pedidos" icon="receipt_long" />
         <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
         <ScrollContainer style={contentGapStyle}>
           <FilterChips
             options={filterOptions}
             selected={selectedFilters}
-            onSelectionChange={setSelectedFilters}
+            onSelectionChange={(filters) => { userToggledFilters.current = true; setSelectedFilters(filters); }}
             testID="status-filter"
           />
           <View style={emptyContainerStyle}>
-            <Text size="lg" align="center">
-              Nenhum pedido na fila no momento.
-            </Text>
+            {/* Illustrated empty state */}
+            <View style={{ alignItems: 'center', gap: 12 }}>
+              <View style={{
+                width: 120,
+                height: 150,
+                borderRadius: 12,
+                backgroundColor: theme.colors.aguardando + '14',
+                borderWidth: 1.5,
+                borderColor: theme.colors.aguardando + '4D',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <View style={{
+                  width: 100,
+                  height: 130,
+                  borderRadius: 8,
+                  backgroundColor: theme.colors.surface,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 12,
+                }}>
+                  <View style={{ width: 60, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textSecondary, opacity: 0.2 }} />
+                  <View style={{ width: 50, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textSecondary, opacity: 0.15 }} />
+                  <View style={{ width: 35, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textSecondary, opacity: 0.1 }} />
+                </View>
+              </View>
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: theme.colors.aguardando + '1F',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: -30,
+              }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.aguardando, opacity: 0.6 }}>receipt_long</RNText>
+              </View>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary, opacity: 0.8 }}>
+                Nenhum pedido na fila
+              </RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: theme.colors.textSecondary, opacity: 0.5 }}>
+                Os novos pedidos aparecerão aqui
+              </RNText>
+            </View>
           </View>
         </ScrollContainer>
       </Screen>
@@ -361,14 +420,14 @@ export function OrderQueueScreen() {
 
   return (
     <Screen padding={false}>
-      <Header title="Fila de Pedidos" icon="receipt_long" />
+      <Header title="Pedidos" icon="receipt_long" />
       <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
       <ScrollContainer style={contentGapStyle}>
         {/* Status Filter (Penpot: row of tinted chips, gap 8px) */}
         <FilterChips
           options={filterOptions}
           selected={selectedFilters}
-          onSelectionChange={setSelectedFilters}
+          onSelectionChange={(filters) => { userToggledFilters.current = true; setSelectedFilters(filters); }}
           testID="status-filter"
         />
 

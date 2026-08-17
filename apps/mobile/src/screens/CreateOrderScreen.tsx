@@ -15,17 +15,10 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
+import { formatPrice } from '../utils/format';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;
-
-/**
- * Formats a value in centavos to BRL currency string (R$ X,XX).
- */
-function formatCurrency(centavos: number): string {
-  const reais = centavos / 100;
-  return `R$ ${reais.toFixed(2).replace('.', ',')}`;
-}
 
 /**
  * Groups menu items by category.
@@ -388,7 +381,7 @@ export function CreateOrderScreen() {
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Adicionar" icon="add_circle" />
+      <Header title="Pedido" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* Customer Name */}
@@ -458,7 +451,7 @@ export function CreateOrderScreen() {
                     <View key={item.id} style={menuItemRowStyle}>
                       <View style={menuItemInfoStyle}>
                         <RNText style={itemNameStyle}>{item.name}</RNText>
-                        <RNText style={itemPriceStyle}>{formatCurrency(item.price)}</RNText>
+                        <RNText style={itemPriceStyle}>{formatPrice(item.price)}</RNText>
                       </View>
                       <View style={stepperContainerStyle}>
                         <TouchableOpacity
@@ -498,7 +491,7 @@ export function CreateOrderScreen() {
         {/* Total */}
         <View style={totalContainerStyle}>
           <RNText style={totalLabelStyle}>Total</RNText>
-          <RNText style={totalAmountStyle}>{formatCurrency(total)}</RNText>
+          <RNText style={totalAmountStyle}>{formatPrice(total)}</RNText>
         </View>
 
         {/* Submit Button */}

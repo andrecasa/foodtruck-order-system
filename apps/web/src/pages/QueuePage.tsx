@@ -171,9 +171,11 @@ export function QueuePage() {
   const { logout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [isStale, setIsStale] = useState(false);
+  const userToggledFilters = useRef(false);
 
   // ─── Theme-derived values ─────────────────────────────────────────────────
 
@@ -196,10 +198,25 @@ export function QueuePage() {
   const fetchOrders = useCallback(async () => {
     try {
       const fetched = await apiClient.getOrders({ status: selectedFilters as OrderStatus[] });
+      
+      // If no results but entregue filter is off, check if there are entregue orders
+      // Only do this auto-fallback if the user hasn't manually toggled filters
+      if (fetched.length === 0 && !selectedFilters.includes('entregue') && !userToggledFilters.current) {
+        const allOrders = await apiClient.getOrders({ status: [...selectedFilters, 'entregue'] as OrderStatus[] });
+        if (allOrders.length > 0 && allOrders.every(o => o.status === 'entregue')) {
+          setOrders(allOrders);
+          setSelectedFilters(prev => [...prev, 'entregue']);
+          setError(null);
+          setIsStale(false);
+          return;
+        }
+      }
+      
       setOrders(fetched);
+      setError(null);
       setIsStale(false);
-    } catch {
-      // ignore
+    } catch (err) {
+      setError('Não foi possível carregar os pedidos. Verifique sua conexão.');
     } finally {
       setLoading(false);
     }
@@ -516,19 +533,165 @@ export function QueuePage() {
       <ScrollContainer padding={false}>
         {loading ? (
           <div style={loadingStyle}>Carregando pedidos...</div>
+        ) : error ? (
+          <div style={contentStyle}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '16px',
+              minHeight: '50vh',
+              textAlign: 'center',
+            }}>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '48px', color: theme.colors.error }}
+              >
+                cloud_off
+              </span>
+              <p style={{
+                fontFamily,
+                fontSize: `${theme.typography.sizes.lg}px`,
+                fontWeight: theme.typography.weights.medium,
+                color: theme.colors.text,
+                margin: 0,
+              }}>
+                {error}
+              </p>
+              <button
+                type="button"
+                onClick={() => fetchOrders()}
+                style={{
+                  fontFamily,
+                  fontSize: `${theme.typography.sizes.md}px`,
+                  fontWeight: theme.typography.weights.regular,
+                  color: theme.colors.surface,
+                  backgroundColor: theme.colors.primary,
+                  border: 'none',
+                  borderRadius: '18px',
+                  height: '36px',
+                  padding: '0 20px',
+                  cursor: 'pointer',
+                }}
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </div>
         ) : (
           <div style={contentStyle}>
             <FilterChips
               options={filterOptions}
               selected={selectedFilters}
-              onSelectionChange={setSelectedFilters}
+              onSelectionChange={(filters) => {
+                userToggledFilters.current = true;
+                setSelectedFilters(filters);
+              }}
             />
             {isStale && (
               <p style={staleNoteStyle}>Dados podem estar desatualizados</p>
             )}
             {orders.length === 0 ? (
-              <div style={emptyStyle}>
-                <Text size="lg">Nenhum pedido na fila</Text>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '50vh',
+                gap: '12px',
+                width: '100%',
+              }}>
+                {/* Illustrated empty state matching Penpot */}
+                <div style={{
+                  position: 'relative',
+                  width: '200px',
+                  height: '200px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {/* Decorative dots */}
+                  <div style={{ position: 'absolute', top: '20px', left: '10px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: theme.colors.preparando, opacity: 0.3 }} />
+                  <div style={{ position: 'absolute', top: '80px', left: '0px', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: theme.colors.pronto, opacity: 0.25 }} />
+                  <div style={{ position: 'absolute', top: '15px', right: '10px', width: '7px', height: '7px', borderRadius: '50%', backgroundColor: theme.colors.aguardando, opacity: 0.35 }} />
+                  <div style={{ position: 'absolute', top: '90px', right: '0px', width: '5px', height: '5px', borderRadius: '50%', backgroundColor: theme.colors.primary, opacity: 0.2 }} />
+                  <div style={{ position: 'absolute', bottom: '20px', left: '20px', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: theme.colors.preparando, opacity: 0.2 }} />
+                  <div style={{ position: 'absolute', bottom: '30px', right: '15px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: theme.colors.pronto, opacity: 0.2 }} />
+
+                  {/* Receipt card */}
+                  <div style={{
+                    width: '120px',
+                    height: '150px',
+                    borderRadius: '12px',
+                    backgroundColor: `${theme.colors.aguardando}14`,
+                    border: `1.5px solid ${theme.colors.aguardando}4D`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <div style={{
+                      width: '100px',
+                      height: '130px',
+                      borderRadius: '8px',
+                      backgroundColor: theme.colors.surface,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      padding: '16px',
+                    }}>
+                      {/* Lines */}
+                      <div style={{ width: '60px', height: '5px', borderRadius: '2.5px', backgroundColor: theme.colors.textSecondary, opacity: 0.2 }} />
+                      <div style={{ width: '50px', height: '5px', borderRadius: '2.5px', backgroundColor: theme.colors.textSecondary, opacity: 0.15 }} />
+                      <div style={{ width: '35px', height: '5px', borderRadius: '2.5px', backgroundColor: theme.colors.textSecondary, opacity: 0.1 }} />
+                    </div>
+                  </div>
+
+                  {/* Icon circle */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    backgroundColor: `${theme.colors.aguardando}1F`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <span className="material-symbols-outlined" style={{
+                      fontSize: '24px',
+                      color: theme.colors.aguardando,
+                      opacity: 0.6,
+                    }}>receipt_long</span>
+                  </div>
+                </div>
+
+                {/* Text */}
+                <p style={{
+                  fontFamily,
+                  fontSize: '13px',
+                  fontWeight: theme.typography.weights.medium,
+                  color: theme.colors.textSecondary,
+                  opacity: 0.8,
+                  margin: 0,
+                }}>
+                  Nenhum pedido na fila
+                </p>
+                <p style={{
+                  fontFamily,
+                  fontSize: '11px',
+                  fontWeight: theme.typography.weights.regular,
+                  color: theme.colors.textSecondary,
+                  opacity: 0.5,
+                  margin: 0,
+                }}>
+                  Os novos pedidos aparecerão aqui
+                </p>
               </div>
             ) : (
               <div style={gridStyle}>

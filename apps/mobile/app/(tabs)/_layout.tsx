@@ -73,17 +73,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu"
-        options={{
-          title: 'Cardápio',
-          tabBarIcon: ({ color }) => <TabIcon name="restaurant_menu" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="summary"
         options={{
           title: 'Resumo',
           tabBarIcon: ({ color }) => <TabIcon name="monitoring" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="menu"
+        options={{
+          title: 'Cardápio',
+          tabBarIcon: ({ color }) => <TabIcon name="restaurant_menu" color={color} />,
         }}
       />
       <Tabs.Screen

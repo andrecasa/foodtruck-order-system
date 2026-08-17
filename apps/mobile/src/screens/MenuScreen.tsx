@@ -14,6 +14,7 @@ import { ToggleSwitch } from '../components/ToggleSwitch';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
+import { formatPrice } from '../utils/format';
 
 /** Groups menu items by category, sorting categories and items alphabetically */
 function groupByCategory(items: MenuItem[]): Record<string, MenuItem[]> {
@@ -34,10 +35,7 @@ function groupByCategory(items: MenuItem[]): Record<string, MenuItem[]> {
   return groups;
 }
 
-/** Formats price in centavos to R$ X,XX */
-function formatPrice(priceInCentavos: number): string {
-  return `R$ ${(priceInCentavos / 100).toFixed(2).replace('.', ',')}`;
-}
+
 
 /**
  * Cardápio (Menu) Screen — pixel-perfect match to Penpot design.
@@ -212,7 +210,7 @@ export function MenuScreen() {
   if (loading) {
     return (
       <Screen padding={false}>
-        <Header title="Cardápio" icon="restaurant_menu" />
+        <Header title="Cardápio" onBack={() => router.back()} />
         <View style={loadingContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text size="md" style={{ marginTop: 8 }}>
@@ -226,7 +224,7 @@ export function MenuScreen() {
   if (error) {
     return (
       <Screen padding={false}>
-        <Header title="Cardápio" icon="restaurant_menu" />
+        <Header title="Cardápio" onBack={() => router.back()} />
         <View style={errorContainerStyle}>
           <Text size="lg" color={theme.colors.error}>
             {error}
@@ -246,7 +244,7 @@ export function MenuScreen() {
 
   return (
     <Screen padding={false}>
-      <Header title="Cardápio" icon="restaurant_menu" />
+      <Header title="Cardápio" onBack={() => router.back()} />
       <View style={containerStyle}>
         <ScrollContainer>
           {sortedCategories.map((category) => (

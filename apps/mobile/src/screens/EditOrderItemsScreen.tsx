@@ -248,8 +248,6 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     padding: 10,
     paddingHorizontal: 14,
     gap: 10,
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.04)',
-    elevation: 1,
     borderWidth: 0,
   };
 
@@ -373,7 +371,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   if (menuLoading) {
     return (
       <Screen padding={false}>
-        <Header title="Salvar" onBack={() => router.back()} />
+        <Header title="Pedido" onBack={() => router.back()} />
         <View style={centerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
           <Text size="sm" color={theme.colors.textSecondary} style={{ marginTop: 12 }}>
@@ -388,7 +386,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   if (menuError) {
     return (
       <Screen padding={false}>
-        <Header title="Salvar" onBack={() => router.back()} />
+        <Header title="Pedido" onBack={() => router.back()} />
         <View style={centerStyle}>
           <RNText style={{ ...errorTextStyle, fontSize: 14 }} testID="menu-error">
             {menuError}
@@ -401,7 +399,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Salvar" onBack={() => router.back()} />
+      <Header title="Pedido" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* Customer Name */}

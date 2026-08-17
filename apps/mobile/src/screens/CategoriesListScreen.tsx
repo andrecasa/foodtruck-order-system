@@ -136,8 +136,6 @@ export function CategoriesListScreen() {
     paddingHorizontal: 16,
     gap: 12,
     alignItems: 'center',
-    boxShadow: '0px 1px 3px 0px rgba(0, 0, 0, 0.06)',
-    elevation: 2,
   };
 
   const backIconStyle: TextStyle = {

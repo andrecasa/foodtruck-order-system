@@ -46,11 +46,6 @@ export function ToggleSwitch({
     backgroundColor: theme.colors.surface,
     alignSelf: value ? 'flex-end' : 'flex-start',
     // Shadow
-    elevation: 2,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   };
 
   return (

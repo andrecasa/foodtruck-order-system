@@ -27,6 +27,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
   preparador: 'Preparador',
 };
 
+const ROLE_ICONS: Record<UserRole, string> = {
+  admin: 'admin_panel_settings',
+  atendente: 'headset_mic',
+  preparador: 'restaurant',
+};
+
 /**
  * Gestão de Usuários — Users List Screen
  *
@@ -48,9 +54,9 @@ export function UsersListScreen() {
   // ─── Color constants (theme-based) ──────────────────────────────────────────
 
   const FILTER_OPTIONS: FilterChipOption[] = [
-    { key: 'admin', label: 'Admin', color: theme.colors.primary },
-    { key: 'atendente', label: 'Atendente', color: theme.colors.preparando },
-    { key: 'preparador', label: 'Preparador', color: theme.colors.success },
+    { key: 'admin', label: 'Admin', color: theme.colors.primary, icon: 'admin_panel_settings' },
+    { key: 'atendente', label: 'Atendente', color: theme.colors.preparando, icon: 'headset_mic' },
+    { key: 'preparador', label: 'Preparador', color: theme.colors.success, icon: 'restaurant' },
   ];
 
   const ROLE_BADGE_COLORS: Record<UserRole, string> = {
@@ -182,11 +188,14 @@ export function UsersListScreen() {
     flex: 1,
   };
 
-  // Role badge: height 15, borderRadius 10, paddingHorizontal 8, solid color bg, white text
+  // Role badge: height 18, borderRadius 9, icon + label
   const roleBadgeBaseStyle: ViewStyle = {
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    height: 15,
+    borderRadius: 9,
+    paddingHorizontal: 6,
+    paddingRight: 8,
+    height: 18,
+    flexDirection: 'row',
+    gap: 4,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -278,7 +287,10 @@ export function UsersListScreen() {
               { backgroundColor: ROLE_BADGE_BG_COLORS[item.role] },
             ]}
           >
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 8, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
+            <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 11, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
+              {ROLE_ICONS[item.role]}
+            </RNText>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 9, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
               {ROLE_LABELS[item.role]}
             </RNText>
           </View>

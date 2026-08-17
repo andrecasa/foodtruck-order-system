@@ -44,8 +44,6 @@ export function BottomNav() {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    boxShadow: '0px -1px 3px rgba(0, 0, 0, 0.06)',
-    elevation: 2,
   };
 
   return (

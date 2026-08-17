@@ -30,8 +30,6 @@ export function Toast({ message, visible, onDismiss, type = 'error' }: ToastProp
     alignItems: 'center',
     justifyContent: 'space-between',
     zIndex: 9999,
-    elevation: 10,
-    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
   };
 
   const textStyle: TextStyle = {

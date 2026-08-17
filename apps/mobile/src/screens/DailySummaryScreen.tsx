@@ -27,7 +27,7 @@ import { formatPrice } from '../utils/format';
  * - DateChip for day selection (opens CalendarModal)
  * - "Resumo do Dia" section with 4 sub-cards (Pedidos, Faturamento, Recebido, Pendente)
  * - "Formas de Pagamento" section with icon rows
- * - "Acumulado do Mês" button -> navigates to MonthlySummaryScreen
+ * - "Resumo do Mês" button -> navigates to MonthlySummaryScreen
  */
 export function DailySummaryScreen() {
   const theme = useTheme();
@@ -223,9 +223,6 @@ export function DailySummaryScreen() {
         {/* Date Chip */}
         <DateChip day={day} month={month} year={year} onPress={() => setCalendarModalVisible(true)} />
 
-        {/* Section: Resumo do Dia */}
-        <RNText style={sectionTitleStyle}>Resumo do Dia</RNText>
-
         {/* Sub-cards grid 2x2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>
@@ -247,15 +244,15 @@ export function DailySummaryScreen() {
           <PaymentRow icon="payments" iconColor={theme.colors.primary} label="Dinheiro" value={formatPrice(summary?.byPaymentMethod.dinheiro ?? 0)} textColor={theme.colors.primary} />
         </View>
 
-        {/* CTA: Acumulado do Mês */}
+        {/* CTA: Resumo do Mês */}
         <TouchableOpacity
           style={ctaButtonStyle}
           onPress={() => router.push('/summary/monthly')}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Acumulado do Mês"
+          accessibilityLabel="Resumo do Mês"
         >
-          <RNText style={ctaTextStyle}>Acumulado do Mês</RNText>
+          <RNText style={ctaTextStyle}>Resumo do Mês</RNText>
         </TouchableOpacity>
       </ScrollView>
 

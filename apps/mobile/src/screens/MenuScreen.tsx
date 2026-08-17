@@ -120,10 +120,10 @@ export function MenuScreen() {
     marginBottom: 8,
   };
 
-  // Category title: 16px, weight 400, color text
+  // Category title: 14px, weight 400, color text
   const categoryTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
     color: theme.colors.text,
   };

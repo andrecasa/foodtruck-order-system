@@ -51,8 +51,6 @@ export default function TabsLayout() {
           height: 56 + insets.bottom,
           paddingBottom: insets.bottom,
           borderTopWidth: 0,
-          elevation: 0,
-          boxShadow: '0px -1px 3px rgba(0, 0, 0, 0.06)',
         },
         tabBarLabelStyle: {
           fontFamily: theme.typography.fontFamily,

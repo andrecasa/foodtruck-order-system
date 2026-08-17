@@ -79,8 +79,6 @@ export function Modal({
     width: '100%',
     maxWidth: 400,
     gap: 16,
-    elevation: 5,
-    boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.15)',
   };
 
   const titleStyle: TextStyle = {

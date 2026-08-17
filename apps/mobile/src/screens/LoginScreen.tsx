@@ -126,8 +126,6 @@ export function LoginScreen() {
     borderRadius: 16,
     padding: 24,
     gap: 16,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
-    elevation: 2,
   };
 
   const errorContainerStyle: ViewStyle = {

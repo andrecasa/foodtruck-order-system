@@ -184,7 +184,7 @@ export function CalendarModal({
       >
         {/* Drag Handle */}
         <View {...panResponder.panHandlers} style={handleAreaStyle}>
-          <View style={handleStyle} />
+          <View style={handleStyle(theme.colors.primary)} />
         </View>
 
         {/* Month Selector */}
@@ -253,12 +253,12 @@ const handleAreaStyle: ViewStyle = {
   paddingBottom: 4,
 };
 
-const handleStyle: ViewStyle = {
+const handleStyle = (primaryColor: string): ViewStyle => ({
   width: 40,
   height: 4,
   borderRadius: 2,
-  backgroundColor: 'rgba(123, 45, 45, 0.3)',
-};
+  backgroundColor: primaryColor + '4D', // 30% opacity
+});
 
 const legendWrapperStyle: ViewStyle = {
   alignItems: 'center',

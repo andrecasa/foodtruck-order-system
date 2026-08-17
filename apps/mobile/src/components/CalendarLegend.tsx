@@ -18,15 +18,17 @@ import { useTheme } from '../theme';
 export function CalendarLegend() {
   const theme = useTheme();
 
+  const textColor = theme.colors.text + 'B3'; // 70% opacity
+
   return (
     <View style={containerStyle} testID="calendar-legend">
       <View style={itemStyle}>
         <View style={[circleStyle, { borderColor: theme.colors.secondary }]} />
-        <Text style={labelStyle}>Dia com pedidos</Text>
+        <Text style={[labelStyle, { color: textColor }]}>Dia com pedidos</Text>
       </View>
       <View style={itemStyle}>
         <View style={[circleStyle, { borderColor: theme.colors.success }]} />
-        <Text style={labelStyle}>Dia selecionado</Text>
+        <Text style={[labelStyle, { color: textColor }]}>Dia selecionado</Text>
       </View>
     </View>
   );
@@ -54,5 +56,4 @@ const circleStyle: ViewStyle = {
 const labelStyle: TextStyle = {
   fontSize: 11,
   fontWeight: '400',
-  color: 'rgba(61, 32, 32, 0.7)',
 };

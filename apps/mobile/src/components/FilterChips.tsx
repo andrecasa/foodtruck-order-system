@@ -9,6 +9,8 @@ export interface FilterChipOption {
   label: string;
   /** Color to use for tinting (active bg + text) */
   color: string;
+  /** Material Symbols Outlined icon name */
+  icon?: string;
 }
 
 export interface FilterChipsProps {
@@ -23,21 +25,21 @@ export interface FilterChipsProps {
 }
 
 /**
- * FilterChips — horizontal row of toggleable status filter pills.
+ * FilterChips — horizontal row of toggleable status filter tabs with icons.
  *
- * Penpot specs (from Design System / steering):
- * - Container: flexDirection row, gap 8px, horizontalSizing fill
- * - Chip: height 32px, borderRadius 16px, paddingHorizontal 12px
- * - Active: backgroundColor = statusColor at 12% opacity, text = statusColor
- * - Inactive: backgroundColor = #FFFFFF, border 1px #E8DDD5, text = statusColor
- * - Font: Inter 12px weight 400
+ * Penpot specs (icon tabs with solid active state):
+ * - Container: white bg, borderRadius 16, flexDirection row
+ * - Each tab: flex 1, height 76, column, alignItems center, justifyContent center
+ * - Icon area: width 75, height 36, borderRadius 18
+ *   - Active: solid status color bg, white icon 22px
+ *   - Inactive: status color at 8% opacity bg, status color icon at 50% opacity
+ * - Label: Inter 10px weight 400, color = statusColor (active) or textSecondary (inactive)
  */
 export function FilterChips({ options, selected, onSelectionChange, testID }: FilterChipsProps) {
   const theme = useTheme();
 
   const handleToggle = (key: string) => {
     if (selected.includes(key)) {
-      // Don't allow deselecting all — keep at least one
       if (selected.length > 1) {
         onSelectionChange(selected.filter(k => k !== key));
       }
@@ -46,9 +48,54 @@ export function FilterChips({ options, selected, onSelectionChange, testID }: Fi
     }
   };
 
+  const hasIcons = options.some(o => o.icon);
+
+  // If no icons provided, fall back to simple chip style
+  if (!hasIcons) {
+    return (
+      <View style={{ flexDirection: 'row', gap: 8 }} accessibilityRole="tablist" testID={testID}>
+        {options.map(option => {
+          const isActive = selected.includes(option.key);
+          const chipStyle: ViewStyle = {
+            height: 32,
+            borderRadius: 16,
+            paddingHorizontal: 12,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: isActive ? option.color + '1F' : theme.colors.surface,
+            borderWidth: isActive ? 0 : 1,
+            borderColor: isActive ? undefined : theme.colors.divider,
+          };
+          const textStyle: TextStyle = {
+            fontFamily: theme.typography.fontFamily,
+            fontSize: 12,
+            fontWeight: '400',
+            color: option.color,
+          };
+          return (
+            <Pressable
+              key={option.key}
+              style={chipStyle}
+              onPress={() => handleToggle(option.key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`Filtrar ${option.label}`}
+              testID={testID ? `${testID}-${option.key}` : undefined}
+            >
+              <Text style={textStyle}>{option.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  }
+
+  // Icon tabs layout
   const containerStyle: ViewStyle = {
     flexDirection: 'row',
-    gap: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    paddingVertical: 10,
   };
 
   return (
@@ -56,35 +103,51 @@ export function FilterChips({ options, selected, onSelectionChange, testID }: Fi
       {options.map(option => {
         const isActive = selected.includes(option.key);
 
-        const chipStyle: ViewStyle = {
-          height: 32,
-          borderRadius: 16,
-          paddingHorizontal: 12,
-          justifyContent: 'center',
+        const tabStyle: ViewStyle = {
+          flex: 1,
           alignItems: 'center',
-          backgroundColor: isActive ? option.color + '1F' : theme.colors.surface, // 1F = ~12% opacity
-          borderWidth: isActive ? 0 : 1,
-          borderColor: isActive ? undefined : theme.colors.divider,
+          justifyContent: 'center',
+          gap: 6,
         };
 
-        const textStyle: TextStyle = {
-          fontFamily: theme.typography.fontFamily,
-          fontSize: 12,
+        const iconAreaStyle: ViewStyle = {
+          width: 75,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: isActive ? option.color : option.color + '14', // solid or 8%
+          alignItems: 'center',
+          justifyContent: 'center',
+        };
+
+        const iconStyle: TextStyle = {
+          fontFamily: 'Material Symbols Outlined',
+          fontSize: 22,
           fontWeight: '400',
-          color: option.color,
+          color: isActive ? theme.colors.surface : option.color,
+          opacity: isActive ? 1 : 0.5,
+        };
+
+        const labelStyle: TextStyle = {
+          fontFamily: theme.typography.fontFamily,
+          fontSize: 10,
+          fontWeight: '400',
+          color: isActive ? option.color : theme.colors.textSecondary,
         };
 
         return (
           <Pressable
             key={option.key}
-            style={chipStyle}
+            style={tabStyle}
             onPress={() => handleToggle(option.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             accessibilityLabel={`Filtrar ${option.label}`}
             testID={testID ? `${testID}-${option.key}` : undefined}
           >
-            <Text style={textStyle}>{option.label}</Text>
+            <View style={iconAreaStyle}>
+              <Text style={iconStyle}>{option.icon}</Text>
+            </View>
+            <Text style={labelStyle}>{option.label}</Text>
           </Pressable>
         );
       })}

@@ -40,11 +40,6 @@ export function CalendarCard({ year, month, selectedDay, daysWithOrders, onDayPr
     padding: 12,
     gap: 4,
     width: '100%',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
   };
 
   const headerTextStyle: TextStyle = {

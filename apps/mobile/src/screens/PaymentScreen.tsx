@@ -60,6 +60,40 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
 
   const isAlreadyPaid = order.paymentStatus === 'pago';
 
+  const getStatusColor = (): string => {
+    switch (order.status) {
+      case 'aguardando': return theme.colors.aguardando;
+      case 'preparando': return theme.colors.preparando;
+      case 'pronto': return theme.colors.pronto;
+      case 'entregue': return theme.colors.textSecondary;
+      default: return theme.colors.textSecondary;
+    }
+  };
+
+  const getStatusIcon = (): string => {
+    switch (order.status) {
+      case 'aguardando': return 'schedule';
+      case 'preparando': return 'local_fire_department';
+      case 'pronto': return 'notifications';
+      case 'entregue': return 'check_circle';
+      default: return 'help';
+    }
+  };
+
+  const getPayColor = (): string => {
+    return order.paymentStatus === 'pago' ? theme.colors.success : theme.colors.error;
+  };
+
+  const getTimeLabel = (): string => {
+    const createdAt = new Date(order.createdAt);
+    const totalMinutes = Math.floor((Date.now() - createdAt.getTime()) / 60000);
+    if (totalMinutes < 1) return 'Agora';
+    if (totalMinutes < 60) return `Pedido criado há ${totalMinutes} min`;
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return mins > 0 ? `Pedido criado há ${hours}h ${mins}min` : `Pedido criado há ${hours}h`;
+  };
+
   const handleConfirmPress = useCallback(() => {
     if (isAlreadyPaid) {
       setError('Pedido já foi pago');
@@ -103,68 +137,12 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     gap: 20,
   };
 
-  const orderTotalContainerStyle: ViewStyle = {
-    backgroundColor: `${theme.colors.primary}0F`, // 6% opacity
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    gap: 4,
-    alignSelf: 'stretch',
-  };
-
-  const orderHeaderStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  };
-
-  const amountStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 28,
-    fontWeight: '400',
-    color: theme.colors.primary,
-    textAlign: 'center',
-  };
-
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
     color: theme.colors.text,
     marginBottom: 8,
-  };
-
-  const itemsCardStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 14,
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.04)',
-    elevation: 1,
-  };
-
-  const itemRowStyle: ViewStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  };
-
-  const itemNameStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const itemQuantityStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.textSecondary,
   };
 
   const methodsContainerStyle: ViewStyle = {
@@ -189,7 +167,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   });
 
   const errorContainerStyle: ViewStyle = {
-    backgroundColor: 'rgba(181,64,64,0.08)',
+    backgroundColor: theme.colors.error + '14', // 8% opacity
     borderRadius: 12,
     padding: 14,
   };
@@ -209,60 +187,98 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
       <Header title="Pagamento" icon="payments" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
-        {/* Order Header & Amount */}
-        <View style={orderTotalContainerStyle}>
-          <RNText style={orderHeaderStyle}>
-            Pedido #{order.dailyNumber} — {order.customerName}
-          </RNText>
-          <RNText style={amountStyle}>
-            {formatPrice(order.totalAmount)}
-          </RNText>
+        {/* Order Card (same pattern as Fila de Pedidos) */}
+        <View style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: getStatusColor() + '40',
+          flexDirection: 'row',
+          overflow: 'hidden',
+        }}>
+          {/* Left stripe */}
+          <View style={{ width: 5, backgroundColor: getStatusColor(), borderTopLeftRadius: 14, borderBottomLeftRadius: 14 }} />
+
+          {/* Content */}
+          <View style={{ flex: 1, padding: 12, gap: 8 }}>
+            {/* Line 1: Badges — Pagamento | Origem | Status */}
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              {/* Payment badge */}
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: getPayColor() + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: getPayColor() }}>currency_exchange</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: getPayColor() }}>
+                  {order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
+                </RNText>
+              </View>
+              {/* Origin badge */}
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.primary + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.primary }}>{order.origin === 'whatsapp' ? 'chat' : 'storefront'}</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.primary }}>
+                  {order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
+                </RNText>
+              </View>
+              {/* Status badge */}
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: getStatusColor() + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: getStatusColor() }}>{getStatusIcon()}</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: getStatusColor() }}>
+                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                </RNText>
+              </View>
+            </View>
+
+            {/* Line 2: Name */}
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '600', color: theme.colors.text }}>
+              #{order.dailyNumber} - {order.customerName}
+            </RNText>
+
+            {/* Line 3: Items */}
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text }}>
+              {order.items.map(item => `${item.quantity}x ${item.name}`).join(' • ')}
+            </RNText>
+
+            {/* Line 4: Price */}
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '600', color: theme.colors.text }}>
+              {formatPrice(order.totalAmount)}
+            </RNText>
+
+            {/* Line 5: Time */}
+            <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
+              <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14, color: theme.colors.textSecondary, opacity: 0.7 }}>timer</RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, color: theme.colors.textSecondary, opacity: 0.7 }}>{getTimeLabel()}</RNText>
+            </View>
+          </View>
         </View>
 
-        {/* Origin indicator (read-only) */}
-        <View style={{
-          flexDirection: 'row',
-          height: 40,
-          borderRadius: 20,
-          borderWidth: 1,
-          borderColor: theme.colors.divider,
-          backgroundColor: theme.colors.surface,
-          overflow: 'hidden',
-          alignItems: 'center',
-          padding: 2,
-          opacity: 0.7,
-        }}>
-          <View style={{
-            flex: 1,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: order.origin === 'presencial' ? theme.colors.primary : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <RNText style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 13,
-              fontWeight: '400',
-              color: order.origin === 'presencial' ? theme.colors.surface : theme.colors.textSecondary,
-            }}>Presencial</RNText>
-          </View>
-          <View style={{
-            flex: 1,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: order.origin === 'whatsapp' ? theme.colors.primary : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <RNText style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 13,
-              fontWeight: '400',
-              color: order.origin === 'whatsapp' ? theme.colors.surface : theme.colors.textSecondary,
-            }}>WhatsApp</RNText>
-          </View>
-        </View>
+        {/* "+ Adicionar Item" button */}
+        {!isAlreadyPaid && order.status === 'aguardando' && (
+          <TouchableOpacity
+            style={{
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.colors.divider,
+              flexDirection: 'row',
+              gap: 6,
+              alignItems: 'center',
+              justifyContent: 'center',
+              alignSelf: 'stretch',
+            }}
+            onPress={() =>
+              router.push({
+                pathname: '/edit-order-items',
+                params: { orderId: order.id },
+              })
+            }
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Adicionar Item"
+            testID="add-items-button-main"
+          >
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '400', color: theme.colors.text }}>+</RNText>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text }}>Adicionar Item</RNText>
+          </TouchableOpacity>
+        )}
 
         {/* Error Message */}
         {error ? (
@@ -270,69 +286,6 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
             <RNText style={errorTextStyle}>{error}</RNText>
           </View>
         ) : null}
-
-        {/* Order Items */}
-        <View>
-          <RNText style={sectionTitleStyle}>Itens do pedido</RNText>
-          <View style={itemsCardStyle}>
-            {order.items.map((item, index) => (
-              <View key={`${item.menuItemId}-${index}`} style={itemRowStyle}>
-                <RNText style={itemNameStyle}>{item.name}</RNText>
-                <RNText style={itemQuantityStyle}>{item.quantity}x</RNText>
-              </View>
-            ))}
-          </View>
-
-          {/* "+ Adicionar Item" button — right below items list */}
-          {!isAlreadyPaid && order.status === 'aguardando' && (
-            <TouchableOpacity
-              style={{
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: theme.colors.surface,
-                borderWidth: 1,
-                borderColor: theme.colors.divider,
-                flexDirection: 'row',
-                gap: 6,
-                alignItems: 'center',
-                justifyContent: 'center',
-                alignSelf: 'stretch',
-                marginTop: 12,
-              }}
-              onPress={() =>
-                router.push({
-                  pathname: '/edit-order-items',
-                  params: { orderId: order.id },
-                })
-              }
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Adicionar Item"
-              testID="add-items-button-main"
-            >
-              <RNText
-                style={{
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: 16,
-                  fontWeight: '400',
-                  color: theme.colors.text,
-                }}
-              >
-                +
-              </RNText>
-              <RNText
-                style={{
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: 14,
-                  fontWeight: '400',
-                  color: theme.colors.text,
-                }}
-              >
-                Adicionar Item
-              </RNText>
-            </TouchableOpacity>
-          )}
-        </View>
 
         {/* Already Paid State — show only payment method badge + message */}
         {isAlreadyPaid ? (
@@ -343,7 +296,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 style={{
                   height: 44,
                   borderRadius: 22,
-                  backgroundColor: 'rgba(123, 45, 45, 0.12)',
+                  backgroundColor: theme.colors.primary + '1F', // 12% opacity
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}

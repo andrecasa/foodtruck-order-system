@@ -156,8 +156,6 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     paddingHorizontal: 16,
     gap: 12,
     backgroundColor: theme.colors.surface,
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.06)',
-    elevation: 2,
   };
 
   const closeIconStyle: TextStyle = {

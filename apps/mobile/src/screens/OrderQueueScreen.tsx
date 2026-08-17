@@ -1,18 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 import {
   Screen,
   Header,
   ScrollContainer,
-  Card,
-  Badge,
   Button,
   Text,
-  OriginBadge,
   FilterChips,
-  type BadgeStatus,
   type FilterChipOption,
 } from '../components';
 import { Toast } from '../components/Toast';
@@ -36,6 +32,28 @@ const ADVANCE_LABEL: Record<OrderStatus, string> = {
   preparando: 'Marcar Pronto',
   pronto: 'Marcar Entregue',
   entregue: '',
+};
+
+/** Icon for the CTA button (next status icon) */
+const ADVANCE_ICON: Record<OrderStatus, string> = {
+  aguardando: 'local_fire_department',
+  preparando: 'notifications',
+  pronto: 'check_circle',
+  entregue: '',
+};
+
+/** Icon for status badge */
+const STATUS_ICON: Record<OrderStatus, string> = {
+  aguardando: 'schedule',
+  preparando: 'local_fire_department',
+  pronto: 'notifications',
+  entregue: 'check_circle',
+};
+
+/** Icon for origin badge */
+const ORIGIN_ICON: Record<string, string> = {
+  presencial: 'storefront',
+  whatsapp: 'chat',
 };
 
 /**
@@ -62,12 +80,12 @@ export function OrderQueueScreen() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
   const { error: networkError, dismiss: dismissError, withRetry } = useNetworkError();
 
-  /** Filter chip options — colors match Penpot status palette */
+  /** Filter chip options — colors and icons match Penpot status palette */
   const filterOptions: FilterChipOption[] = [
-    { key: 'aguardando', label: 'Aguardando', color: theme.colors.aguardando },
-    { key: 'preparando', label: 'Preparando', color: theme.colors.preparando },
-    { key: 'pronto', label: 'Pronto', color: theme.colors.pronto },
-    { key: 'entregue', label: 'Entregue', color: theme.colors.textSecondary },
+    { key: 'aguardando', label: 'Aguardando', color: theme.colors.aguardando, icon: 'schedule' },
+    { key: 'preparando', label: 'Preparando', color: theme.colors.preparando, icon: 'local_fire_department' },
+    { key: 'pronto', label: 'Pronto', color: theme.colors.pronto, icon: 'notifications' },
+    { key: 'entregue', label: 'Entregue', color: theme.colors.textSecondary, icon: 'check_circle' },
   ];
 
   const fetchOrders = useCallback(async () => {
@@ -143,7 +161,7 @@ export function OrderQueueScreen() {
     return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
   };
 
-  // Styles using theme tokens — matched to Penpot Content area (padding 16px, gap 12px)
+  // Styles using theme tokens
   const loadingContainerStyle: ViewStyle = {
     flex: 1,
     justifyContent: 'center',
@@ -154,58 +172,154 @@ export function OrderQueueScreen() {
     gap: 12,
   };
 
-  const cardHeaderStyle: ViewStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  };
-
-  const paymentBadgeStyle = (status: PaymentStatus): ViewStyle => ({
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: status === 'pago' ? theme.colors.success : theme.colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-  });
-
-  const paymentBadgeIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.surface,
-  };
-
-  const itemsTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    lineHeight: 19.6,
-    alignSelf: 'center',
-    textAlign: 'center',
-  };
-
-  const dividerStyle: ViewStyle = {
-    height: 1,
-    backgroundColor: theme.colors.divider,
-    width: '80%',
-    alignSelf: 'center',
-  };
-
-  const priceTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text,
-    alignSelf: 'center',
-  };
-
   const emptyContainerStyle: ViewStyle = {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.xl,
+  };
+
+  // --- Order Card styles ---
+
+  const getStatusColor = (status: OrderStatus): string => {
+    switch (status) {
+      case 'aguardando': return theme.colors.aguardando;
+      case 'preparando': return theme.colors.preparando;
+      case 'pronto': return theme.colors.pronto;
+      case 'entregue': return theme.colors.textSecondary;
+    }
+  };
+
+  const getPaymentColor = (payStatus: PaymentStatus): string => {
+    return payStatus === 'pago' ? theme.colors.success : theme.colors.error;
+  };
+
+  const renderOrderCard = (order: Order) => {
+    const statusColor = getStatusColor(order.status);
+    const payColor = getPaymentColor(order.paymentStatus);
+    const nextStatus = NEXT_STATUS[order.status];
+    const isAdvancing = advancingId === order.id;
+    const showButton = !!nextStatus;
+
+    // Time since order creation
+    const createdAt = new Date(order.createdAt);
+    const totalMinutes = Math.floor((Date.now() - createdAt.getTime()) / 60000);
+    let timeLabel: string;
+    if (totalMinutes < 1) {
+      timeLabel = 'Agora';
+    } else if (totalMinutes < 60) {
+      timeLabel = `Pedido criado há ${totalMinutes} min`;
+    } else {
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      timeLabel = mins > 0 ? `Pedido criado há ${hours}h ${mins}min` : `Pedido criado há ${hours}h`;
+    }
+
+    return (
+      <View
+        key={order.id}
+        accessibilityLabel={`Pedido ${order.dailyNumber}, ${order.customerName}, status ${order.status}`}
+        style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: statusColor + '40',
+          flexDirection: 'row',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Left stripe */}
+        <View style={{ width: 5, backgroundColor: statusColor, borderTopLeftRadius: 14, borderBottomLeftRadius: 14 }} />
+
+        {/* Content */}
+        <View style={{ flex: 1, padding: 12, gap: 8 }}>
+          {/* Tappable info area — navigates to payment details */}
+          <Pressable
+            onPress={() => handleCardPress(order)}
+            accessibilityRole="link"
+            accessibilityHint="Toque para abrir detalhes do pedido"
+            style={{ gap: 8 }}
+          >
+            {/* Line 1: Badges — Pagamento | Origem | Status */}
+            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              {/* Payment badge */}
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: payColor + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: payColor }}>currency_exchange</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: payColor }}>
+                  {order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
+                </RNText>
+              </View>
+              {/* Origin badge */}
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.primary + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.primary }}>{ORIGIN_ICON[order.origin] || 'storefront'}</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.primary }}>
+                  {order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
+                </RNText>
+              </View>
+              {/* Status badge */}
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: statusColor + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: statusColor }}>{STATUS_ICON[order.status]}</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: statusColor }}>
+                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                </RNText>
+              </View>
+            </View>
+
+            {/* Line 2: Name */}
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '600', color: theme.colors.text }}>
+              #{order.dailyNumber} - {order.customerName}
+            </RNText>
+
+            {/* Line 3: Items */}
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text }}>
+              {order.items.map(item => `${item.quantity}x ${item.name}`).join(' • ')}
+            </RNText>
+
+            {/* Line 4: Price */}
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '600', color: theme.colors.text }}>
+              {formatCurrency(order.totalAmount)}
+            </RNText>
+
+            {/* Line 5: Time */}
+            <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
+              <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14, color: theme.colors.textSecondary, opacity: 0.7 }}>timer</RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, color: theme.colors.textSecondary, opacity: 0.7 }}>{timeLabel}</RNText>
+            </View>
+          </Pressable>
+
+          {/* Line 6: CTA Button (separate from tappable area) */}
+          {showButton && (
+            <TouchableOpacity
+              onPress={() => handleAdvanceStatus(order)}
+              disabled={isAdvancing}
+              activeOpacity={0.7}
+              style={{
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: statusColor,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                opacity: isAdvancing ? 0.7 : 1,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={ADVANCE_LABEL[order.status]}
+              testID={`advance-${order.id}`}
+            >
+              {isAdvancing ? (
+                <ActivityIndicator size="small" color={theme.colors.surface} />
+              ) : (
+                <>
+                  <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16, color: theme.colors.surface }}>{ADVANCE_ICON[order.status]}</RNText>
+                  <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 13, color: theme.colors.surface }}>{ADVANCE_LABEL[order.status]}</RNText>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
   };
 
   if (loading) {
@@ -258,88 +372,7 @@ export function OrderQueueScreen() {
           testID="status-filter"
         />
 
-        {orders.map((order) => {
-          const cardVariant =
-            order.status === 'aguardando' || order.status === 'preparando' || order.status === 'pronto'
-              ? order.status
-              : 'default';
-
-          const nextStatus = NEXT_STATUS[order.status];
-          const isAdvancing = advancingId === order.id;
-          const showButton = !!nextStatus;
-
-          // Button color matches Penpot: aguardando → primary, preparando → blue, pronto → green
-          const getButtonColor = (): string | undefined => {
-            switch (order.status) {
-              case 'preparando':
-                return theme.colors.preparando;
-              case 'pronto':
-                return theme.colors.pronto;
-              default:
-                return undefined; // uses primary by default
-            }
-          };
-
-          return (
-            <Card
-              key={order.id}
-              variant={cardVariant}
-              onPress={() => handleCardPress(order)}
-              accessibilityLabel={`Pedido ${order.dailyNumber}, ${order.customerName}, status ${order.status}`}
-              accessibilityHint="Toque para abrir pagamento"
-            >
-              {/* Card Header: Payment badge + "#1 — Nome" + Status Badge (Penpot format) */}
-              <View style={cardHeaderStyle}>
-                <View style={paymentBadgeStyle(order.paymentStatus)}>
-                  <RNText style={paymentBadgeIconStyle}>payments</RNText>
-                </View>
-                <Text
-                  size="lg"
-                  weight="medium"
-                >
-                  #{order.dailyNumber} — {order.customerName}
-                </Text>
-                <Badge status={order.status as BadgeStatus} size="sm" />
-              </View>
-
-              {/* Origin badge (Penpot: tinted pill badge) */}
-              <OriginBadge origin={order.origin} />
-
-              {/* Items List (Penpot: 14px, weight 400 uniform, #3D2020) */}
-              <RNText style={itemsTextStyle}>
-                {order.items.map((item, idx) => (
-                  <RNText key={idx}>
-                    {idx > 0 ? '\n' : ''}
-                    {`${item.quantity}X - ${item.name} - ${formatCurrency(item.unitPrice * item.quantity)}`}
-                  </RNText>
-                ))}
-              </RNText>
-
-              {/* Divider line between items and price */}
-              <View style={dividerStyle} />
-
-              {/* Price (Penpot: 18px weight 600, no "Total:" prefix) */}
-              <RNText style={priceTextStyle}>
-                {formatCurrency(order.totalAmount)}
-              </RNText>
-
-              {/* Action Button (Penpot: sm, full width in card, pill shape) */}
-              {showButton && (
-                <Button
-                  title={ADVANCE_LABEL[order.status]}
-                  variant="primary"
-                  size="sm"
-                  fullWidth
-                  color={getButtonColor()}
-                  onPress={() => handleAdvanceStatus(order)}
-                  loading={isAdvancing}
-                  disabled={isAdvancing}
-                  testID={`advance-${order.id}`}
-                />
-              )}
-            </Card>
-          );
-        })}
+        {orders.map((order) => renderOrderCard(order))}
       </ScrollContainer>
     </Screen>
   );

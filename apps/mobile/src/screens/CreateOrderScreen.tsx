@@ -273,8 +273,6 @@ export function CreateOrderScreen() {
     padding: 10,
     paddingHorizontal: 14,
     gap: 10,
-    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.04)',
-    elevation: 1,
     borderWidth: 0,
   };
 
@@ -505,7 +503,7 @@ export function CreateOrderScreen() {
 
         {/* Submit Button */}
         <Button
-          title="Criar Pedido"
+          title="Adicionar"
           variant="primary"
           size="lg"
           fullWidth

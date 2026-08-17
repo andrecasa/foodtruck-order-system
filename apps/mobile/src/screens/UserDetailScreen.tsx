@@ -33,6 +33,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
   preparador: 'Preparador',
 };
 
+const ROLE_ICONS: Record<UserRole, string> = {
+  admin: 'admin_panel_settings',
+  atendente: 'headset_mic',
+  preparador: 'restaurant',
+};
+
 // ─── Validation helpers ─────────────────────────────────────────────────────
 
 interface FormErrors {
@@ -248,8 +254,6 @@ export function UserDetailScreen() {
     paddingHorizontal: 16,
     gap: 12,
     alignItems: 'center',
-    boxShadow: '0px 1px 3px 0px rgba(0, 0, 0, 0.06)',
-    elevation: 2,
   };
 
   const backIconStyle: TextStyle = {
@@ -294,9 +298,12 @@ export function UserDetailScreen() {
 
   const roleBadgeStyle = (badgeRole: UserRole): ViewStyle => ({
     backgroundColor: withOpacity(ROLE_BADGE_COLORS[badgeRole], 0.12),
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    height: 15,
+    borderRadius: 9,
+    paddingHorizontal: 6,
+    paddingRight: 8,
+    height: 18,
+    flexDirection: 'row',
+    gap: 4,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -304,7 +311,7 @@ export function UserDetailScreen() {
 
   const roleBadgeTextStyle = (badgeRole: UserRole): TextStyle => ({
     fontFamily: theme.typography.fontFamily,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '400',
     color: ROLE_BADGE_COLORS[badgeRole],
   });
@@ -562,6 +569,9 @@ export function UserDetailScreen() {
           <View style={userInfoCardStyle} testID="user-info-card">
             <View style={userInfoLeftStyle}>
               <View style={roleBadgeStyle(user.role)}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 11, fontWeight: '400', color: ROLE_BADGE_COLORS[user.role] }}>
+                  {ROLE_ICONS[user.role]}
+                </RNText>
                 <RNText style={roleBadgeTextStyle(user.role)}>
                   {ROLE_LABELS[user.role]}
                 </RNText>

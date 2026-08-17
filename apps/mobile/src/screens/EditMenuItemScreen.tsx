@@ -246,11 +246,6 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     height: 56,
     gap: 12,
     backgroundColor: theme.colors.surface,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
   };
 
   const backIconStyle: TextStyle = {

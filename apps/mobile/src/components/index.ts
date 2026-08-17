@@ -1,11 +1,5 @@
 export { Button } from './Button';
 export type { ButtonProps, ButtonVariant } from './Button';
-export { Card } from './Card';
-export type { CardProps, CardVariant } from './Card';
-export { Badge } from './Badge';
-export type { BadgeProps, BadgeSize, BadgeStatus } from './Badge';
-export { OriginBadge } from './OriginBadge';
-export type { OriginBadgeProps, BadgeOrigin } from './OriginBadge';
 export { Input } from './Input';
 export type { InputProps, InputMask } from './Input';
 export { Modal } from './Modal';

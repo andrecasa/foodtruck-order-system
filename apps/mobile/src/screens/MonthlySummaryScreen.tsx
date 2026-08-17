@@ -255,9 +255,6 @@ export function MonthlySummaryScreen() {
           </Pressable>
         </View>
 
-        {/* Section: Resumo do Mês */}
-        <RNText style={sectionTitleStyle}>Resumo do Mês</RNText>
-
         {/* Sub-cards grid 2×2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>

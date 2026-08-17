@@ -48,6 +48,17 @@ export const defaultTheme: ThemeConfig = {
     surface: '#FFFFFF',
     // Border/separator — warm beige
     divider: '#E8DDD5',
+    // Financial: received — dark green
+    received: '#2E7D32',
+    // Financial: pending — dark red
+    pending: '#C62828',
+    // Financial: faturamento — amber (same as secondary)
+    revenue: '#D4812B',
+    // Sub-card backgrounds (tinted)
+    surfacePrimary: '#FDF8F4',
+    surfaceRevenue: '#FFF8F0',
+    surfaceReceived: '#F0F8F0',
+    surfacePending: '#FEF2F2',
   },
   typography: {
     fontFamily: 'Inter',

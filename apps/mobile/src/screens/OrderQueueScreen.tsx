@@ -67,7 +67,7 @@ export function OrderQueueScreen() {
     { key: 'aguardando', label: 'Aguardando', color: theme.colors.aguardando },
     { key: 'preparando', label: 'Preparando', color: theme.colors.preparando },
     { key: 'pronto', label: 'Pronto', color: theme.colors.pronto },
-    { key: 'entregue', label: 'Entregue', color: theme.colors.textSecondary ?? '#8B6B5A' },
+    { key: 'entregue', label: 'Entregue', color: theme.colors.textSecondary },
   ];
 
   const fetchOrders = useCallback(async () => {
@@ -164,7 +164,7 @@ export function OrderQueueScreen() {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: status === 'pago' ? '#5A8C5A' : '#B54040',
+    backgroundColor: status === 'pago' ? theme.colors.success : theme.colors.error,
     alignItems: 'center',
     justifyContent: 'center',
   });
@@ -173,7 +173,7 @@ export function OrderQueueScreen() {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 14,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   const itemsTextStyle: TextStyle = {
@@ -188,7 +188,7 @@ export function OrderQueueScreen() {
 
   const dividerStyle: ViewStyle = {
     height: 1,
-    backgroundColor: theme.colors.divider ?? '#E8DDD5',
+    backgroundColor: theme.colors.divider,
     width: '80%',
     alignSelf: 'center',
   };

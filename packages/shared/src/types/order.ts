@@ -43,4 +43,6 @@ export interface RegisterPaymentRequest {
 
 export interface UpdateOrderItemsRequest {
   items: { menuItemId: string; quantity: number }[];
+  customerName?: string;
+  origin?: OrderOrigin;
 }

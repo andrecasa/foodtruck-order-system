@@ -434,7 +434,7 @@ export async function registerPayment(orderId: string, paymentMethod: string): P
  * Updates order items (full replacement) for orders in 'aguardando' status.
  * Validates all menu items exist and are active, no duplicates.
  */
-export async function updateOrderItems(orderId: string, items: OrderItemInput[]): Promise<OrderRecord> {
+export async function updateOrderItems(orderId: string, items: OrderItemInput[], customerName?: string, origin?: string): Promise<OrderRecord> {
   // Check for duplicate menuItemIds
   const menuItemIds = items.map((i) => i.menuItemId);
   const uniqueIds = new Set(menuItemIds);
@@ -525,10 +525,26 @@ export async function updateOrderItems(orderId: string, items: OrderItemInput[])
       0
     );
 
-    // Update order total
+    // Update order total (and optionally customerName/origin)
+    const updateClauses = ['total_amount_cents = $1'];
+    const updateValues: unknown[] = [totalAmountCents];
+    let paramIdx = 2;
+
+    if (customerName !== undefined) {
+      updateClauses.push(`customer_name = $${paramIdx}`);
+      updateValues.push(customerName);
+      paramIdx++;
+    }
+    if (origin !== undefined) {
+      updateClauses.push(`origin = $${paramIdx}`);
+      updateValues.push(origin);
+      paramIdx++;
+    }
+
+    updateValues.push(orderId);
     await client.query(
-      'UPDATE orders SET total_amount_cents = $1 WHERE id = $2',
-      [totalAmountCents, orderId]
+      `UPDATE orders SET ${updateClauses.join(', ')} WHERE id = $${paramIdx}`,
+      updateValues
     );
 
     await client.query('COMMIT');
@@ -537,8 +553,8 @@ export async function updateOrderItems(orderId: string, items: OrderItemInput[])
     const updatedOrder: OrderRecord = {
       id: order.id,
       dailyNumber: order.daily_number,
-      customerName: order.customer_name,
-      origin: order.origin,
+      customerName: customerName ?? order.customer_name,
+      origin: origin ?? order.origin,
       status: order.status,
       paymentStatus: order.payment_status,
       paymentMethod: order.payment_method,

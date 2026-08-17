@@ -256,7 +256,7 @@ export function UserFormScreen() {
 
   const appBarStyle: ViewStyle = {
     height: 56,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
@@ -266,14 +266,14 @@ export function UserFormScreen() {
   const backIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const titleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
     flex: 1,
     textAlign: 'center',
   };
@@ -293,11 +293,11 @@ export function UserFormScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const inputContainerStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 24,
     height: 48,
     paddingHorizontal: 16,
@@ -305,7 +305,7 @@ export function UserFormScreen() {
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
   };
 
   const inputStyle: TextStyle = {
@@ -313,7 +313,7 @@ export function UserFormScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
     paddingVertical: 0,
     height: 48,
   };
@@ -321,20 +321,20 @@ export function UserFormScreen() {
   const visibilityIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const arrowIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const confirmButtonStyle: ViewStyle = {
     width: '100%',
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#7B2D2D',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   };
@@ -343,14 +343,14 @@ export function UserFormScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   const cancelButtonStyle: ViewStyle = {
     width: '100%',
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.error,
     alignItems: 'center',
@@ -381,10 +381,10 @@ export function UserFormScreen() {
   };
 
   const roleDropdownStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     marginTop: 4,
     overflow: 'hidden',
   };
@@ -394,7 +394,7 @@ export function UserFormScreen() {
     paddingHorizontal: 16,
     justifyContent: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F0EB',
+    borderBottomColor: theme.colors.divider,
   };
 
   const centeredContainerStyle: ViewStyle = {
@@ -426,7 +426,7 @@ export function UserFormScreen() {
             style={{
               fontFamily: theme.typography.fontFamily,
               fontSize: 14,
-              color: '#8B6B5A',
+              color: theme.colors.textSecondary,
               marginTop: 8,
             }}
           >
@@ -523,7 +523,7 @@ export function UserFormScreen() {
             <RNText
               style={
                 role
-                  ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: '#3D2020', flex: 1 }
+                  ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text, flex: 1 }
                   : { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: 'rgba(139, 107, 90, 0.6)', flex: 1 }
               }
             >
@@ -555,7 +555,7 @@ export function UserFormScreen() {
                       fontFamily: theme.typography.fontFamily,
                       fontSize: 14,
                       fontWeight: '400',
-                      color: role === option.value ? theme.colors.primary : '#3D2020',
+                      color: role === option.value ? theme.colors.primary : theme.colors.text,
                     }}
                   >
                     {option.label}

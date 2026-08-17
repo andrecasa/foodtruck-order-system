@@ -53,7 +53,7 @@ export function Card({ children, variant = 'default', onPress, style, accessibil
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: statusColor ? statusColor + '4D' : '#E8DDD5', // 30% opacity
+    borderColor: statusColor ? statusColor + '4D' : theme.colors.divider, // 30% opacity
     gap: 12,
     overflow: 'hidden',
   };
@@ -73,7 +73,7 @@ export function Card({ children, variant = 'default', onPress, style, accessibil
       {/* Gradient overlay for status cards */}
       {statusColor && (
         <LinearGradient
-          colors={['rgba(255,255,255,0)', statusColor + '1A']} // transparent → 10% status
+          colors={['transparent', statusColor + '1A']} // transparent → 10% status
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{
@@ -91,7 +91,7 @@ export function Card({ children, variant = 'default', onPress, style, accessibil
     return (
       <Pressable
         onPress={onPress}
-        style={[{ backgroundColor: '#FFFFFF' }, combinedStyle, style]}
+        style={[{ backgroundColor: theme.colors.surface }, combinedStyle, style]}
         // On web, avoid accessibilityRole="button" to prevent nested <button> DOM violation
         // when Card contains interactive children (Button, TouchableOpacity).
         // On native, keep "button" for proper screen reader announcement.
@@ -107,7 +107,7 @@ export function Card({ children, variant = 'default', onPress, style, accessibil
   }
 
   return (
-    <View style={[{ backgroundColor: '#FFFFFF' }, combinedStyle, style]}>
+    <View style={[{ backgroundColor: theme.colors.surface }, combinedStyle, style]}>
       {content}
     </View>
   );

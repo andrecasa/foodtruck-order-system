@@ -10,6 +10,7 @@ import {
 import { DateSelector } from './DateSelector';
 import { CalendarLegend } from './CalendarLegend';
 import { CalendarCard } from './CalendarCard';
+import { useTheme } from '../theme';
 
 export interface CalendarModalProps {
   visible: boolean;
@@ -48,6 +49,7 @@ export function CalendarModal({
   onMonthChange,
   onClose,
 }: CalendarModalProps) {
+  const theme = useTheme();
   const [modalYear, setModalYear] = useState(year);
   const [modalMonth, setModalMonth] = useState(month);
   const [modalDaysWithOrders, setModalDaysWithOrders] = useState<number[]>(daysWithOrders);
@@ -177,7 +179,7 @@ export function CalendarModal({
 
       {/* Bottom Sheet */}
       <Animated.View
-        style={[sheetStyle, { transform: [{ translateY }] }]}
+        style={[sheetStyle, { backgroundColor: theme.colors.background, transform: [{ translateY }] }]}
         testID="calendar-modal-content"
       >
         {/* Drag Handle */}
@@ -235,7 +237,7 @@ const sheetStyle: ViewStyle = {
   bottom: 0,
   left: 0,
   right: 0,
-  backgroundColor: '#FDF8F4',
+  backgroundColor: undefined, // set dynamically via inline style
   borderTopLeftRadius: 24,
   borderTopRightRadius: 24,
   paddingHorizontal: 16,

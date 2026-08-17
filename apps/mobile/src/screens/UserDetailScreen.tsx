@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../theme';
+import { withOpacity } from '../utils/color';
 import { Screen, ScrollContainer } from '../components/Layout';
 import { Modal } from '../components/Modal';
 import { BottomNav } from '../components/BottomNav';
@@ -25,12 +26,6 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'atendente', label: 'Atendente' },
   { value: 'preparador', label: 'Preparador' },
 ];
-
-const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-  admin: '#7B2D2D',
-  atendente: '#5B8BA8',
-  preparador: '#5A8C5A',
-};
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
@@ -57,6 +52,12 @@ export function UserDetailScreen() {
   const theme = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
+
+  const ROLE_BADGE_COLORS: Record<UserRole, string> = {
+    admin: theme.colors.primary,
+    atendente: theme.colors.preparando,
+    preparador: theme.colors.success,
+  };
 
   // User data (fetched)
   const [user, setUser] = useState<User | null>(null);
@@ -242,7 +243,7 @@ export function UserDetailScreen() {
 
   const appBarStyle: ViewStyle = {
     height: 56,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
@@ -254,14 +255,14 @@ export function UserDetailScreen() {
   const backIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const titleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
     flex: 1,
     textAlign: 'center',
   };
@@ -274,10 +275,10 @@ export function UserDetailScreen() {
 
   // User Info Card — same style as list card (Penpot: badge + name + email + switch)
   const userInfoCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     height: 90,
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,7 +293,7 @@ export function UserDetailScreen() {
   };
 
   const roleBadgeStyle = (badgeRole: UserRole): ViewStyle => ({
-    backgroundColor: ROLE_BADGE_COLORS[badgeRole] + '1F',
+    backgroundColor: withOpacity(ROLE_BADGE_COLORS[badgeRole], 0.12),
     borderRadius: 10,
     paddingHorizontal: 8,
     height: 15,
@@ -312,7 +313,7 @@ export function UserDetailScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '500',
-    color: '#3D2020',
+    color: theme.colors.text,
     marginTop: 5,
   };
 
@@ -320,7 +321,7 @@ export function UserDetailScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   // Form fields
@@ -333,11 +334,11 @@ export function UserDetailScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const inputContainerStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 24,
     height: 48,
     paddingHorizontal: 16,
@@ -345,7 +346,7 @@ export function UserDetailScreen() {
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
   };
 
   const inputStyle: TextStyle = {
@@ -353,7 +354,7 @@ export function UserDetailScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
     paddingVertical: 0,
     height: 48,
   };
@@ -361,20 +362,20 @@ export function UserDetailScreen() {
   const visibilityIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const arrowIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const confirmButtonStyle: ViewStyle = {
     width: '100%',
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#7B2D2D',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   };
@@ -383,7 +384,7 @@ export function UserDetailScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   // Danger button (Excluir) — Penpot "Editar Usuário" spec
@@ -391,9 +392,9 @@ export function UserDetailScreen() {
     width: '100%',
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#C0392B',
+    borderColor: theme.colors.error,
     flexDirection: 'row',
     gap: 12,
     alignItems: 'center',
@@ -403,14 +404,14 @@ export function UserDetailScreen() {
   const dangerIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
-    color: '#C0392B',
+    color: theme.colors.error,
   };
 
   const dangerTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#C0392B',
+    color: theme.colors.error,
   };
 
   const errorTextStyle: TextStyle = {
@@ -422,10 +423,10 @@ export function UserDetailScreen() {
   };
 
   const roleDropdownStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     marginTop: 4,
     overflow: 'hidden',
   };
@@ -435,7 +436,7 @@ export function UserDetailScreen() {
     paddingHorizontal: 16,
     justifyContent: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F0EB',
+    borderBottomColor: theme.colors.divider,
   };
 
   const centeredContainerStyle: ViewStyle = {
@@ -449,7 +450,7 @@ export function UserDetailScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   // ─── Loading state ──────────────────────────────────────────────────────────
@@ -475,7 +476,7 @@ export function UserDetailScreen() {
             style={{
               fontFamily: theme.typography.fontFamily,
               fontSize: 14,
-              color: '#8B6B5A',
+              color: theme.colors.textSecondary,
               marginTop: 8,
             }}
           >
@@ -600,7 +601,7 @@ export function UserDetailScreen() {
             <RNText
               style={
                 role
-                  ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: '#3D2020', flex: 1 }
+                  ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text, flex: 1 }
                   : { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: 'rgba(139, 107, 90, 0.6)', flex: 1 }
               }
             >
@@ -632,7 +633,7 @@ export function UserDetailScreen() {
                       fontFamily: theme.typography.fontFamily,
                       fontSize: 14,
                       fontWeight: '400',
-                      color: role === option.value ? theme.colors.primary : '#3D2020',
+                      color: role === option.value ? theme.colors.primary : theme.colors.text,
                     }}
                   >
                     {option.label}
@@ -785,7 +786,7 @@ export function UserDetailScreen() {
           testID="submit-user"
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
+            <ActivityIndicator color={theme.colors.surface} size="small" />
           ) : (
             <RNText style={confirmButtonTextStyle}>Salvar</RNText>
           )}
@@ -826,7 +827,7 @@ export function UserDetailScreen() {
               <RNText style={[modalBodyTextStyle, { fontWeight: '500' }]}>
                 {user.name}
               </RNText>
-              <RNText style={[modalBodyTextStyle, { fontSize: 12, color: '#8B6B5A' }]}>
+              <RNText style={[modalBodyTextStyle, { fontSize: 12, color: theme.colors.textSecondary }]}>
                 {user.email}
               </RNText>
             </View>

@@ -92,7 +92,7 @@ export function Header({ children, title, icon: _icon, rightElement, showMenu = 
     paddingHorizontal: 16,
     height: 56,
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
@@ -104,7 +104,7 @@ export function Header({ children, title, icon: _icon, rightElement, showMenu = 
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const titleStyle: TextStyle = {

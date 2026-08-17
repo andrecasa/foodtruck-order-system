@@ -124,7 +124,7 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
 
   const appBarStyle: ViewStyle = {
     height: 56,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
@@ -134,14 +134,14 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
   const backIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const titleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
     flex: 1,
     textAlign: 'center',
   };
@@ -161,20 +161,22 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const inputStyle: TextStyle = {
     height: 52,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: fieldError ? theme.colors.error : '#E8DDD5',
+    borderColor: fieldError ? theme.colors.error : theme.colors.divider,
     paddingHorizontal: 16,
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
-    backgroundColor: '#FFFFFF',
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
+    // @ts-expect-error — outlineStyle is web-only
+    outlineStyle: 'none',
   };
 
   const errorTextStyle: TextStyle = {
@@ -202,14 +204,14 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   const deleteButtonContainerStyle: ViewStyle = {
     width: '100%',
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.error,
     alignItems: 'center',
@@ -245,9 +247,7 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
         >
           <RNText style={backIconStyle}>arrow_back</RNText>
         </Pressable>
-        <RNText style={titleStyle}>
-          {isEditMode ? 'Salvar' : 'Categoria'}
-        </RNText>
+        <RNText style={titleStyle}>Categoria</RNText>
         <View style={{ width: 24 }} />
       </View>
 

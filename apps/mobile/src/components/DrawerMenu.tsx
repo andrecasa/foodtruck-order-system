@@ -144,7 +144,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
 
   const drawerStyle: ViewStyle = {
     width: DRAWER_WIDTH,
-    backgroundColor: '#F5F0EB',
+    backgroundColor: theme.colors.background,
     height: '100%',
     paddingTop: insets.top,
   };
@@ -155,7 +155,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     height: 56,
     paddingHorizontal: 16,
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.06)',
     elevation: 2,
   };
@@ -164,7 +164,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const headerTitleStyle: TextStyle = {
@@ -172,7 +172,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: '500',
-    color: '#3D2020',
+    color: theme.colors.text,
     textAlign: 'center',
   };
 
@@ -207,24 +207,24 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const dividerStyle: ViewStyle = {
     height: 1,
-    backgroundColor: '#E0D6CC',
+    backgroundColor: theme.colors.divider,
     marginHorizontal: 24,
     marginVertical: 16,
   };
 
   const logoutIconStyle: TextStyle = {
     ...menuIconStyle,
-    color: '#D32F2F',
+    color: theme.colors.error,
   };
 
   const logoutLabelStyle: TextStyle = {
     ...menuLabelStyle,
-    color: '#D32F2F',
+    color: theme.colors.error,
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────

@@ -43,7 +43,7 @@ export function ToggleSwitch({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     alignSelf: value ? 'flex-end' : 'flex-start',
     // Shadow
     elevation: 2,

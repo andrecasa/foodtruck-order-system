@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, type ViewStyle, type TextStyle } from 'react-native';
+import { useTheme } from '../theme';
 
 /**
  * CalendarLegend — static legend row for the calendar modal.
@@ -15,14 +16,16 @@ import { View, Text, type ViewStyle, type TextStyle } from 'react-native';
  * - Text: 11px weight 400, color rgba(61, 32, 32, 0.7)
  */
 export function CalendarLegend() {
+  const theme = useTheme();
+
   return (
     <View style={containerStyle} testID="calendar-legend">
       <View style={itemStyle}>
-        <View style={[circleStyle, { borderColor: '#D4812B' }]} />
+        <View style={[circleStyle, { borderColor: theme.colors.secondary }]} />
         <Text style={labelStyle}>Dia com pedidos</Text>
       </View>
       <View style={itemStyle}>
-        <View style={[circleStyle, { borderColor: '#598C59' }]} />
+        <View style={[circleStyle, { borderColor: theme.colors.success }]} />
         <Text style={labelStyle}>Dia selecionado</Text>
       </View>
     </View>

@@ -130,9 +130,9 @@ export function MenuScreen() {
 
   // Item card container: matches Penpot "Item / ..." board
   const itemCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     borderRadius: 12,
     height: 64,
     flexDirection: 'row',
@@ -181,9 +181,9 @@ export function MenuScreen() {
   // full width (fill), height 44, bg white, border 1px #E8DDD5, borderRadius 22 (pill)
   // content: "+" 16px + "Novo Item" 14px, color #3D2020, gap 6, centered
   const novoItemBtnStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     borderRadius: 22,
     height: 44,
     flexDirection: 'row',

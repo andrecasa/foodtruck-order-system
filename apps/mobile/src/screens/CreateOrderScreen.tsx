@@ -228,8 +228,8 @@ export function CreateOrderScreen() {
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
-    backgroundColor: '#FFFFFF',
+    borderColor: theme.colors.divider,
+    backgroundColor: theme.colors.surface,
     overflow: 'hidden',
     alignItems: 'center',
     padding: 2,
@@ -248,7 +248,7 @@ export function CreateOrderScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 13,
     fontWeight: '400',
-    color: selected ? '#FFFFFF' : '#8B6B5A',
+    color: selected ? theme.colors.surface : theme.colors.textSecondary,
   });
 
   const sectionTitleStyle: TextStyle = {
@@ -268,7 +268,7 @@ export function CreateOrderScreen() {
   };
 
   const itemsCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 10,
     paddingHorizontal: 14,
@@ -316,7 +316,7 @@ export function CreateOrderScreen() {
     borderRadius: 14,
     backgroundColor: theme.colors.background,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     alignItems: 'center',
     justifyContent: 'center',
   };
@@ -325,7 +325,7 @@ export function CreateOrderScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: qty <= 0 ? '#E8DDD5' : theme.colors.text,
+    color: qty <= 0 ? theme.colors.divider : theme.colors.text,
   });
 
   const stepperPlusStyle: ViewStyle = {
@@ -341,7 +341,7 @@ export function CreateOrderScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   const quantityTextStyle: TextStyle = {
@@ -403,7 +403,7 @@ export function CreateOrderScreen() {
           }}
           placeholder="Nome do cliente..."
           icon="person"
-          iconColor="#8B6B5A"
+          iconColor={theme.colors.textSecondary}
           error={customerNameError}
           testID="input-customer-name"
           inputRef={customerNameRef}
@@ -441,7 +441,7 @@ export function CreateOrderScreen() {
           <RNText style={sectionTitleStyle}>Itens do Pedido</RNText>
 
           {menuLoading && (
-            <Text size="sm" color="#8B6B5A">
+            <Text size="sm" color={theme.colors.textSecondary}>
               Carregando cardápio...
             </Text>
           )}

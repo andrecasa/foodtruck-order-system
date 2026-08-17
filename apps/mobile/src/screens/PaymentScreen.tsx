@@ -118,7 +118,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   };
 
@@ -139,7 +139,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   };
 
   const itemsCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 14,
     boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.04)',
@@ -164,7 +164,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const methodsContainerStyle: ViewStyle = {
@@ -174,9 +174,9 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const paymentButtonStyle = (selected: boolean): ViewStyle => ({
     height: 44,
     borderRadius: 22,
-    backgroundColor: selected ? '#5A8C5A' : '#FFFFFF',
+    backgroundColor: selected ? theme.colors.success : theme.colors.surface,
     borderWidth: selected ? 0 : 1,
-    borderColor: selected ? 'transparent' : '#E8DDD5',
+    borderColor: selected ? 'transparent' : theme.colors.divider,
     alignItems: 'center',
     justifyContent: 'center',
   });
@@ -185,7 +185,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: selected ? '#FFFFFF' : theme.colors.text,
+    color: selected ? theme.colors.surface : theme.colors.text,
   });
 
   const errorContainerStyle: ViewStyle = {
@@ -219,6 +219,51 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           </RNText>
         </View>
 
+        {/* Origin indicator (read-only) */}
+        <View style={{
+          flexDirection: 'row',
+          height: 40,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: theme.colors.divider,
+          backgroundColor: theme.colors.surface,
+          overflow: 'hidden',
+          alignItems: 'center',
+          padding: 2,
+          opacity: 0.7,
+        }}>
+          <View style={{
+            flex: 1,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: order.origin === 'presencial' ? theme.colors.primary : 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <RNText style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: 13,
+              fontWeight: '400',
+              color: order.origin === 'presencial' ? theme.colors.surface : theme.colors.textSecondary,
+            }}>Presencial</RNText>
+          </View>
+          <View style={{
+            flex: 1,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: order.origin === 'whatsapp' ? theme.colors.primary : 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <RNText style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: 13,
+              fontWeight: '400',
+              color: order.origin === 'whatsapp' ? theme.colors.surface : theme.colors.textSecondary,
+            }}>WhatsApp</RNText>
+          </View>
+        </View>
+
         {/* Error Message */}
         {error ? (
           <View style={errorContainerStyle}>
@@ -244,9 +289,9 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               style={{
                 height: 44,
                 borderRadius: 22,
-                backgroundColor: '#FFFFFF',
+                backgroundColor: theme.colors.surface,
                 borderWidth: 1,
-                borderColor: '#E8DDD5',
+                borderColor: theme.colors.divider,
                 flexDirection: 'row',
                 gap: 6,
                 alignItems: 'center',
@@ -308,7 +353,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                     fontFamily: theme.typography.fontFamily,
                     fontSize: 14,
                     fontWeight: '400',
-                    color: '#7B2D2D',
+                    color: theme.colors.primary,
                   }}
                 >
                   {PAYMENT_METHODS.find((m) => m.value === order.paymentMethod)?.label ?? 'Pago'}
@@ -320,7 +365,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 fontFamily: theme.typography.fontFamily,
                 fontSize: 12,
                 fontWeight: '400',
-                color: '#5A8C5A',
+                color: theme.colors.success,
                 textAlign: 'center',
                 marginTop: 16,
               }}
@@ -357,7 +402,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               style={{
                 height: 44,
                 borderRadius: 22,
-                backgroundColor: !selectedMethod ? '#E8DDD5' : theme.colors.primary,
+                backgroundColor: !selectedMethod ? theme.colors.divider : theme.colors.primary,
                 alignItems: 'center',
                 justifyContent: 'center',
                 alignSelf: 'stretch',
@@ -374,7 +419,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                   fontFamily: theme.typography.fontFamily,
                   fontSize: 14,
                   fontWeight: '400',
-                  color: !selectedMethod ? '#9E9E9E' : '#FFFFFF',
+                  color: !selectedMethod ? theme.colors.textSecondary : theme.colors.surface,
                 }}
               >
                 Confirmar Pagamento

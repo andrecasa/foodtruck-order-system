@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text as RNText, TouchableOpacity, type ViewStyle, type TextStyle } from 'react-native';
 import { getPortugueseMonthName } from '../utils/format';
+import { useTheme } from '../theme';
 
 export interface DateSelectorProps {
   year: number;
@@ -20,8 +21,23 @@ export interface DateSelectorProps {
  * - Format: "[Mês] [Ano]" (e.g., "Agosto 2026")
  */
 export function DateSelector({ year, month, onPrevious, onNext }: DateSelectorProps) {
+  const theme = useTheme();
   const monthName = getPortugueseMonthName(month);
   const label = `${monthName} ${year}`;
+
+  const chevronStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 24,
+    color: theme.colors.primary,
+  };
+
+  const monthTextStyle: TextStyle = {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.text,
+    textAlign: 'center',
+  };
 
   return (
     <View style={containerStyle} testID="date-selector">
@@ -55,18 +71,4 @@ const containerStyle: ViewStyle = {
   alignItems: 'center',
   justifyContent: 'space-between',
   width: '100%',
-};
-
-const chevronStyle: TextStyle = {
-  fontFamily: 'Material Symbols Outlined',
-  fontSize: 24,
-  color: '#7B2D2D',
-};
-
-const monthTextStyle: TextStyle = {
-  flex: 1,
-  fontSize: 16,
-  fontWeight: '500',
-  color: '#3D2020',
-  textAlign: 'center',
 };

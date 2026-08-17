@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { Screen, ScrollContainer, Header } from '../components/Layout';
 import { Text } from '../components/Typography';
+import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
 import type { MenuItem, Order } from '@order-system/shared';
@@ -79,6 +80,8 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   const router = useRouter();
 
   // Form state
+  const [customerName, setCustomerName] = useState(order.customerName);
+  const [origin, setOrigin] = useState<'presencial' | 'whatsapp'>(order.origin);
   const [selectedItems, setSelectedItems] = useState<SelectedItems>({});
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
@@ -176,7 +179,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
 
     try {
       setLoading(true);
-      const updatedOrder = await apiClient.updateOrderItems(orderId, { items });
+      const updatedOrder = await apiClient.updateOrderItems(orderId, { items, customerName: customerName.trim(), origin });
       // Navigate back to PaymentScreen with updated order data (replace to avoid stale edit screen in stack)
       router.replace({ pathname: '/(tabs)/payment', params: { orderId: updatedOrder.id } });
     } catch (err) {
@@ -201,6 +204,35 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     color: theme.colors.text,
   };
 
+  const originSelectorStyle: ViewStyle = {
+    flexDirection: 'row',
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+    backgroundColor: theme.colors.surface,
+    overflow: 'hidden',
+    alignItems: 'center',
+    padding: 2,
+    marginTop: 8,
+  };
+
+  const originTabStyle = (selected: boolean): ViewStyle => ({
+    flex: 1,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: selected ? theme.colors.primary : 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  });
+
+  const originTabTextStyle = (selected: boolean): TextStyle => ({
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 13,
+    fontWeight: '400',
+    color: selected ? theme.colors.surface : theme.colors.textSecondary,
+  });
+
   const categoryLabelStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 13,
@@ -211,7 +243,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   };
 
   const itemsCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 10,
     paddingHorizontal: 14,
@@ -259,7 +291,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     borderRadius: 14,
     backgroundColor: theme.colors.background,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     alignItems: 'center',
     justifyContent: 'center',
   };
@@ -268,7 +300,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: qty <= 0 ? '#E8DDD5' : theme.colors.text,
+    color: qty <= 0 ? theme.colors.divider : theme.colors.text,
   });
 
   const stepperPlusStyle: ViewStyle = {
@@ -284,7 +316,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   const quantityTextStyle: TextStyle = {
@@ -341,10 +373,10 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   if (menuLoading) {
     return (
       <Screen padding={false}>
-        <Header title="Salvar" icon="edit" />
+        <Header title="Salvar" onBack={() => router.back()} />
         <View style={centerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
-          <Text size="sm" color="#8B6B5A" style={{ marginTop: 12 }}>
+          <Text size="sm" color={theme.colors.textSecondary} style={{ marginTop: 12 }}>
             Carregando cardápio...
           </Text>
         </View>
@@ -356,7 +388,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   if (menuError) {
     return (
       <Screen padding={false}>
-        <Header title="Salvar" icon="edit" />
+        <Header title="Salvar" onBack={() => router.back()} />
         <View style={centerStyle}>
           <RNText style={{ ...errorTextStyle, fontSize: 14 }} testID="menu-error">
             {menuError}
@@ -369,9 +401,47 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   return (
     <Screen padding={false}>
       {/* AppBar */}
-      <Header title="Salvar" icon="edit" />
+      <Header title="Salvar" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
+        {/* Customer Name */}
+        <Input
+          accessibilityLabel="Nome do Cliente"
+          value={customerName}
+          onChangeText={(text) => setCustomerName(text.slice(0, 100))}
+          placeholder="Nome do cliente..."
+          icon="person"
+          iconColor="#8B6B5A"
+          testID="input-customer-name"
+        />
+
+        {/* Origin Selector */}
+        <View>
+          <RNText style={sectionTitleStyle}>Origem do Pedido</RNText>
+          <View style={originSelectorStyle}>
+            <TouchableOpacity
+              style={originTabStyle(origin === 'presencial')}
+              onPress={() => setOrigin('presencial')}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: origin === 'presencial' }}
+              accessibilityLabel="Presencial"
+              testID="origin-presencial"
+            >
+              <RNText style={originTabTextStyle(origin === 'presencial')}>Presencial</RNText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={originTabStyle(origin === 'whatsapp')}
+              onPress={() => setOrigin('whatsapp')}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: origin === 'whatsapp' }}
+              accessibilityLabel="WhatsApp"
+              testID="origin-whatsapp"
+            >
+              <RNText style={originTabTextStyle(origin === 'whatsapp')}>WhatsApp</RNText>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Menu Items Selection */}
         <View>
           <RNText style={sectionTitleStyle}>Itens do Pedido</RNText>

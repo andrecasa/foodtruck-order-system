@@ -150,20 +150,22 @@ export function Input({
   const inputWrapperStyle: ViewStyle = {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: backgroundColor ?? '#FFFFFF',
+    backgroundColor: backgroundColor ?? theme.colors.surface,
     borderWidth: 1,
-    borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : '#E8DDD5',
+    borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : theme.colors.divider,
     borderRadius: 24,
     height: 52,
     paddingHorizontal: 16,
     gap: 10,
+    // @ts-expect-error — outlineStyle is web-only, not in RN types
+    outlineStyle: 'none',
   };
 
   const iconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
     fontWeight: '400',
-    color: iconColor ?? '#8B6B5A',
+    color: iconColor ?? theme.colors.textSecondary,
   };
 
   const inputStyle: TextStyle = {
@@ -182,7 +184,7 @@ export function Input({
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const errorStyle: TextStyle = {
@@ -219,7 +221,7 @@ export function Input({
           value={value}
           onChangeText={handleChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#8B6B5A"
+          placeholderTextColor={theme.colors.textSecondary}
           editable={!disabled}
           keyboardType={resolvedKeyboardType}
           secureTextEntry={showPasswordToggle ? !passwordVisible : secureTextEntry}

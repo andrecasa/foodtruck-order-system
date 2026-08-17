@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, type TextStyle, type ViewStyle } from 'react-native';
+import { useTheme } from '../theme';
 
 export interface DateChipProps {
   day: number;
@@ -23,7 +24,33 @@ export interface DateChipProps {
  * - Calendar icon: white, 16px
  */
 export function DateChip({ day, month, year, onPress }: DateChipProps) {
+  const theme = useTheme();
   const dateText = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+
+  const containerStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 34,
+    borderRadius: 15,
+    backgroundColor: theme.colors.primary,
+    alignSelf: 'flex-end',
+  };
+
+  const dateTextStyle: TextStyle = {
+    fontSize: 13,
+    fontWeight: '400',
+    color: theme.colors.surface,
+  };
+
+  const calendarIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 18,
+    fontWeight: '400',
+    color: theme.colors.surface,
+  };
 
   return (
     <TouchableOpacity
@@ -41,28 +68,3 @@ export function DateChip({ day, month, year, onPress }: DateChipProps) {
     </TouchableOpacity>
   );
 }
-
-const containerStyle: ViewStyle = {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 6,
-  paddingHorizontal: 12,
-  height: 34,
-  borderRadius: 15,
-  backgroundColor: '#7B2D2D',
-  alignSelf: 'flex-end',
-};
-
-const dateTextStyle: TextStyle = {
-  fontSize: 13,
-  fontWeight: '400',
-  color: '#FFFFFF',
-};
-
-const calendarIconStyle: TextStyle = {
-  fontFamily: 'Material Symbols Outlined',
-  fontSize: 18,
-  fontWeight: '400',
-  color: '#FFFFFF',
-};

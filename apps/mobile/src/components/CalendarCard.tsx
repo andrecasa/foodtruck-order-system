@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, type ViewStyle, type TextStyle } from 'react-native';
 import { generateCalendarGrid } from '../utils/calendar';
+import { useTheme } from '../theme';
 
 export interface CalendarCardProps {
   year: number;
@@ -29,8 +30,29 @@ const WEEKDAY_HEADERS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
  * - Only days with orders are clickable (except when allDaysTappable)
  */
 export function CalendarCard({ year, month, selectedDay, daysWithOrders, onDayPress, allDaysTappable = false }: CalendarCardProps) {
+  const theme = useTheme();
   const grid = generateCalendarGrid(year, month);
   const ordersSet = new Set(daysWithOrders);
+
+  const cardStyle: ViewStyle = {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+    width: '100%',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  };
+
+  const headerTextStyle: TextStyle = {
+    fontSize: 11,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  };
 
   return (
     <View style={cardStyle} testID="calendar-card">
@@ -54,6 +76,7 @@ export function CalendarCard({ year, month, selectedDay, daysWithOrders, onDayPr
               hasOrders={day !== null && ordersSet.has(day)}
               isTappable={allDaysTappable || (day !== null && ordersSet.has(day))}
               onPress={onDayPress}
+              theme={theme}
             />
           ))}
         </View>
@@ -68,12 +91,39 @@ interface DayCellProps {
   hasOrders: boolean;
   isTappable: boolean;
   onPress: (day: number) => void;
+  theme: ReturnType<typeof useTheme>;
 }
 
-function DayCell({ day, isSelected, hasOrders, isTappable, onPress }: DayCellProps) {
+function DayCell({ day, isSelected, hasOrders, isTappable, onPress, theme }: DayCellProps) {
   if (day === null) {
     return <View style={dayCellStyle} />;
   }
+
+  const dayTextStyle: TextStyle = {
+    fontSize: 13,
+    fontWeight: '400',
+    color: theme.colors.text,
+  };
+
+  const selectedCircleStyle: ViewStyle = {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: theme.colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const ordersCircleStyle: ViewStyle = {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: theme.colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
 
   // Selected day: green circle outline, dark text
   if (isSelected) {
@@ -138,19 +188,6 @@ function DayCell({ day, isSelected, hasOrders, isTappable, onPress }: DayCellPro
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
-const cardStyle: ViewStyle = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  padding: 12,
-  gap: 4,
-  width: '100%',
-  shadowColor: '#000000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.2,
-  shadowRadius: 3,
-  elevation: 2,
-};
-
 const weekRowStyle: ViewStyle = {
   flexDirection: 'row',
 };
@@ -162,45 +199,12 @@ const headerCellStyle: ViewStyle = {
   justifyContent: 'center',
 };
 
-const headerTextStyle: TextStyle = {
-  fontSize: 11,
-  fontWeight: '500',
-  color: '#8B6B5A',
-  textAlign: 'center',
-};
-
 const dayCellStyle: ViewStyle = {
   flex: 1,
   height: 40,
   alignItems: 'center',
   justifyContent: 'flex-start',
   paddingTop: 4,
-};
-
-const selectedCircleStyle: ViewStyle = {
-  width: 30,
-  height: 30,
-  borderRadius: 15,
-  borderWidth: 1,
-  borderColor: '#598C59',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const ordersCircleStyle: ViewStyle = {
-  width: 30,
-  height: 30,
-  borderRadius: 15,
-  borderWidth: 1,
-  borderColor: '#D4812B',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const dayTextStyle: TextStyle = {
-  fontSize: 13,
-  fontWeight: '400',
-  color: '#3D2020',
 };
 
 const plainCirclePlaceholder: ViewStyle = {

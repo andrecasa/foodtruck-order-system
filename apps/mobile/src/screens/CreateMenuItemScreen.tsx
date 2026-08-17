@@ -198,7 +198,7 @@ export function CreateMenuItemScreen() {
     paddingHorizontal: 16,
     height: 56,
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
@@ -211,7 +211,7 @@ export function CreateMenuItemScreen() {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   // Title: Inter 18px weight 400, color #3D2020, flex 1, centered
@@ -244,9 +244,9 @@ export function CreateMenuItemScreen() {
   // Input container: height 52, bg #FFFFFF, border 1px #E8DDD5, borderRadius 24, paddingHorizontal 16, row, alignItems center
   const inputContainerStyle: ViewStyle = {
     height: 52,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     borderRadius: 24,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -291,7 +291,7 @@ export function CreateMenuItemScreen() {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
 
@@ -307,10 +307,10 @@ export function CreateMenuItemScreen() {
 
   // Category picker dropdown
   const categoryDropdownStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     marginTop: 4,
     overflow: 'hidden',
   };
@@ -320,7 +320,7 @@ export function CreateMenuItemScreen() {
     paddingHorizontal: 16,
     justifyContent: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F0EB',
+    borderBottomColor: theme.colors.divider,
   };
 
   const categoryOptionTextStyle = (selected: boolean): TextStyle => ({
@@ -372,7 +372,7 @@ export function CreateMenuItemScreen() {
               fontFamily: theme.typography.fontFamily,
               fontSize: 14,
               fontWeight: '400',
-              color: '#8B6B5A',
+              color: theme.colors.textSecondary,
               textAlign: 'center',
               marginTop: 8,
             }}
@@ -468,6 +468,7 @@ export function CreateMenuItemScreen() {
               placeholder="Ex: Pastel de Frango"
               testID="input-item-name"
               accessibilityLabel="Nome do item"
+              color={theme.colors.text}
             />
           </View>
           {nameError ? (
@@ -488,6 +489,7 @@ export function CreateMenuItemScreen() {
               keyboardType="numeric"
               testID="input-item-price"
               accessibilityLabel="Preço"
+              color={theme.colors.text}
             />
           </View>
           {priceError ? (
@@ -525,6 +527,7 @@ interface InputInlineProps {
   keyboardType?: TextInputProps['keyboardType'];
   testID?: string;
   accessibilityLabel?: string;
+  color: string;
 }
 
 /**
@@ -535,7 +538,7 @@ interface InputInlineProps {
  */
 const InputInline = React.forwardRef<TextInput, InputInlineProps>(
   function InputInline(
-    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel },
+    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color },
     ref,
   ) {
     return (
@@ -546,7 +549,7 @@ const InputInline = React.forwardRef<TextInput, InputInlineProps>(
           fontFamily: 'Inter',
           fontSize: 14,
           fontWeight: '400',
-          color: '#3D2020',
+          color: color,
           paddingVertical: 0,
           height: 52,
         }}

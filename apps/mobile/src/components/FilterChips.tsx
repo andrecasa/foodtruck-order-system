@@ -62,7 +62,7 @@ export function FilterChips({ options, selected, onSelectionChange, testID }: Fi
           paddingHorizontal: 12,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: isActive ? option.color + '1F' : '#FFFFFF', // 1F = ~12% opacity
+          backgroundColor: isActive ? option.color + '1F' : theme.colors.surface, // 1F = ~12% opacity
           borderWidth: isActive ? 0 : 1,
           borderColor: isActive ? undefined : theme.colors.divider,
         };

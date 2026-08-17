@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, type TextStyle, type ViewStyle } from 'react-native';
 import { formatPrice } from '../utils/format';
+import { useTheme } from '../theme';
 
 export interface MonthlySummaryCardProps {
   monthName: string;       // Portuguese month name
@@ -43,36 +44,57 @@ export function MonthlySummaryCard({
   totalReceived,
   totalPending,
 }: MonthlySummaryCardProps) {
+  const theme = useTheme();
+
   const subCards: SubCardConfig[] = [
     {
       label: 'Pedidos',
       icon: 'receipt_long',
-      color: '#7B2D2D',
-      backgroundColor: '#FDF8F4',
+      color: theme.colors.primary,
+      backgroundColor: theme.colors.surfacePrimary,
       value: String(totalOrders),
     },
     {
       label: 'Faturamento',
       icon: 'payments',
-      color: '#D4812B',
-      backgroundColor: '#FFF8F0',
+      color: theme.colors.secondary,
+      backgroundColor: theme.colors.surfaceRevenue,
       value: formatPrice(totalRevenue),
     },
     {
       label: 'Recebido',
       icon: 'check_circle',
-      color: '#2E7D32',
-      backgroundColor: '#F0F8F0',
+      color: theme.colors.received,
+      backgroundColor: theme.colors.surfaceReceived,
       value: formatPrice(totalReceived),
     },
     {
       label: 'Pendente',
       icon: 'schedule',
-      color: '#C62828',
-      backgroundColor: '#FEF2F2',
+      color: theme.colors.pending,
+      backgroundColor: theme.colors.surfacePending,
       value: formatPrice(totalPending),
     },
   ];
+
+  const titleIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: 20,
+    color: theme.colors.primary,
+  };
+
+  const titleTextStyle: TextStyle = {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.text,
+  };
+
+  const cardStyle: ViewStyle = {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+  };
 
   return (
     <View style={cardStyle}>
@@ -85,19 +107,19 @@ export function MonthlySummaryCard({
       {/* Sub-cards grid: 2 rows of 2 */}
       <View style={gridContainerStyle}>
         <View style={rowStyle}>
-          {subCards[0] && <SubCard config={subCards[0]} />}
-          {subCards[1] && <SubCard config={subCards[1]} />}
+          {subCards[0] && <SubCard config={subCards[0]} theme={theme} />}
+          {subCards[1] && <SubCard config={subCards[1]} theme={theme} />}
         </View>
         <View style={rowStyle}>
-          {subCards[2] && <SubCard config={subCards[2]} />}
-          {subCards[3] && <SubCard config={subCards[3]} />}
+          {subCards[2] && <SubCard config={subCards[2]} theme={theme} />}
+          {subCards[3] && <SubCard config={subCards[3]} theme={theme} />}
         </View>
       </View>
     </View>
   );
 }
 
-function SubCard({ config }: { config: SubCardConfig }) {
+function SubCard({ config, theme }: { config: SubCardConfig; theme: ReturnType<typeof useTheme> }) {
   const { label, icon, color, backgroundColor, value } = config;
 
   const subCardStyle: ViewStyle = {
@@ -136,7 +158,7 @@ function SubCard({ config }: { config: SubCardConfig }) {
   const labelStyle: TextStyle = {
     fontSize: 10,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   return (
@@ -156,29 +178,10 @@ function SubCard({ config }: { config: SubCardConfig }) {
 
 // Static styles
 
-const cardStyle: ViewStyle = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  padding: 14,
-  gap: 12,
-};
-
 const titleRowStyle: ViewStyle = {
   flexDirection: 'row',
   alignItems: 'center',
   gap: 6,
-};
-
-const titleIconStyle: TextStyle = {
-  fontFamily: 'Material Symbols Outlined',
-  fontSize: 20,
-  color: '#7B2D2D',
-};
-
-const titleTextStyle: TextStyle = {
-  fontSize: 14,
-  fontWeight: '500',
-  color: '#3D2020',
 };
 
 const gridContainerStyle: ViewStyle = {

@@ -73,7 +73,7 @@ export function Modal({
   };
 
   const containerStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -112,13 +112,13 @@ export function Modal({
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   const cancelButtonStyle: ViewStyle = {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#8B6B5A',
+    borderColor: theme.colors.textSecondary,
     borderRadius: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -130,7 +130,7 @@ export function Modal({
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   return (

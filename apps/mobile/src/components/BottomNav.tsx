@@ -40,7 +40,7 @@ export function BottomNav() {
   const containerStyle: ViewStyle = {
     height: 56 + insets.bottom,
     paddingBottom: insets.bottom,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -57,7 +57,7 @@ export function BottomNav() {
           pathname === item.route ||
           pathname === item.route.replace('/(tabs)', '');
 
-        const color = isActive ? theme.colors.primary : '#8B6B5A';
+        const color = isActive ? theme.colors.primary : theme.colors.textSecondary;
 
         const itemStyle: ViewStyle = {
           alignItems: 'center',

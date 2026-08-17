@@ -15,33 +15,11 @@ import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
+import { withOpacity } from '../utils/color';
 import { apiClient } from '../services/api-client';
 import type { User, UserRole } from '../types/user';
 
-// ─── Filter chip options (role-based, no "todos") ───────────────────────────
-// Penpot: Admin (#7B2D2D), Atendente (#5B8BA8), Preparador (#5A8C5A)
-
-const FILTER_OPTIONS: FilterChipOption[] = [
-  { key: 'admin', label: 'Admin', color: '#7B2D2D' },
-  { key: 'atendente', label: 'Atendente', color: '#5B8BA8' },
-  { key: 'preparador', label: 'Preparador', color: '#5A8C5A' },
-];
-
-// ─── Role badge colors (transparent background, colored text) ───────────────
-// Penpot: admin=#7B2D2D, atendente=#5B8BA8 (steel blue), preparador=#5A8C5A (sage green)
-
-const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-  admin: '#7B2D2D',
-  atendente: '#5B8BA8',
-  preparador: '#5A8C5A',
-};
-
-// Transparent badge backgrounds (12% opacity of role color)
-const ROLE_BADGE_BG_COLORS: Record<UserRole, string> = {
-  admin: 'rgba(123, 45, 45, 0.12)',
-  atendente: 'rgba(91, 139, 168, 0.12)',
-  preparador: 'rgba(90, 140, 90, 0.12)',
-};
+// ─── Role labels (no colors — stays at module level) ────────────────────────
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
@@ -66,6 +44,26 @@ export function UsersListScreen() {
   const theme = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
+
+  // ─── Color constants (theme-based) ──────────────────────────────────────────
+
+  const FILTER_OPTIONS: FilterChipOption[] = [
+    { key: 'admin', label: 'Admin', color: theme.colors.primary },
+    { key: 'atendente', label: 'Atendente', color: theme.colors.preparando },
+    { key: 'preparador', label: 'Preparador', color: theme.colors.success },
+  ];
+
+  const ROLE_BADGE_COLORS: Record<UserRole, string> = {
+    admin: theme.colors.primary,
+    atendente: theme.colors.preparando,
+    preparador: theme.colors.success,
+  };
+
+  const ROLE_BADGE_BG_COLORS: Record<UserRole, string> = {
+    admin: withOpacity(theme.colors.primary, 0.12),
+    atendente: withOpacity(theme.colors.preparando, 0.12),
+    preparador: withOpacity(theme.colors.success, 0.12),
+  };
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +131,7 @@ export function UsersListScreen() {
   // AppBar: height 56, bg white, flex row, paddingHorizontal 16, gap 12, alignItems center
   const appBarStyle: ViewStyle = {
     height: 56,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
@@ -143,14 +141,14 @@ export function UsersListScreen() {
   const backIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const titleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
     flex: 1,
     textAlign: 'center',
   };
@@ -166,10 +164,10 @@ export function UsersListScreen() {
   // User card: white bg, borderRadius 12, border 1px #E8DDD5, height 90
   // flex row, alignItems center, justifyContent space-between, paddingHorizontal 16
   const userCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     height: 90,
     flexDirection: 'row',
     alignItems: 'center',
@@ -199,7 +197,7 @@ export function UsersListScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '500',
-    color: '#3D2020',
+    color: theme.colors.text,
     marginTop: 5,
   };
 
@@ -208,7 +206,7 @@ export function UsersListScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   // Meta section: flex column, gap 4, alignItems end
@@ -220,9 +218,9 @@ export function UsersListScreen() {
 
   // "Novo Usuário" button: full width, height 44, borderRadius 22, white bg, border 1px #E8DDD5
   const novoUsuarioBtnStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     borderRadius: 22,
     height: 44,
     flexDirection: 'row',
@@ -235,14 +233,14 @@ export function UsersListScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const novoUsuarioTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   // Loading/Error/Empty state styles
@@ -313,7 +311,7 @@ export function UsersListScreen() {
             style={{
               fontFamily: theme.typography.fontFamily,
               fontSize: 14,
-              color: '#8B6B5A',
+              color: theme.colors.textSecondary,
               marginTop: 8,
             }}
           >
@@ -350,7 +348,7 @@ export function UsersListScreen() {
             style={{
               fontFamily: theme.typography.fontFamily,
               fontSize: 14,
-              color: '#8B6B5A',
+              color: theme.colors.textSecondary,
               textAlign: 'center',
             }}
           >

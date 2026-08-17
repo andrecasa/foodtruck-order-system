@@ -141,12 +141,12 @@ export function DailySummaryScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const gridContainerStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
     padding: 14,
     gap: 10,
   };
@@ -154,14 +154,14 @@ export function DailySummaryScreen() {
   const rowStyle: ViewStyle = { flexDirection: 'row', gap: 10 };
 
   const paymentCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 4,
   };
 
   const ctaButtonStyle: ViewStyle = {
-    backgroundColor: '#7B2D2D',
+    backgroundColor: theme.colors.primary,
     borderRadius: 22,
     height: 44,
     alignItems: 'center',
@@ -172,7 +172,7 @@ export function DailySummaryScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ export function DailySummaryScreen() {
         <Header title="Resumo do Dia" onBack={() => router.back()} />
         <View style={loadingContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
-          <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: '#8B6B5A', marginTop: 8 }}>
+          <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: theme.colors.textSecondary, marginTop: 8 }}>
             Carregando...
           </RNText>
         </View>
@@ -229,12 +229,12 @@ export function DailySummaryScreen() {
         {/* Sub-cards grid 2x2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>
-            <SubCard icon="receipt_long" color="#7B2D2D" backgroundColor="#FDF8F4" value={String(summary?.totalOrders ?? 0)} label="Pedidos" />
-            <SubCard icon="payments" color="#D4812B" backgroundColor="#FFF8F0" value={formatPrice(totalRevenue)} label="Faturamento" />
+            <SubCard icon="receipt_long" color={theme.colors.primary} backgroundColor={theme.colors.surfacePrimary} value={String(summary?.totalOrders ?? 0)} label="Pedidos" labelColor={theme.colors.textSecondary} />
+            <SubCard icon="payments" color={theme.colors.revenue} backgroundColor={theme.colors.surfaceRevenue} value={formatPrice(totalRevenue)} label="Faturamento" labelColor={theme.colors.textSecondary} />
           </View>
           <View style={rowStyle}>
-            <SubCard icon="check_circle" color="#2E7D32" backgroundColor="#F0F8F0" value={formatPrice(summary?.paidTotal ?? 0)} label="Recebido" />
-            <SubCard icon="schedule" color="#C62828" backgroundColor="#FEF2F2" value={formatPrice(summary?.pendingTotal ?? 0)} label="Pendente" />
+            <SubCard icon="check_circle" color={theme.colors.received} backgroundColor={theme.colors.surfaceReceived} value={formatPrice(summary?.paidTotal ?? 0)} label="Recebido" labelColor={theme.colors.textSecondary} />
+            <SubCard icon="schedule" color={theme.colors.pending} backgroundColor={theme.colors.surfacePending} value={formatPrice(summary?.pendingTotal ?? 0)} label="Pendente" labelColor={theme.colors.textSecondary} />
           </View>
         </View>
 
@@ -242,9 +242,9 @@ export function DailySummaryScreen() {
         <RNText style={sectionTitleStyle}>Formas de Pagamento</RNText>
 
         <View style={paymentCardStyle}>
-          <PaymentRow icon="qr_code" iconColor="#5A8C5A" label="PIX" value={formatPrice(summary?.byPaymentMethod.pix ?? 0)} />
-          <PaymentRow icon="credit_card" iconColor="#5B8BA8" label="Cartão" value={formatPrice(summary?.byPaymentMethod['cartão'] ?? 0)} />
-          <PaymentRow icon="payments" iconColor="#7B2D2D" label="Dinheiro" value={formatPrice(summary?.byPaymentMethod.dinheiro ?? 0)} />
+          <PaymentRow icon="qr_code" iconColor={theme.colors.success} label="PIX" value={formatPrice(summary?.byPaymentMethod.pix ?? 0)} textColor={theme.colors.primary} />
+          <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão" value={formatPrice(summary?.byPaymentMethod['cartão'] ?? 0)} textColor={theme.colors.primary} />
+          <PaymentRow icon="payments" iconColor={theme.colors.primary} label="Dinheiro" value={formatPrice(summary?.byPaymentMethod.dinheiro ?? 0)} textColor={theme.colors.primary} />
         </View>
 
         {/* CTA: Acumulado do Mês */}
@@ -289,9 +289,10 @@ interface SubCardProps {
   backgroundColor: string;
   value: string;
   label: string;
+  labelColor: string;
 }
 
-function SubCard({ icon, color, backgroundColor, value, label }: SubCardProps) {
+function SubCard({ icon, color, backgroundColor, value, label, labelColor }: SubCardProps) {
   const subCardStyle: ViewStyle = {
     flex: 1,
     flexDirection: 'row',
@@ -320,7 +321,7 @@ function SubCard({ icon, color, backgroundColor, value, label }: SubCardProps) {
       </View>
       <View style={{ flex: 1 }}>
         <RNText style={{ fontSize: 15, fontWeight: '600', color }} numberOfLines={1}>{value}</RNText>
-        <RNText style={{ fontSize: 10, fontWeight: '400', color: '#8B6B5A' }}>{label}</RNText>
+        <RNText style={{ fontSize: 10, fontWeight: '400', color: labelColor }}>{label}</RNText>
       </View>
     </View>
   );
@@ -331,16 +332,17 @@ interface PaymentRowProps {
   iconColor: string;
   label: string;
   value: string;
+  textColor: string;
 }
 
-function PaymentRow({ icon, iconColor, label, value }: PaymentRowProps) {
+function PaymentRow({ icon, iconColor, label, value, textColor }: PaymentRowProps) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', height: 44, gap: 12 }}>
       <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: iconColor + '1F', alignItems: 'center', justifyContent: 'center' }}>
         <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16, color: iconColor }}>{icon}</RNText>
       </View>
-      <RNText style={{ flex: 1, fontSize: 14, fontWeight: '400', color: '#3D2020' }}>{label}</RNText>
-      <RNText style={{ fontSize: 14, fontWeight: '600', color: '#3D2020' }}>{value}</RNText>
+      <RNText style={{ flex: 1, fontSize: 14, fontWeight: '400', color: textColor }}>{label}</RNText>
+      <RNText style={{ fontSize: 14, fontWeight: '600', color: textColor }}>{value}</RNText>
     </View>
   );
 }

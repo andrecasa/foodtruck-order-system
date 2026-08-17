@@ -65,7 +65,7 @@ export function PrototypeBanner({ hasHeader = true }: PrototypeBannerProps) {
     fontFamily: theme.typography.fontFamily,
     fontSize: 9,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
     letterSpacing: 1,
     lineHeight: 11, // ~1.2 * 9
   };

@@ -38,7 +38,7 @@ export function Toast({ message, visible, onDismiss, type = 'error' }: ToastProp
     fontFamily: theme.typography.fontFamily,
     fontSize: 13,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
     flex: 1,
   };
 
@@ -46,7 +46,7 @@ export function Toast({ message, visible, onDismiss, type = 'error' }: ToastProp
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
     marginLeft: 12,
     opacity: 0.8,
   };

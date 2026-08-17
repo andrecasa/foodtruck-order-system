@@ -38,11 +38,11 @@ export function Badge({ status, size = 'md', testID }: BadgeProps) {
       case 'pronto':
         return theme.colors.pronto + '1F'; // 12% opacity
       case 'entregue':
-        return '#8B6B5A' + '1F'; // 12% opacity
+        return theme.colors.textSecondary + '1F'; // 12% opacity
       case 'pago':
-        return '#F0F5EE';
+        return theme.colors.success + '1F'; // 12% opacity
       case 'pendente':
-        return '#FDF5EA';
+        return theme.colors.secondary + '1F'; // 12% opacity
     }
   };
 
@@ -55,11 +55,11 @@ export function Badge({ status, size = 'md', testID }: BadgeProps) {
       case 'pronto':
         return theme.colors.pronto;
       case 'entregue':
-        return '#8B6B5A';
+        return theme.colors.textSecondary;
       case 'pago':
-        return '#7B2D2D';
+        return theme.colors.primary;
       case 'pendente':
-        return '#D4812B';
+        return theme.colors.secondary;
     }
   };
 

@@ -131,7 +131,7 @@ export function CategoriesListScreen() {
 
   const appBarStyle: ViewStyle = {
     height: 56,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
@@ -143,7 +143,7 @@ export function CategoriesListScreen() {
   const backIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 24,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const titleStyle: TextStyle = {
@@ -151,7 +151,7 @@ export function CategoriesListScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 18,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
     textAlign: 'center',
   };
 
@@ -163,10 +163,10 @@ export function CategoriesListScreen() {
   };
 
   const categoryCardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -177,7 +177,7 @@ export function CategoriesListScreen() {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#F5F0EB',
+    backgroundColor: theme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   };
@@ -185,7 +185,7 @@ export function CategoriesListScreen() {
   const reorderIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 18,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const categoryInfoStyle: ViewStyle = {
@@ -198,11 +198,11 @@ export function CategoriesListScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '500',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const itemCountBadgeStyle: ViewStyle = {
-    backgroundColor: '#F5F0EB',
+    backgroundColor: theme.colors.background,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -213,7 +213,7 @@ export function CategoriesListScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 11,
     fontWeight: '400',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const actionsStyle: ViewStyle = {
@@ -223,9 +223,9 @@ export function CategoriesListScreen() {
   };
 
   const novaCategoriaButtonStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#E8DDD5',
+    borderColor: theme.colors.divider,
     borderRadius: 22,
     height: 44,
     flexDirection: 'row',
@@ -238,7 +238,7 @@ export function CategoriesListScreen() {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: '#3D2020',
+    color: theme.colors.text,
   };
 
   const centeredContainerStyle: ViewStyle = {
@@ -329,7 +329,7 @@ export function CategoriesListScreen() {
             style={{
               fontFamily: theme.typography.fontFamily,
               fontSize: 14,
-              color: '#8B6B5A',
+              color: theme.colors.textSecondary,
               marginTop: 8,
             }}
           >
@@ -366,7 +366,7 @@ export function CategoriesListScreen() {
             style={{
               fontFamily: theme.typography.fontFamily,
               fontSize: 14,
-              color: '#8B6B5A',
+              color: theme.colors.textSecondary,
               textAlign: 'center',
             }}
           >
@@ -392,7 +392,7 @@ export function CategoriesListScreen() {
             accessibilityHint="Navega para a tela de criação de categoria"
             testID="new-category-button"
           >
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '400', color: '#3D2020' }}>+</RNText>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '400', color: theme.colors.text }}>+</RNText>
             <RNText style={novaCategoriaTextStyle}>Adicionar</RNText>
           </Pressable>
         }

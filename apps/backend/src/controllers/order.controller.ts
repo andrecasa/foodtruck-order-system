@@ -166,7 +166,7 @@ export async function updateOrderItems(req: AuthenticatedRequest, res: Response)
     }
 
     const orderId = req.params.id as string;
-    const order = await orderService.updateOrderItems(orderId, parsed.data.items);
+    const order = await orderService.updateOrderItems(orderId, parsed.data.items, parsed.data.customerName, parsed.data.origin);
     res.status(200).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao atualizar itens do pedido.');

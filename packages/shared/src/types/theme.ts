@@ -12,12 +12,26 @@ export interface ThemeConfig {
     aguardando: string;
     preparando: string;
     pronto: string;
-    /** Text color for secondary/muted content. Defaults to #8B6B5A */
-    textSecondary?: string;
-    /** Card/surface background. Defaults to #FFFFFF */
-    surface?: string;
-    /** Border/separator color. Defaults to #E8DDD5 */
-    divider?: string;
+    /** Text color for secondary/muted content */
+    textSecondary: string;
+    /** Card/surface background */
+    surface: string;
+    /** Border/separator color */
+    divider: string;
+    /** Financial: received amount — dark green */
+    received: string;
+    /** Financial: pending amount — dark red */
+    pending: string;
+    /** Financial: revenue/faturamento — amber */
+    revenue: string;
+    /** Sub-card tinted background: primary tint */
+    surfacePrimary: string;
+    /** Sub-card tinted background: revenue/amber tint */
+    surfaceRevenue: string;
+    /** Sub-card tinted background: received/green tint */
+    surfaceReceived: string;
+    /** Sub-card tinted background: pending/red tint */
+    surfacePending: string;
   };
   typography: {
     fontFamily: string;

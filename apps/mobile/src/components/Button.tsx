@@ -60,7 +60,7 @@ export function Button({
   const isOutline = variant === 'outline';
 
   const getBackgroundColor = (): string => {
-    if (disabled) return '#E8DDD5';
+    if (disabled) return theme.colors.divider;
     if (isOutline) return 'transparent';
     if (color) return color;
     switch (variant) {
@@ -76,18 +76,18 @@ export function Button({
   };
 
   const getTextColor = (): string => {
-    if (disabled) return '#9E9E9E';
+    if (disabled) return theme.colors.divider;
     switch (variant) {
       case 'outline':
-        return color || '#8B6B5A';
+        return color || theme.colors.textSecondary;
       default:
-        return '#FFFFFF';
+        return theme.colors.surface;
     }
   };
 
   const getBorderColor = (): string => {
     if (disabled) return 'transparent';
-    if (variant === 'outline') return color || '#8B6B5A';
+    if (variant === 'outline') return color || theme.colors.textSecondary;
     return 'transparent';
   };
 
@@ -127,7 +127,7 @@ export function Button({
     fontWeight: '400', // Penpot: all sizes use weight 400
   };
 
-  const spinnerColor = variant === 'outline' ? '#8B6B5A' : '#FFFFFF';
+  const spinnerColor = variant === 'outline' ? theme.colors.textSecondary : theme.colors.surface;
 
   return (
     <TouchableOpacity

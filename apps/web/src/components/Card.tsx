@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../theme';
 
-export type CardVariant = 'default' | 'aguardando' | 'preparando' | 'pronto';
+export type CardVariant = 'default' | 'aguardando' | 'preparando' | 'pronto' | 'entregue';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -12,59 +12,69 @@ export interface CardProps {
 }
 
 /**
- * Card component — pixel-perfect match to Penpot Design System.
+ * Card component — pixel-perfect match to Penpot mobile card design.
  *
- * Penpot specs:
- * - background: gradient (transparent → 10% status color diagonal) + white base
- * - border-radius: 12px
- * - border: 1px solid <status-color> at 30% opacity (inner)
- * - padding: 16px
- * - gap: 12px (flex column)
- * - No shadow on status cards; default cards have subtle shadow
+ * Uses theme colors for the status sidebar strip.
+ * - Layout: row (sidebar strip 5px + content area)
+ * - Sidebar strip: 5px wide, status color, borderRadius TL/BL 14px
+ * - Content area: padding 12px, gap 10px, flex column
+ * - Width: 300px fixed
  */
 export function Card({ children, variant = 'default', onClick, className, ariaLabel }: CardProps) {
   const theme = useTheme();
 
-  const getStatusColor = (): string | null => {
+  const getStatusColor = (): string => {
     switch (variant) {
       case 'aguardando': return theme.colors.aguardando;
       case 'preparando': return theme.colors.preparando;
       case 'pronto': return theme.colors.pronto;
-      default: return null;
+      case 'entregue': return theme.colors.entregue;
+      default: return theme.colors.divider;
     }
   };
 
   const statusColor = getStatusColor();
 
-  // Convert hex color to rgba at given opacity
-  const hexToRgba = (hex: string, opacity: number): string => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  const cardStyle: React.CSSProperties = {
+    background: theme.colors.surface,
+    borderRadius: '14px',
+    display: 'flex',
+    flexDirection: 'row',
+    overflow: 'hidden',
+    flex: '1 1 250px',
+    maxWidth: '300px',
+    minWidth: '250px',
+    cursor: onClick ? 'pointer' : 'default',
+    boxSizing: 'border-box',
   };
 
-  const borderColor = statusColor
-    ? hexToRgba(statusColor, 0.3) // 30% opacity
-    : '#E8DDD5'; // warm beige divider
+  const sidebarStyle: React.CSSProperties = {
+    width: '5px',
+    minWidth: '5px',
+    backgroundColor: statusColor,
+    borderTopLeftRadius: '14px',
+    borderBottomLeftRadius: '14px',
+    flexShrink: 0,
+    alignSelf: 'stretch',
+  };
 
-  const background = statusColor
-    ? `linear-gradient(135deg, rgba(255,255,255,0) 0%, ${hexToRgba(statusColor, 0.1)} 100%), #FFFFFF`
-    : '#FFFFFF';
-
-  const style: React.CSSProperties = {
-    background,
-    borderRadius: '12px',
-    padding: '16px',
-    border: `1px solid ${borderColor}`,
-    boxShadow: variant === 'default' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-    cursor: onClick ? 'pointer' : 'default',
+  const contentStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
-    position: 'relative',
-    overflow: 'hidden',
+    gap: '10px',
+    padding: '12px',
+    flex: 1,
+    minWidth: 0,
   };
+
+  const element = (
+    <div style={cardStyle} className={className} aria-label={ariaLabel}>
+      <div style={sidebarStyle} aria-hidden="true" />
+      <div style={contentStyle}>
+        {children}
+      </div>
+    </div>
+  );
 
   if (onClick) {
     return (
@@ -73,14 +83,11 @@ export function Card({ children, variant = 'default', onClick, className, ariaLa
         tabIndex={0}
         onClick={onClick}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
-        style={style}
-        className={className}
-        aria-label={ariaLabel}
       >
-        {children}
+        {element}
       </div>
     );
   }
 
-  return <div style={style} className={className} aria-label={ariaLabel}>{children}</div>;
+  return element;
 }

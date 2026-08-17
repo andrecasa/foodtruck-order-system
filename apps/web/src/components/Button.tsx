@@ -44,7 +44,7 @@ export function Button({
   const theme = useTheme();
 
   const getBackgroundColor = (): string => {
-    if (disabled) return '#E8DDD5';
+    if (disabled) return theme.colors.divider;
     if (color) return color;
     switch (variant) {
       case 'primary': return theme.colors.primary;
@@ -55,17 +55,17 @@ export function Button({
   };
 
   const getTextColor = (): string => {
-    if (disabled) return '#9E9E9E';
+    if (disabled) return theme.colors.textSecondary;
     switch (variant) {
-      case 'outline': return color ? color : '#8B6B5A';
-      default: return '#FFFFFF';
+      case 'outline': return color ? color : theme.colors.textSecondary;
+      default: return theme.colors.surface;
     }
   };
 
   const style: React.CSSProperties = {
     backgroundColor: getBackgroundColor(),
     color: getTextColor(),
-    border: variant === 'outline' ? `1px solid ${disabled ? 'transparent' : (color || '#8B6B5A')}` : 'none',
+    border: variant === 'outline' ? `1px solid ${disabled ? 'transparent' : (color || theme.colors.textSecondary)}` : 'none',
     borderRadius: '20px',
     height: '40px',
     padding: '0 20px',

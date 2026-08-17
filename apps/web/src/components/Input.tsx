@@ -111,8 +111,8 @@ export function Input({
     fontSize: '14px',
     fontWeight: 400,
     color: disabled ? `${theme.colors.text}80` : theme.colors.text,
-    backgroundColor: disabled ? '#EEEEEE' : (error ? '#FFFFFF' : '#F5F5F5'),
-    border: error ? '1px solid #E91E63' : '1px solid transparent',
+    backgroundColor: disabled ? theme.colors.divider : theme.colors.surface,
+    border: error ? `1px solid ${theme.colors.error}` : `1px solid ${theme.colors.divider}`,
     borderRadius: '24px',
     paddingTop: '0',
     paddingBottom: '0',
@@ -130,7 +130,7 @@ export function Input({
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
     fontSize: `${theme.typography.sizes.xs}px`,
     fontWeight: 400,
-    color: '#E91E63',
+    color: theme.colors.error,
     marginTop: `${theme.spacing.xs}px`,
   };
 
@@ -154,12 +154,12 @@ export function Input({
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
         onFocus={(e) => {
-          e.currentTarget.style.backgroundColor = '#FFFFFF';
+          e.currentTarget.style.backgroundColor = theme.colors.surface;
           e.currentTarget.style.borderColor = theme.colors.primary;
         }}
         onBlur={(e) => {
-          e.currentTarget.style.backgroundColor = error ? '#FFFFFF' : '#F5F5F5';
-          e.currentTarget.style.borderColor = error ? '#E91E63' : 'transparent';
+          e.currentTarget.style.backgroundColor = theme.colors.surface;
+          e.currentTarget.style.borderColor = error ? theme.colors.error : theme.colors.divider;
         }}
       />
       {error ? (

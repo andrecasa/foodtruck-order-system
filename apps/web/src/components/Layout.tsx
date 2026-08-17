@@ -59,8 +59,8 @@ export function Header({ children, title, icon, rightElement }: HeaderProps) {
     justifyContent: 'space-between',
     padding: '0 24px',
     height: '56px',
-    backgroundColor: '#FFFFFF',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+    backgroundColor: theme.colors.surface,
+    boxShadow: 'none',
   };
 
   const leftStyle: React.CSSProperties = {
@@ -74,13 +74,13 @@ export function Header({ children, title, icon, rightElement }: HeaderProps) {
     fontFamily: '"Material Symbols Outlined"',
     fontSize: '24px',
     fontWeight: 400,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
   };
 
   const titleStyle: React.CSSProperties = {
     fontSize: '18px',
     fontWeight: 500,
-    color: '#3D2020',
+    color: theme.colors.text,
     margin: 0,
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
   };

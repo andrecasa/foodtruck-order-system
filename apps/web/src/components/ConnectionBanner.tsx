@@ -33,7 +33,7 @@ export function ConnectionBanner({ status }: ConnectionBannerProps) {
     gap: '8px',
     padding: '8px 16px',
     backgroundColor: theme.colors.error,
-    color: '#FFFFFF',
+    color: theme.colors.surface,
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
     fontSize: '14px',
     fontWeight: 500,
@@ -42,7 +42,7 @@ export function ConnectionBanner({ status }: ConnectionBannerProps) {
 
   const iconStyle: React.CSSProperties = {
     fontSize: '18px',
-    color: '#FFFFFF',
+    color: theme.colors.surface,
   };
 
   return (

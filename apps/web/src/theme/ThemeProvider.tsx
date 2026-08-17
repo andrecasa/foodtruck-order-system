@@ -28,6 +28,10 @@ function applyCSSVariables(theme: ThemeConfig): void {
   root.setProperty('--color-aguardando', theme.colors.aguardando);
   root.setProperty('--color-preparando', theme.colors.preparando);
   root.setProperty('--color-pronto', theme.colors.pronto);
+  root.setProperty('--color-entregue', theme.colors.entregue);
+  root.setProperty('--color-text-secondary', theme.colors.textSecondary);
+  root.setProperty('--color-surface', theme.colors.surface);
+  root.setProperty('--color-divider', theme.colors.divider);
 
   // Typography
   root.setProperty('--font-family', theme.typography.fontFamily);

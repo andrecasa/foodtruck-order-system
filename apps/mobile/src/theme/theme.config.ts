@@ -42,6 +42,8 @@ export const defaultTheme: ThemeConfig = {
     preparando: '#5B8BA8',
     // Order status: pronto (ready) — sage green
     pronto: '#5A8C5A',
+    // Order status: entregue (delivered) — warm brown
+    entregue: '#8B6B5A',
     // Secondary text — muted warm brown
     textSecondary: '#8B6B5A',
     // Card/surface background

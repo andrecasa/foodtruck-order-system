@@ -37,12 +37,28 @@ export const defaultTheme: ThemeConfig = {
     preparando: '#5B8BA8',
     // Order status: pronto (ready) — sage green
     pronto: '#5A8C5A',
+    // Order status: entregue (delivered) — warm brown
+    entregue: '#8B6B5A',
     // Secondary text — muted warm brown
     textSecondary: '#8B6B5A',
     // Card/surface background
     surface: '#FFFFFF',
     // Border/separator — warm beige
     divider: '#E8DDD5',
+    // Financial: received amount — dark green
+    received: '#5A8C5A',
+    // Financial: pending amount — dark red
+    pending: '#B54040',
+    // Financial: revenue/faturamento — amber
+    revenue: '#D4812B',
+    // Sub-card tinted background: primary tint
+    surfacePrimary: '#F5EDE8',
+    // Sub-card tinted background: revenue/amber tint
+    surfaceRevenue: '#FDF5EA',
+    // Sub-card tinted background: received/green tint
+    surfaceReceived: '#F0F5EE',
+    // Sub-card tinted background: pending/red tint
+    surfacePending: '#FDF0F0',
   },
   typography: {
     fontFamily: 'Inter',

@@ -12,6 +12,8 @@ export interface ThemeConfig {
     aguardando: string;
     preparando: string;
     pronto: string;
+    /** Order status: entregue (delivered) */
+    entregue: string;
     /** Text color for secondary/muted content */
     textSecondary: string;
     /** Card/surface background */

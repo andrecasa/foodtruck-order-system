@@ -146,12 +146,12 @@ export function Modal({
   };
 
   const containerStyle: React.CSSProperties = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: '16px',
     padding: '24px',
     width: '100%',
     maxWidth: '360px',
-    boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.15)',
+    boxShadow: 'none',
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
@@ -169,7 +169,7 @@ export function Modal({
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
     fontSize: '14px',
     fontWeight: 400,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const actionsStyle: React.CSSProperties = {
@@ -180,7 +180,7 @@ export function Modal({
 
   const confirmButtonStyle: React.CSSProperties = {
     backgroundColor: confirmColor,
-    color: '#FFFFFF',
+    color: theme.colors.surface,
     border: 'none',
     borderRadius: '18px',
     height: '36px',
@@ -193,7 +193,7 @@ export function Modal({
 
   const cancelButtonStyle: React.CSSProperties = {
     backgroundColor: 'transparent',
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
     border: 'none',
     borderRadius: '18px',
     height: '36px',

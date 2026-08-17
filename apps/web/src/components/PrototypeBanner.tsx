@@ -58,7 +58,7 @@ export function PrototypeBanner({ variant = 'default' }: PrototypeBannerProps) {
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
     fontSize: '9px',
     fontWeight: 600,
-    color: '#FFFFFF',
+    color: theme.colors.surface,
     letterSpacing: '1px',
     lineHeight: 1.2,
     whiteSpace: 'nowrap',

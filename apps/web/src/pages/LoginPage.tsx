@@ -53,10 +53,10 @@ export function LoginPage() {
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     padding: '32px',
     borderRadius: '16px',
-    boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.08)',
+    boxShadow: 'none',
   };
 
   const headerStyle: React.CSSProperties = {
@@ -78,7 +78,7 @@ export function LoginPage() {
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
     fontSize: '14px',
     fontWeight: 400,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
   };
 
   const errorStyle: React.CSSProperties = {
@@ -95,8 +95,8 @@ export function LoginPage() {
     flexDirection: 'row',
     alignItems: 'center',
     gap: '10px',
-    backgroundColor: '#FFFFFF',
-    border: `1px solid ${focused ? theme.colors.primary : '#E8DDD5'}`,
+    backgroundColor: theme.colors.surface,
+    border: `1px solid ${focused ? theme.colors.primary : theme.colors.divider}`,
     borderRadius: '24px',
     height: '52px',
     padding: '0 16px',
@@ -106,7 +106,7 @@ export function LoginPage() {
   const inputIconStyle: React.CSSProperties = {
     fontSize: '20px',
     fontWeight: 400,
-    color: '#8B6B5A',
+    color: theme.colors.textSecondary,
     flexShrink: 0,
   };
 
@@ -135,6 +135,12 @@ export function LoginPage() {
   return (
     <Screen padding={false}>
       <PrototypeBanner variant="login" />
+      <style>{`
+        .login-input::placeholder {
+          color: ${theme.colors.textSecondary};
+          opacity: 1;
+        }
+      `}</style>
       <div style={formContainerStyle}>
         <form onSubmit={handleSubmit} style={formStyle}>
           <div style={headerStyle}>
@@ -160,8 +166,9 @@ export function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               onFocus={() => setEmailFocused(true)}
               onBlur={() => setEmailFocused(false)}
-              placeholder="preparador@pastelaria.com"
+              placeholder="seu@email.com"
               aria-label="E-mail"
+              className="login-input"
               style={inputStyle}
             />
           </div>
@@ -175,8 +182,9 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
-              placeholder="••••••••"
+              placeholder="Sua senha"
               aria-label="Senha"
+              className="login-input"
               style={inputStyle}
             />
             <button
@@ -198,8 +206,8 @@ export function LoginPage() {
             type="submit"
             disabled={loading}
             style={{
-              backgroundColor: loading ? '#E8DDD5' : theme.colors.primary,
-              color: loading ? '#9E9E9E' : '#FFFFFF',
+              backgroundColor: loading ? theme.colors.divider : theme.colors.primary,
+              color: loading ? theme.colors.textSecondary : theme.colors.surface,
               border: 'none',
               borderRadius: '22px',
               height: '44px',

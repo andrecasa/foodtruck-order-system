@@ -141,7 +141,7 @@ export function LoginScreen() {
   };
 
   return (
-    <Screen padding={false} hasHeader={false}>
+    <Screen padding={false}>
       <View style={containerStyle}>
         {/* Header with logo, title, subtitle */}
         <View style={headerStyle}>

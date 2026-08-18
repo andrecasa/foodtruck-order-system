@@ -80,7 +80,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const getTimeLabel = (): string => {
     const createdAt = new Date(order.createdAt);
     const totalMinutes = Math.floor((Date.now() - createdAt.getTime()) / 60000);
-    if (totalMinutes < 1) return 'Agora';
+    if (totalMinutes < 1) return 'Pedido criado agora';
     if (totalMinutes < 60) return `Pedido criado há ${totalMinutes} min`;
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;

@@ -16,6 +16,7 @@ import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
 import { useNetworkError } from '../hooks/useNetworkError';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useAuth } from '../hooks/useAuth';
 import { formatPrice } from '../utils/format';
 
@@ -75,11 +76,13 @@ export function OrderQueueScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const { isOffline } = useNetworkStatus();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
   const userToggledFilters = useRef(false);
+  const prevOfflineRef = useRef(isOffline);
   const { error: networkError, dismiss: dismissError, withRetry } = useNetworkError();
 
   /** Filter chip options — colors and icons match Penpot status palette */
@@ -141,17 +144,69 @@ export function OrderQueueScreen() {
   // Realtime: subscribe to order events for live updates
   const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
 
-  useRealtime({
+  const { status: realtimeStatus } = useRealtime({
     channels: realtimeChannels,
-    onEvent: useCallback((_event) => {
-      // Refetch orders on any realtime event (new order, status change, payment)
-      fetchOrders();
-    }, [fetchOrders]),
+    onEvent: useCallback((event) => {
+      const payload = event.payload;
+      if (!payload || !payload.id) {
+        // Unknown payload — fall back to full refetch
+        fetchOrders();
+        return;
+      }
+
+      setOrders((prev) => {
+        const orderStatus = payload.status as OrderStatus | undefined;
+
+        // If the order's status is not in the current filters, remove it
+        if (orderStatus && !selectedFilters.includes(orderStatus)) {
+          return prev.filter((o) => o.id !== payload.id);
+        }
+
+        // Check if order already exists in the list
+        const existingIndex = prev.findIndex((o) => o.id === payload.id);
+
+        if (existingIndex >= 0) {
+          // Merge: update existing order with new data
+          const updated = [...prev];
+          updated[existingIndex] = { ...prev[existingIndex]!, ...payload };
+          return updated;
+        }
+
+        // New order — add to list if it matches filters
+        if (orderStatus && selectedFilters.includes(orderStatus) && payload.customerName) {
+          const newList = [...prev, payload as Order];
+          newList.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
+          return newList;
+        }
+
+        return prev;
+      });
+    }, [selectedFilters, fetchOrders]),
     onReconnect: useCallback(() => {
-      // Reload data after reconnection
+      // Full reload after reconnection to ensure consistency
       fetchOrders();
     }, [fetchOrders]),
   });
+
+  // Fallback polling — only active when realtime is disconnected and device is online
+  useEffect(() => {
+    if (!isAuthenticated || realtimeStatus === 'connected' || isOffline) return;
+
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchOrders, isAuthenticated, realtimeStatus, isOffline]);
+
+  // Refetch when transitioning from offline → online
+  useEffect(() => {
+    if (prevOfflineRef.current && !isOffline) {
+      fetchOrders();
+    }
+    prevOfflineRef.current = isOffline;
+  }, [isOffline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAdvanceStatus = async (order: Order) => {
     const nextStatus = NEXT_STATUS[order.status];

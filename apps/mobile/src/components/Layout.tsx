@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
-import { PrototypeBanner } from './PrototypeBanner';
 import { DrawerMenu } from './DrawerMenu';
+import { ConnectionBanner } from './ConnectionBanner';
+import { OfflineIllustration } from './OfflineIllustration';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 // ─── Screen ─────────────────────────────────────────────────────────────────
 
@@ -19,21 +21,21 @@ export interface ScreenProps {
   children: React.ReactNode;
   /** Applies horizontal/vertical padding using theme.spacing.md. Defaults to true. */
   padding?: boolean;
-  /** Whether the screen has an AppBar. Affects PrototypeBanner position. Defaults to true. */
-  hasHeader?: boolean;
 }
 
 /**
  * Full-screen container wrapping content in a SafeAreaView.
  * Uses theme.colors.background and optional padding from theme tokens.
+ * When offline, shows ConnectionBanner + OfflineIllustration in the content area.
+ * Header and navigation remain visible.
  */
-export function Screen({ children, padding = true, hasHeader = true }: ScreenProps) {
+export function Screen({ children, padding = true }: ScreenProps) {
   const theme = useTheme();
+  const { isOffline } = useNetworkStatus();
 
   const safeAreaStyle: ViewStyle = {
     flex: 1,
     backgroundColor: theme.colors.background,
-    overflow: 'hidden', // Clips the rotated PrototypeBanner ribbon
   };
 
   const innerStyle: ViewStyle = {
@@ -41,12 +43,29 @@ export function Screen({ children, padding = true, hasHeader = true }: ScreenPro
     ...(padding && { padding: theme.spacing.md }),
   };
 
+  if (isOffline) {
+    // When offline: render children (Header etc.) but overlay with illustration
+    // We use React.Children to extract the first child (Header) and replace the rest
+    const childArray = React.Children.toArray(children);
+    // Keep first child (typically Header) and replace the rest with illustration
+    const header = childArray.length > 0 ? childArray[0] : null;
+
+    return (
+      <SafeAreaView style={safeAreaStyle}>
+        <ConnectionBanner />
+        <View style={innerStyle}>
+          {header}
+          <OfflineIllustration />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={safeAreaStyle}>
       <View style={innerStyle}>
         {children}
       </View>
-      <PrototypeBanner hasHeader={hasHeader} />
     </SafeAreaView>
   );
 }

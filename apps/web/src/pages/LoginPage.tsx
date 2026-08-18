@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../theme';
 import { Screen } from '../components';
-import { PrototypeBanner } from '../components/PrototypeBanner';
 import { useAuth } from '../hooks';
 
 /**
@@ -134,7 +133,6 @@ export function LoginPage() {
 
   return (
     <Screen padding={false}>
-      <PrototypeBanner variant="login" />
       <style>{`
         .login-input::placeholder {
           color: ${theme.colors.textSecondary};

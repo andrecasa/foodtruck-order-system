@@ -349,10 +349,4 @@ export const realClient: ApiClient = {
       },
     };
   },
-
-  onOrderUpdate(_callback: (order: Order) => void): () => void {
-    // Realtime will be implemented in task 17.3 (SSE/polling)
-    // For now, return a no-op unsubscribe function
-    return () => {};
-  },
 };

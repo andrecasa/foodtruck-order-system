@@ -50,7 +50,7 @@ export function ConnectionBanner({ status }: ConnectionBannerProps) {
       <span className="material-symbols-outlined" style={iconStyle} aria-hidden="true">
         wifi_off
       </span>
-      <span>Conexão perdida — tentando reconectar...</span>
+      <span>Sem conexão com a internet</span>
     </div>
   );
 }

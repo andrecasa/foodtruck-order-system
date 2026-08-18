@@ -26,7 +26,4 @@ export interface ApiClient {
 
   // Summary
   getDailySummary(): Promise<DailySummary>;
-
-  // Realtime simulation
-  onOrderUpdate(callback: (order: Order) => void): () => void;
 }

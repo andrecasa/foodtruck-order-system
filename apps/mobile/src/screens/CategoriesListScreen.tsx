@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Screen, Header } from '../components/Layout';
+import { ErrorState } from '../components/ErrorState';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
@@ -314,21 +315,7 @@ export function CategoriesListScreen() {
 
     if (error) {
       return (
-        <View style={centeredContainerStyle} testID="error-state">
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 14,
-              color: theme.colors.error,
-              textAlign: 'center',
-            }}
-          >
-            {error}
-          </RNText>
-          <View style={{ marginTop: 16 }}>
-            <Button title="Tentar novamente" onPress={() => loadCategories()} variant="primary" testID="retry-button" />
-          </View>
-        </View>
+        <ErrorState message={error} onRetry={() => loadCategories()} />
       );
     }
 

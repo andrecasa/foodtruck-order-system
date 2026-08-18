@@ -10,7 +10,6 @@ export { DrawerMenu } from './DrawerMenu';
 export type { DrawerMenuProps } from './DrawerMenu';
 export { Text, Heading } from './Typography';
 export type { TextProps, HeadingProps, TextSize, TextWeight, TextAlign, HeadingLevel } from './Typography';
-export { PrototypeBanner } from './PrototypeBanner';
 export { FilterChips } from './FilterChips';
 export type { FilterChipsProps, FilterChipOption } from './FilterChips';
 export { ToggleSwitch } from './ToggleSwitch';

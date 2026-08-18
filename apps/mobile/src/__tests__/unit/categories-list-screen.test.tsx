@@ -53,9 +53,8 @@ jest.mock('../../components/DrawerMenu', () => ({
   DrawerMenu: () => null,
 }));
 
-// Mock PrototypeBanner to avoid env-related issues
-jest.mock('../../components/PrototypeBanner', () => ({
-  PrototypeBanner: () => null,
+jest.mock('../../hooks/useNetworkStatus', () => ({
+  useNetworkStatus: () => ({ isOffline: false }),
 }));
 
 import { mockTheme } from '../helpers/mockTheme';

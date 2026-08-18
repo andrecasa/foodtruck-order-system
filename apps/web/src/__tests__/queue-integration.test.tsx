@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -19,10 +18,6 @@ const { mockApiClient, orderUpdateCallbacksRef } = vi.hoisted(() => {
       updateOrderStatus: vi.fn(),
       registerPayment: vi.fn(),
       getDailySummary: vi.fn(),
-      onOrderUpdate: vi.fn((callback: (order: Order) => void) => {
-        callbacks.current.add(callback);
-        return () => { callbacks.current.delete(callback); };
-      }),
     },
     orderUpdateCallbacksRef: callbacks,
   };
@@ -139,7 +134,7 @@ describe('QueuePage Integration', () => {
 
   it('shows login page when not authenticated', () => {
     renderApp();
-    expect(screen.getByPlaceholderText('preparador@pastelaria.com')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('seu@email.com')).toBeInTheDocument();
     expect(screen.getByText('Entrar')).toBeInTheDocument();
   });
 
@@ -147,8 +142,8 @@ describe('QueuePage Integration', () => {
     const user = userEvent.setup();
     renderApp();
 
-    const emailInput = screen.getByPlaceholderText('preparador@pastelaria.com');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const emailInput = screen.getByPlaceholderText('seu@email.com');
+    const passwordInput = screen.getByPlaceholderText('Sua senha');
     const submitButton = screen.getByText('Entrar');
 
     await user.type(emailInput, 'prep@test.com');
@@ -158,7 +153,7 @@ describe('QueuePage Integration', () => {
     expect(mockApiClient.login).toHaveBeenCalledWith('prep@test.com', 'senha123');
 
     await waitFor(() => {
-      expect(screen.getByText('Fila de Pedidos')).toBeInTheDocument();
+      expect(screen.getByText('Pedidos')).toBeInTheDocument();
     });
   });
 
@@ -167,12 +162,12 @@ describe('QueuePage Integration', () => {
     renderApp();
 
     // Login first
-    await user.type(screen.getByPlaceholderText('preparador@pastelaria.com'), 'prep@test.com');
-    await user.type(screen.getByPlaceholderText('••••••••'), 'senha123');
+    await user.type(screen.getByPlaceholderText('seu@email.com'), 'prep@test.com');
+    await user.type(screen.getByPlaceholderText('Sua senha'), 'senha123');
     await user.click(screen.getByText('Entrar'));
 
     await waitFor(() => {
-      expect(screen.getByText('Fila de Pedidos')).toBeInTheDocument();
+      expect(screen.getByText('Pedidos')).toBeInTheDocument();
     });
 
     // Verify orders are displayed
@@ -187,12 +182,12 @@ describe('QueuePage Integration', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.type(screen.getByPlaceholderText('preparador@pastelaria.com'), 'prep@test.com');
-    await user.type(screen.getByPlaceholderText('••••••••'), 'senha123');
+    await user.type(screen.getByPlaceholderText('seu@email.com'), 'prep@test.com');
+    await user.type(screen.getByPlaceholderText('Sua senha'), 'senha123');
     await user.click(screen.getByText('Entrar'));
 
     await waitFor(() => {
-      expect(screen.getByText('Fila de Pedidos')).toBeInTheDocument();
+      expect(screen.getByText('Pedidos')).toBeInTheDocument();
     });
 
     // Check order #2 details (aguardando)
@@ -210,12 +205,12 @@ describe('QueuePage Integration', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.type(screen.getByPlaceholderText('preparador@pastelaria.com'), 'prep@test.com');
-    await user.type(screen.getByPlaceholderText('••••••••'), 'senha123');
+    await user.type(screen.getByPlaceholderText('seu@email.com'), 'prep@test.com');
+    await user.type(screen.getByPlaceholderText('Sua senha'), 'senha123');
     await user.click(screen.getByText('Entrar'));
 
     await waitFor(() => {
-      expect(screen.getByText('Fila de Pedidos')).toBeInTheDocument();
+      expect(screen.getByText('Pedidos')).toBeInTheDocument();
     });
 
     // Find "Iniciar Preparo" button (for aguardando order #2)
@@ -238,8 +233,8 @@ describe('QueuePage Integration', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.type(screen.getByPlaceholderText('preparador@pastelaria.com'), 'prep@test.com');
-    await user.type(screen.getByPlaceholderText('••••••••'), 'senha123');
+    await user.type(screen.getByPlaceholderText('seu@email.com'), 'prep@test.com');
+    await user.type(screen.getByPlaceholderText('Sua senha'), 'senha123');
     await user.click(screen.getByText('Entrar'));
 
     await waitFor(() => {
@@ -257,12 +252,12 @@ describe('QueuePage Integration', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.type(screen.getByPlaceholderText('preparador@pastelaria.com'), 'prep@test.com');
-    await user.type(screen.getByPlaceholderText('••••••••'), 'senha123');
+    await user.type(screen.getByPlaceholderText('seu@email.com'), 'prep@test.com');
+    await user.type(screen.getByPlaceholderText('Sua senha'), 'senha123');
     await user.click(screen.getByText('Entrar'));
 
     await waitFor(() => {
-      expect(screen.getByText('Fila de Pedidos')).toBeInTheDocument();
+      expect(screen.getByText('Pedidos')).toBeInTheDocument();
     });
 
     // Check filter chips are visible (use role=tab to target chips specifically)
@@ -281,12 +276,12 @@ describe('QueuePage Integration', () => {
     renderApp();
 
     // Login
-    await user.type(screen.getByPlaceholderText('preparador@pastelaria.com'), 'prep@test.com');
-    await user.type(screen.getByPlaceholderText('••••••••'), 'senha123');
+    await user.type(screen.getByPlaceholderText('seu@email.com'), 'prep@test.com');
+    await user.type(screen.getByPlaceholderText('Sua senha'), 'senha123');
     await user.click(screen.getByText('Entrar'));
 
     await waitFor(() => {
-      expect(screen.getByText('Fila de Pedidos')).toBeInTheDocument();
+      expect(screen.getByText('Pedidos')).toBeInTheDocument();
     });
 
     // Click logout
@@ -297,7 +292,7 @@ describe('QueuePage Integration', () => {
 
     // Should return to login page
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('preparador@pastelaria.com')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('seu@email.com')).toBeInTheDocument();
     });
   });
 });

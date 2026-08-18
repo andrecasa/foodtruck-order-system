@@ -88,22 +88,7 @@ cp .env.example .env
 
 ## Executando
 
-### Modo Protótipo (sem backend)
-
-Ideal para desenvolvimento de UI. Usa dados mockados:
-
-```bash
-# No .env, garanta:
-# PROTOTYPE_MODE=true
-
-# App mobile
-pnpm dev:mobile
-
-# Painel web do preparador
-pnpm dev:web
-```
-
-### Modo Completo (com infraestrutura)
+### Desenvolvimento Local
 
 ```bash
 # 1. Gerar chaves JWT (atualiza .env, kong.yml, apps/mobile/.env)
@@ -120,12 +105,10 @@ sleep 15
 ./scripts/seed-admin.sh
 
 # 5. Iniciar apps
-pnpm dev:mobile    # App mobile (Expo) — rodar de apps/mobile/
-pnpm dev:mobile --clear    # App mobile (Expo) — rodar de apps/mobile/
+pnpm dev:mobile    # App mobile (Expo)
+pnpm dev:mobile --clear    # App mobile (Expo) com cache limpo
 pnpm dev:web       # Painel web (porta 3000)
 ```
-
-> **Nota:** Configure `PROTOTYPE_MODE=false` no `.env` para modo completo.
 
 ### Resetar Ambiente
 
@@ -161,6 +144,71 @@ docker compose up -d --build backend
 | `pnpm typecheck` | Verificação de tipos em todos os packages |
 | `pnpm lint` | Lint em todos os packages |
 
+## Testes
+
+O projeto utiliza **Vitest** (backend, web, shared) e **Jest** (mobile) com testes unitários e property-based (fast-check).
+
+### Rodar todos os testes
+
+```bash
+pnpm test
+```
+
+### Rodar por pacote
+
+```bash
+pnpm --filter @order-system/backend test    # Backend (59 suites, 400 tests)
+pnpm --filter @order-system/mobile test     # Mobile (20 suites, 66 tests)
+pnpm --filter @order-system/web test        # Web (3 suites, 28 tests)
+pnpm --filter @order-system/shared test     # Shared (3 suites, 64 tests)
+```
+
+### Rodar um arquivo específico
+
+```bash
+# Vitest (backend, web, shared)
+cd apps/backend && npx vitest run src/__tests__/unit/order-controller.test.ts
+
+# Jest (mobile)
+cd apps/mobile && npx jest src/__tests__/unit/login-screen.test.tsx
+```
+
+### Modo watch (re-executa ao salvar)
+
+```bash
+# Vitest
+cd apps/backend && npx vitest
+
+# Jest
+cd apps/mobile && npx jest --watch
+```
+
+### Saída detalhada (verbose)
+
+```bash
+cd apps/backend && npx vitest run --reporter=verbose
+cd apps/mobile && npx jest --verbose
+```
+
+### Relatório de cobertura
+
+```bash
+cd apps/backend && npx vitest run --coverage
+cd apps/mobile && npx jest --coverage
+cd apps/web && npx vitest run --coverage
+```
+
+Gera uma pasta `coverage/` com um `index.html` que pode ser aberto no navegador para visualizar quais linhas estão cobertas.
+
+### Estrutura de testes
+
+| Pacote | Framework | Tipos de teste | Localização |
+|--------|-----------|----------------|-------------|
+| backend | Vitest + fast-check | Unitários + property-based | `apps/backend/src/__tests__/` |
+| mobile | Jest + fast-check | Unitários + property-based | `apps/mobile/src/__tests__/` |
+| web | Vitest + fast-check | Integração + property-based | `apps/web/src/__tests__/` |
+| shared | Vitest | Unitários (validators, constantes) | `packages/shared/src/__tests__/` |
+
 ## Estrutura do Projeto
 
 ```
@@ -177,16 +225,16 @@ docker compose up -d --build backend
 │   │       └── __tests__/    # Unit + property-based tests
 │   ├── mobile/           # App operador (Expo + React Native)
 │   │   └── src/
+│   │       ├── __tests__/    # Unit + property-based tests
 │   │       ├── components/   # Design System components
-│   │       ├── mocks/        # Dados mockados (modo protótipo)
 │   │       ├── screens/      # Telas da aplicação
-│   │       ├── services/     # API client (real + mock)
+│   │       ├── services/     # API client
 │   │       └── theme/        # ThemeProvider e tokens
 │   └── web/              # Painel preparador (Vite + React)
 │       └── src/
+│           ├── __tests__/    # Integration + property-based tests
 │           ├── components/   # Design System components
-│           ├── mocks/        # Dados mockados (modo protótipo)
-│           ├── services/     # API client (real + mock)
+│           ├── services/     # API client
 │           └── theme/        # ThemeProvider e tokens
 ├── packages/
 │   └── shared/           # Tipos, validadores Zod, constantes
@@ -204,7 +252,11 @@ O sistema suporta customização visual completa via **design tokens**. Qualquer
 
 | Categoria | Tokens | Descrição |
 |---|---|---|
-| **colors** | `primary`, `secondary`, `background`, `text`, `success`, `warning`, `error`, `aguardando`, `preparando`, `pronto`, `textSecondary`, `surface`, `divider` | Paleta de cores da marca e status de pedidos |
+| **colors** | `primary`, `secondary`, `background`, `text`, `success`, `warning`, `error` | Paleta base da marca |
+| **colors** (status) | `aguardando`, `preparando`, `pronto`, `entregue` | Cores de status de pedidos |
+| **colors** (UI) | `textSecondary`, `surface`, `divider` | Cores de interface |
+| **colors** (financeiro) | `received`, `pending`, `revenue` | Cores de cards financeiros |
+| **colors** (superfícies) | `surfacePrimary`, `surfaceRevenue`, `surfaceReceived`, `surfacePending` | Backgrounds tintados de sub-cards |
 | **typography.fontFamily** | `fontFamily` | Família tipográfica (ex: `"Inter"`, `"Poppins"`) |
 | **typography.sizes** | `xs` (10), `sm` (12), `md` (14), `lg` (16), `xl` (20), `xxl` (32) | Escala tipográfica em px |
 | **typography.weights** | `regular` (400), `medium` (500), `bold` (600) | Pesos tipográficos |
@@ -250,42 +302,34 @@ Além dos tokens visuais, você pode definir `businessName` (nome exibido na int
 
 1. **Crie o arquivo de tema** — Crie um arquivo JSON (ex: `themes/taco-loco.json`) com os tokens que deseja sobrescrever. Pode ser um override parcial (ex: apenas cores).
 
-2. **Configure a variável de ambiente:**
+2. **Configure a injeção do tema (Web):**
 
-   - **Web (painel do preparador):** Adicione no `.env`:
-     ```bash
-     VITE_THEME_CONFIG_PATH=./themes/taco-loco.json
-     ```
-     Ou, para injeção em runtime sem rebuild, adicione ao `index.html` antes do bundle:
-     ```html
-     <script>
-       window.__THEME_CONFIG__ = { "businessName": "Taco Loco", "colors": { "primary": "#E65100" } };
-     </script>
-     ```
+   Adicione ao `index.html` antes do bundle do app:
+   ```html
+   <script>
+     window.__THEME_CONFIG__ = { "businessName": "Taco Loco", "colors": { "primary": "#E65100" } };
+   </script>
+   ```
 
-   - **Mobile (app do operador):** Adicione no `.env`:
-     ```bash
-     EXPO_PUBLIC_THEME_CONFIG='{"businessName":"Taco Loco","colors":{"primary":"#E65100","secondary":"#BF360C"}}'
-     ```
+   > **Nota:** A variável `VITE_THEME_CONFIG_PATH` existe como placeholder para carregamento assíncrono futuro, mas atualmente o único mecanismo funcional é `window.__THEME_CONFIG__`.
 
-3. **Reinicie o servidor de desenvolvimento** (ou, em produção, reinicie o container/processo). Nenhum rebuild é necessário quando usado via `window.__THEME_CONFIG__`.
+3. **Mobile** — O override de tema via `EXPO_PUBLIC_THEME_CONFIG` está planejado mas ainda não implementado. Atualmente o mobile usa o tema padrão compilado no bundle.
 
-4. **Verifique o contraste** — Garanta que as combinações de cor atendem WCAG AA (razão de contraste ≥ 4.5:1 para texto).
+4. **Reinicie o servidor de desenvolvimento** (ou, em produção, reinicie o container/processo). Nenhum rebuild é necessário quando usado via `window.__THEME_CONFIG__`.
+
+5. **Verifique o contraste** — Garanta que as combinações de cor atendem WCAG AA (razão de contraste ≥ 4.5:1 para texto).
 
 ### Como o Tema é Carregado em Runtime
 
-O carregamento é **síncrono** e ocorre antes de qualquer componente ser renderizado:
-
 **Web** — Ordem de resolução (primeiro encontrado vence):
 1. `window.__THEME_CONFIG__` — objeto injetado no HTML pelo servidor (sem rebuild)
-2. `VITE_THEME_CONFIG_PATH` — variável de build que aponta para um JSON
-3. Tema padrão (fallback)
-
-**Mobile** — Ordem de resolução:
-1. `EXPO_PUBLIC_THEME_CONFIG` — variável de ambiente com JSON string
 2. Tema padrão (fallback)
 
-Em ambos os casos, o override parcial é mesclado (deep merge) com o tema padrão. O `ThemeProvider` aplica os tokens globalmente antes de renderizar componentes filhos, garantindo que a interface nunca pisque com o tema errado.
+O `ThemeProvider` aplica os tokens globalmente via CSS custom properties antes de renderizar componentes filhos, garantindo que a interface nunca pisque com o tema errado.
+
+**Mobile** — Atualmente usa somente o tema padrão compilado no bundle. Override via variável de ambiente está planejado.
+
+> Em ambos os casos, o override parcial é mesclado (deep merge) com o tema padrão — apenas os campos informados são sobrescritos.
 
 ### Referência Completa
 
@@ -481,7 +525,7 @@ Se o WhatsApp desconectar (troca de celular, logout, etc.):
 - **Linguagem:** TypeScript 5.7
 - **Monorepo:** pnpm Workspaces
 - **Mobile:** Expo SDK 52, React Native 0.76
-- **Web:** Vite, React 18
+- **Web:** Vite, React 19
 - **Backend:** Express 4
 - **Banco:** PostgreSQL 15
 - **Auth:** Supabase GoTrue (self-hosted)

@@ -52,11 +52,15 @@ echo "📋 SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:0:40}..."
 update_env() {
   local file=$1
   [ -f "$file" ] || return
-  awk -v val="$JWT_SECRET" '/^JWT_SECRET=/{$0="JWT_SECRET="val}1' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-  awk -v val="$ANON_KEY" '/^SUPABASE_ANON_KEY=/{$0="SUPABASE_ANON_KEY="val}1' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-  awk -v val="$SERVICE_ROLE_KEY" '/^SUPABASE_SERVICE_ROLE_KEY=/{$0="SUPABASE_SERVICE_ROLE_KEY="val}1' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-  awk -v val="$ANON_KEY" '/^VITE_SUPABASE_ANON_KEY=/{$0="VITE_SUPABASE_ANON_KEY="val}1' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-  awk -v val="$ANON_KEY" '/^EXPO_PUBLIC_SUPABASE_ANON_KEY=/{$0="EXPO_PUBLIC_SUPABASE_ANON_KEY="val}1' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+
+  # Use sed with a safe delimiter (|) since JWT tokens contain / and +
+  # The keys are base64url which only contains [A-Za-z0-9._-] so | is safe
+  sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET}|" "$file"
+  sed -i "s|^SUPABASE_ANON_KEY=.*|SUPABASE_ANON_KEY=${ANON_KEY}|" "$file"
+  sed -i "s|^SUPABASE_SERVICE_ROLE_KEY=.*|SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}|" "$file"
+  sed -i "s|^VITE_SUPABASE_ANON_KEY=.*|VITE_SUPABASE_ANON_KEY=${ANON_KEY}|" "$file"
+  sed -i "s|^EXPO_PUBLIC_SUPABASE_ANON_KEY=.*|EXPO_PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY}|" "$file"
+
   echo "  ✅ $file"
 }
 

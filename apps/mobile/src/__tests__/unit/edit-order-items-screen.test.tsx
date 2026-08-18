@@ -31,11 +31,6 @@ jest.mock('../../components/DrawerMenu', () => ({
   DrawerMenu: () => null,
 }));
 
-// Mock PrototypeBanner to avoid env-related issues
-jest.mock('../../components/PrototypeBanner', () => ({
-  PrototypeBanner: () => null,
-}));
-
 jest.mock('../../theme/ThemeProvider', () => require('../helpers/mockTheme').themeMocks);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

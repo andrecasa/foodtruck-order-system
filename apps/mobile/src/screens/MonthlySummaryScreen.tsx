@@ -12,6 +12,7 @@ import {
 import type { MonthlySummaryResponse } from '@order-system/shared';
 import { useRouter } from 'expo-router';
 import { Screen, Header } from '../components';
+import { ErrorState } from '../components/ErrorState';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
@@ -128,7 +129,6 @@ export function MonthlySummaryScreen() {
 
   const contentStyle: ViewStyle = { flexGrow: 1, padding: 16, gap: 16 };
   const loadingContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
-  const errorContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
 
   const monthSelectorStyle: ViewStyle = {
     backgroundColor: theme.colors.primary + '1F',
@@ -214,14 +214,7 @@ export function MonthlySummaryScreen() {
     return (
       <Screen padding={false}>
         <Header title="Resumo do Mês" onBack={() => router.back()} />
-        <View style={errorContainerStyle}>
-          <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: theme.colors.error, textAlign: 'center' }}>
-            {error}
-          </RNText>
-          <View style={{ marginTop: 16 }}>
-            <Button title="Tentar novamente" onPress={handleRetry} variant="primary" />
-          </View>
-        </View>
+        <ErrorState message={error} onRetry={handleRetry} />
       </Screen>
     );
   }

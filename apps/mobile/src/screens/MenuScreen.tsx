@@ -10,26 +10,29 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { MenuItem } from '@order-system/shared';
 import { Screen, ScrollContainer, Header, Text } from '../components';
+import { ErrorState } from '../components/ErrorState';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { formatPrice } from '../utils/format';
 
-/** Groups menu items by category, sorting categories and items alphabetically */
-function groupByCategory(items: MenuItem[]): Record<string, MenuItem[]> {
-  const groups: Record<string, MenuItem[]> = {};
+/** Groups menu items by category, preserving backend sort order */
+function groupByCategory(items: MenuItem[]): { category: string; items: MenuItem[] }[] {
+  const groups: { category: string; items: MenuItem[] }[] = [];
+  const categoryMap = new Map<string, MenuItem[]>();
 
   for (const item of items) {
-    if (!groups[item.category]) {
-      groups[item.category] = [];
+    if (!categoryMap.has(item.category)) {
+      categoryMap.set(item.category, []);
+      groups.push({ category: item.category, items: categoryMap.get(item.category)! });
     }
-    groups[item.category]!.push(item);
+    categoryMap.get(item.category)!.push(item);
   }
 
   // Sort items within each category alphabetically
-  for (const category of Object.keys(groups)) {
-    groups[category]!.sort((a, b) => a.name.localeCompare(b.name));
+  for (const group of groups) {
+    group.items.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   return groups;
@@ -100,13 +103,6 @@ export function MenuScreen() {
   };
 
   const loadingContainerStyle: ViewStyle = {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  };
-
-  const errorContainerStyle: ViewStyle = {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -225,34 +221,24 @@ export function MenuScreen() {
     return (
       <Screen padding={false}>
         <Header title="Cardápio" onBack={() => router.back()} />
-        <View style={errorContainerStyle}>
-          <Text size="lg" color={theme.colors.error}>
-            {error}
-          </Text>
-          <View style={{ marginTop: 16 }}>
-            <Button title="Tentar novamente" onPress={loadMenu} variant="primary" />
-          </View>
-        </View>
+        <ErrorState message={error} onRetry={loadMenu} />
       </Screen>
     );
   }
 
   const groupedItems = groupByCategory(menuItems);
-  const sortedCategories = Object.keys(groupedItems).sort((a, b) =>
-    a.localeCompare(b),
-  );
 
   return (
     <Screen padding={false}>
       <Header title="Cardápio" onBack={() => router.back()} />
       <View style={containerStyle}>
         <ScrollContainer>
-          {sortedCategories.map((category) => (
+          {groupedItems.map(({ category, items }) => (
             <View key={category}>
               <View style={categoryHeaderStyle}>
                 <RNText style={categoryTitleStyle}>{category}</RNText>
               </View>
-              {groupedItems[category]!.map((item) => (
+              {items.map((item) => (
                 <Pressable
                   key={item.id}
                   style={itemCardStyle}
@@ -288,7 +274,7 @@ export function MenuScreen() {
               ))}
             </View>
           ))}
-          {sortedCategories.length === 0 && (
+          {groupedItems.length === 0 && (
             <View style={{ padding: 24, alignItems: 'center' }}>
               <Text size="md" color="#8B6B5A">
                 Nenhum item ativo no cardápio.

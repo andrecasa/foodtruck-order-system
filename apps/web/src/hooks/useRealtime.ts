@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8000';
@@ -13,17 +13,19 @@ export interface RealtimeEvent {
 }
 
 interface UseRealtimeOptions {
-  /** Channels to subscribe to (e.g., ['orders:queue', 'orders:payment']) */
   channels: string[];
-  /** Callback invoked when an event is received */
   onEvent: (event: RealtimeEvent) => void;
-  /** Callback invoked when connection is restored (for data reload) */
   onReconnect?: () => void;
-  /** Whether realtime should be active */
   enabled?: boolean;
 }
 
-/** Singleton Supabase client for realtime — avoids creating new connections on every render */
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const RECONNECT_DELAY_MS = 5000;
+const MAX_RETRIES = 8;
+
+// ─── Singleton Supabase client ──────────────────────────────────────────────
+
 let realtimeClient: SupabaseClient | null = null;
 
 function getRealtimeClient(): SupabaseClient {
@@ -41,31 +43,112 @@ function getRealtimeClient(): SupabaseClient {
 
 /**
  * Hook for Supabase Realtime subscriptions (web).
- * Subscribes to broadcast channels and handles:
- * - Stable connection (singleton client, no recreation on re-render)
- * - Auto-reconnection on disconnect (5s delay)
- * - Data reload callback after reconnect
- * - Connection status tracking
+ *
+ * Strategy: Subscribe once, stay connected. Only report 'disconnected' if
+ * the initial subscription fails outright. Ignore transient CLOSED/CHANNEL_ERROR
+ * from Supabase since the broadcast channel often continues working despite them.
+ *
+ * Reconnection only triggers if the initial subscribe never succeeds.
  */
 export function useRealtime({ channels, onEvent, onReconnect, enabled = true }: UseRealtimeOptions) {
   const [status, setStatus] = useState<RealtimeStatus>('disconnected');
   const channelsRef = useRef<RealtimeChannel[]>([]);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
+  const hasConnectedRef = useRef(false);
   const onEventRef = useRef(onEvent);
   const onReconnectRef = useRef(onReconnect);
   const enabledRef = useRef(enabled);
+  const cancelledRef = useRef(false);
 
-  // Keep refs up to date without causing re-renders or effect re-runs
   onEventRef.current = onEvent;
   onReconnectRef.current = onReconnect;
   enabledRef.current = enabled;
 
-  // Stable channel key for effect dependency
   const channelKey = channels.join(',');
 
+  const doSubscribe = useCallback((supabase: SupabaseClient, channelNames: string[], isReconnect: boolean): RealtimeChannel[] => {
+    const subscribed: RealtimeChannel[] = [];
+
+    for (const channelName of channelNames) {
+      const channel = supabase.channel(channelName);
+
+      channel
+        .on('broadcast', { event: '*' }, (payload) => {
+          if (cancelledRef.current) return;
+
+          // Any event received = connection is alive
+          if (!hasConnectedRef.current) {
+            hasConnectedRef.current = true;
+            setStatus('connected');
+            retryCountRef.current = 0;
+          }
+
+          onEventRef.current({
+            channel: channelName,
+            event: payload.event ?? 'unknown',
+            payload: payload.payload,
+          });
+        })
+        .subscribe((subscribeStatus) => {
+          if (cancelledRef.current) return;
+
+          if (subscribeStatus === 'SUBSCRIBED') {
+            hasConnectedRef.current = true;
+            setStatus('connected');
+            retryCountRef.current = 0;
+
+            if (isReconnect) {
+              onReconnectRef.current?.();
+            }
+          } else if (subscribeStatus === 'CLOSED' || subscribeStatus === 'CHANNEL_ERROR') {
+            // Only treat as disconnected if we NEVER successfully connected
+            if (!hasConnectedRef.current) {
+              setStatus('disconnected');
+              scheduleReconnect(supabase, channelNames);
+            }
+            // If we previously connected, ignore transient errors —
+            // the broadcast listener often continues working.
+          }
+        });
+
+      subscribed.push(channel);
+    }
+
+    return subscribed;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function scheduleReconnect(supabase: SupabaseClient, channelNames: string[]) {
+    if (reconnectTimerRef.current || cancelledRef.current) return;
+    if (retryCountRef.current >= MAX_RETRIES) {
+      setStatus('disconnected');
+      return;
+    }
+
+    setStatus('reconnecting');
+    retryCountRef.current += 1;
+
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      if (cancelledRef.current || !enabledRef.current) return;
+
+      for (const ch of channelsRef.current) {
+        try { ch.unsubscribe(); } catch { /* ignore */ }
+      }
+      channelsRef.current = [];
+
+      const newChannels = doSubscribe(supabase, channelNames, true);
+      channelsRef.current = newChannels;
+    }, RECONNECT_DELAY_MS);
+  }
+
+  // ─── Main effect ───────────────────────────────────────────────────────
+
   useEffect(() => {
-    if (!enabled || channels.length === 0) {
-      // Cleanup if disabled
+    cancelledRef.current = false;
+    hasConnectedRef.current = false;
+
+    if (!enabled || channels.length === 0 || !SUPABASE_ANON_KEY) {
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -78,78 +161,12 @@ export function useRealtime({ channels, onEvent, onReconnect, enabled = true }: 
       return;
     }
 
-    let cancelled = false;
     const supabase = getRealtimeClient();
-    const subscribed: RealtimeChannel[] = [];
-
-    for (const channelName of channels) {
-      const channel = supabase.channel(channelName);
-
-      channel
-        .on('broadcast', { event: '*' }, (payload) => {
-          if (!cancelled) {
-            onEventRef.current({
-              channel: channelName,
-              event: payload.event ?? 'unknown',
-              payload: payload.payload,
-            });
-          }
-        })
-        .subscribe((subscribeStatus) => {
-          if (cancelled) return;
-
-          if (subscribeStatus === 'SUBSCRIBED') {
-            setStatus('connected');
-          } else if (subscribeStatus === 'CLOSED' || subscribeStatus === 'CHANNEL_ERROR') {
-            setStatus('disconnected');
-            // Auto-reconnect after 5 seconds (only once)
-            if (!reconnectTimerRef.current && !cancelled) {
-              setStatus('reconnecting');
-              reconnectTimerRef.current = setTimeout(() => {
-                reconnectTimerRef.current = null;
-                if (!cancelled && enabledRef.current) {
-                  // Unsubscribe old channels
-                  for (const ch of channelsRef.current) {
-                    try { ch.unsubscribe(); } catch { /* ignore */ }
-                  }
-                  channelsRef.current = [];
-
-                  // Re-subscribe
-                  const newSubscribed: RealtimeChannel[] = [];
-                  for (const chName of channels) {
-                    const newCh = supabase.channel(chName);
-                    newCh
-                      .on('broadcast', { event: '*' }, (p) => {
-                        if (!cancelled) {
-                          onEventRef.current({
-                            channel: chName,
-                            event: p.event ?? 'unknown',
-                            payload: p.payload,
-                          });
-                        }
-                      })
-                      .subscribe((s) => {
-                        if (s === 'SUBSCRIBED') setStatus('connected');
-                      });
-                    newSubscribed.push(newCh);
-                  }
-                  channelsRef.current = newSubscribed;
-
-                  // Notify caller to reload data
-                  onReconnectRef.current?.();
-                }
-              }, 5000);
-            }
-          }
-        });
-
-      subscribed.push(channel);
-    }
-
+    const subscribed = doSubscribe(supabase, channels, false);
     channelsRef.current = subscribed;
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -159,7 +176,23 @@ export function useRealtime({ channels, onEvent, onReconnect, enabled = true }: 
       }
       channelsRef.current = [];
     };
-  }, [enabled, channelKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled, channelKey, doSubscribe]);
+
+  // ─── Page visibility: reload data when returning from background ──────
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && hasConnectedRef.current) {
+        // Tab became visible — refetch data to catch anything missed
+        onReconnectRef.current?.();
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [enabled]);
 
   return { status };
 }

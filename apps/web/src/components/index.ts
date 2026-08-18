@@ -1,6 +1,5 @@
 export { Button } from './Button';
 export type { ButtonProps, ButtonVariant } from './Button';
-export { PrototypeBanner } from './PrototypeBanner';
 export { Card } from './Card';
 export type { CardProps, CardVariant } from './Card';
 export { Badge } from './Badge';

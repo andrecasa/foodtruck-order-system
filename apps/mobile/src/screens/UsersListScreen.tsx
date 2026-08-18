@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Screen, Header } from '../components/Layout';
+import { ErrorState } from '../components/ErrorState';
 import { FilterChips, type FilterChipOption } from '../components/FilterChips';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
@@ -309,21 +310,7 @@ export function UsersListScreen() {
 
     if (error) {
       return (
-        <View style={centeredContainerStyle}>
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 14,
-              color: theme.colors.error,
-              textAlign: 'center',
-            }}
-          >
-            {error}
-          </RNText>
-          <View style={{ marginTop: 16 }}>
-            <Button title="Tentar novamente" onPress={() => loadUsers()} variant="primary" />
-          </View>
-        </View>
+        <ErrorState message={error} onRetry={() => loadUsers()} />
       );
     }
 

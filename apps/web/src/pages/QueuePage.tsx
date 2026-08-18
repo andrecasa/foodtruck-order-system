@@ -2,15 +2,13 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useTheme } from '../theme';
 import { Screen, Header, ScrollContainer, Card, Text, FilterChips } from '../components';
 import type { FilterChipOption } from '../components';
-import { PrototypeBanner } from '../components/PrototypeBanner';
 import { ConnectionBanner } from '../components/ConnectionBanner';
+import { OfflineIllustration } from '../components/OfflineIllustration';
 import { apiClient } from '../services/api-client';
 import { mapOrder } from '../services/real-client';
 import { useAuth, useRealtime } from '../hooks';
 import type { RealtimeEvent } from '../hooks';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
-
-const isPrototypeMode = import.meta.env.VITE_PROTOTYPE_MODE === 'true';
 
 /** Format price in centavos to R$ X,XX */
 function formatPrice(cents: number): string {
@@ -175,6 +173,7 @@ export function QueuePage() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [isStale, setIsStale] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const userToggledFilters = useRef(false);
 
   // ─── Theme-derived values ─────────────────────────────────────────────────
@@ -198,23 +197,8 @@ export function QueuePage() {
   const fetchOrders = useCallback(async () => {
     try {
       const fetched = await apiClient.getOrders({ status: selectedFilters as OrderStatus[] });
-      
-      // If no results but entregue filter is off, check if there are entregue orders
-      // Only do this auto-fallback if the user hasn't manually toggled filters
-      if (fetched.length === 0 && !selectedFilters.includes('entregue') && !userToggledFilters.current) {
-        const allOrders = await apiClient.getOrders({ status: [...selectedFilters, 'entregue'] as OrderStatus[] });
-        if (allOrders.length > 0 && allOrders.every(o => o.status === 'entregue')) {
-          setOrders(allOrders);
-          setSelectedFilters(prev => [...prev, 'entregue']);
-          setError(null);
-          setIsStale(false);
-          return;
-        }
-      }
-      
       setOrders(fetched);
       setError(null);
-      setIsStale(false);
     } catch (err) {
       setError('Não foi possível carregar os pedidos. Verifique sua conexão.');
     } finally {
@@ -222,21 +206,51 @@ export function QueuePage() {
     }
   }, [selectedFilters]);
 
+  // Initial load — also handles the "all entregue" fallback once
   useEffect(() => {
-    const doInitialLoad = async () => {
-      await fetchOrders();
-      setInitialLoaded(true);
-    };
-    doInitialLoad();
-  }, [fetchOrders]);
+    let cancelled = false;
 
+    async function load() {
+      const fetched = await apiClient.getOrders({ status: selectedFilters as OrderStatus[] });
+
+      if (cancelled) return;
+
+      // Auto-show entregue if queue is empty and user hasn't touched filters
+      if (fetched.length === 0 && !selectedFilters.includes('entregue') && !userToggledFilters.current && !initialLoaded) {
+        const withEntregue = await apiClient.getOrders({ status: [...selectedFilters, 'entregue'] as OrderStatus[] });
+        if (!cancelled && withEntregue.length > 0 && withEntregue.every(o => o.status === 'entregue')) {
+          setOrders(withEntregue);
+          setSelectedFilters(prev => [...prev, 'entregue']);
+          setInitialLoaded(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (!cancelled) {
+        setOrders(fetched);
+        setError(null);
+        setLoading(false);
+        setInitialLoaded(true);
+      }
+    }
+
+    load().catch(() => {
+      if (!cancelled) {
+        setError('Não foi possível carregar os pedidos. Verifique sua conexão.');
+        setLoading(false);
+        setInitialLoaded(true);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch when filters change (after initial load)
   useEffect(() => {
-    if (isPrototypeMode || !initialLoaded) return;
-    const interval = setInterval(() => {
-      fetchOrders();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [fetchOrders, initialLoaded]);
+    if (!initialLoaded) return;
+    fetchOrders();
+  }, [selectedFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Realtime Event Handling ──────────────────────────────────────────────
 
@@ -301,58 +315,69 @@ export function QueuePage() {
     channels,
     onEvent: handleRealtimeEvent,
     onReconnect: handleReconnect,
-    enabled: !isPrototypeMode && initialLoaded,
+    enabled: initialLoaded,
   });
 
   const staleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Detect browser online/offline status
   useEffect(() => {
-    if (realtimeStatus === 'disconnected' || realtimeStatus === 'reconnecting') {
-      if (!staleTimerRef.current) {
-        staleTimerRef.current = setTimeout(() => {
-          setIsStale(true);
-        }, 3000);
-      }
-    } else if (realtimeStatus === 'connected') {
+    function handleOffline() { setIsOffline(true); }
+    function handleOnline() {
+      setIsOffline(false);
+      // Refetch when coming back online
+      fetchOrders();
+    }
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Manage connection state: banner + polling fallback
+  useEffect(() => {
+    // Clear any existing polling
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
+    if (realtimeStatus === 'connected') {
+      // Connected — no polling needed, clear stale
       if (staleTimerRef.current) {
         clearTimeout(staleTimerRef.current);
         staleTimerRef.current = null;
       }
       setIsStale(false);
+    } else if (initialLoaded) {
+      // Disconnected — start polling fallback (30s) and mark stale after 3s
+      pollingRef.current = setInterval(() => {
+        fetchOrders();
+      }, 30000);
+
+      if (!staleTimerRef.current) {
+        staleTimerRef.current = setTimeout(() => {
+          setIsStale(true);
+          staleTimerRef.current = null;
+        }, 3000);
+      }
     }
 
     return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
       if (staleTimerRef.current) {
         clearTimeout(staleTimerRef.current);
         staleTimerRef.current = null;
       }
     };
-  }, [realtimeStatus]);
-
-  // ─── Prototype Mode ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isPrototypeMode) return;
-
-    const unsubscribe = apiClient.onOrderUpdate((updatedOrder: Order) => {
-      setOrders((prev) => {
-        if (!selectedFilters.includes(updatedOrder.status)) {
-          return prev.filter((o) => o.id !== updatedOrder.id);
-        }
-        const existingIndex = prev.findIndex((o) => o.id === updatedOrder.id);
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = updatedOrder;
-          return updated;
-        }
-        const newList = [...prev, updatedOrder];
-        newList.sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        );
-        return newList;
-      });
-    });
-    return unsubscribe;
-  }, [selectedFilters]);
+  }, [realtimeStatus, initialLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
@@ -518,8 +543,7 @@ export function QueuePage() {
 
   return (
     <Screen padding={false}>
-      <PrototypeBanner />
-      {!isPrototypeMode && isStale && <ConnectionBanner status={realtimeStatus} />}
+      {(isOffline || (realtimeStatus !== 'connected' && initialLoaded)) && <ConnectionBanner status={isOffline ? 'disconnected' : realtimeStatus} />}
       <Header
         title="Pedidos"
         icon="receipt_long"
@@ -531,7 +555,9 @@ export function QueuePage() {
         }
       />
       <ScrollContainer padding={false}>
-        {loading ? (
+        {isOffline ? (
+          <OfflineIllustration />
+        ) : loading ? (
           <div style={loadingStyle}>Carregando pedidos...</div>
         ) : error ? (
           <div style={contentStyle}>

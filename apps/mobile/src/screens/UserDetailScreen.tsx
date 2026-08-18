@@ -13,6 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../theme';
 import { withOpacity } from '../utils/color';
 import { Screen, ScrollContainer, Header } from '../components/Layout';
+import { ErrorState } from '../components/ErrorState';
 import { Modal } from '../components/Modal';
 import { BottomNav } from '../components/BottomNav';
 import { ToggleSwitch } from '../components/ToggleSwitch';
@@ -466,34 +467,7 @@ export function UserDetailScreen() {
     return (
       <Screen padding={false}>
         <Header title="Usuário" onBack={() => router.back()} />
-        <View style={centeredContainerStyle}>
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 14,
-              color: theme.colors.error,
-              textAlign: 'center',
-            }}
-          >
-            {apiError}
-          </RNText>
-          <TouchableOpacity
-            style={{ marginTop: 16 }}
-            onPress={loadUser}
-            accessibilityRole="button"
-            accessibilityLabel="Tentar novamente"
-          >
-            <RNText
-              style={{
-                fontFamily: theme.typography.fontFamily,
-                fontSize: 14,
-                color: theme.colors.primary,
-              }}
-            >
-              Tentar novamente
-            </RNText>
-          </TouchableOpacity>
-        </View>
+        <ErrorState message={apiError} onRetry={loadUser} />
         <BottomNav />
       </Screen>
     );

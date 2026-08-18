@@ -1,0 +1,107 @@
+import React from 'react';
+import { render, waitFor } from '@testing-library/react-native';
+import { DailySummaryScreen } from '../../screens/DailySummaryScreen';
+import type { DailySummary } from '@order-system/shared';
+
+// ─── Mocks ──────────────────────────────────────────────────────────────────
+
+const mockPush = jest.fn();
+const mockBack = jest.fn();
+const mockReplace = jest.fn();
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({
+    push: mockPush,
+    back: mockBack,
+    replace: mockReplace,
+  }),
+  useFocusEffect: (cb: () => void) => {
+    const { useEffect } = require('react');
+    useEffect(() => {
+      cb();
+    }, []);
+  },
+}));
+
+jest.mock('../../hooks/useRealtime', () => ({
+  useRealtime: jest.fn(() => ({ status: 'connected' })),
+}));
+
+const mockGetDailySummary = jest.fn();
+const mockGetMonthlySummary = jest.fn();
+
+jest.mock('../../services/api-client', () => ({
+  apiClient: {
+    getDailySummary: (...args: any[]) => mockGetDailySummary(...args),
+    getMonthlySummary: (...args: any[]) => mockGetMonthlySummary(...args),
+  },
+}));
+
+jest.mock('../../components/DrawerMenu', () => ({
+  DrawerMenu: () => null,
+}));
+
+jest.mock('../../theme', () => ({
+  ...require('../helpers/mockTheme').themeMocks,
+  deepMergeTheme: (base: any) => base,
+}));
+
+jest.mock('../../theme/ThemeProvider', () => require('../helpers/mockTheme').themeMocks);
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function createDailySummary(): DailySummary {
+  return {
+    date: '2024-01-15',
+    totalOrders: 12,
+    paidTotal: 15000,
+    pendingTotal: 5000,
+    byPaymentMethod: {
+      pix: 8000,
+      'cartão': 5000,
+      dinheiro: 2000,
+    },
+  } as DailySummary;
+}
+
+// ─── Tests ──────────────────────────────────────────────────────────────────
+
+describe('DailySummaryScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders summary with totals', async () => {
+    mockGetDailySummary.mockResolvedValue(createDailySummary());
+    mockGetMonthlySummary.mockResolvedValue({ days: [], totals: {} });
+
+    const { findByText, findAllByText } = render(<DailySummaryScreen />);
+
+    // Total orders
+    await findByText('12');
+    // Faturamento (paidTotal + pendingTotal = 20000 = R$ 200,00)
+    await findByText('R$ 200,00');
+    // Recebido (paidTotal = 15000 = R$ 150,00)
+    await findByText('R$ 150,00');
+    // Pendente = R$ 50,00 (same as Cartão) — appears multiple times
+    const fiftyElements = await findAllByText('R$ 50,00');
+    expect(fiftyElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows payment method breakdown', async () => {
+    mockGetDailySummary.mockResolvedValue(createDailySummary());
+    mockGetMonthlySummary.mockResolvedValue({ days: [], totals: {} });
+
+    const { findByText, findAllByText } = render(<DailySummaryScreen />);
+
+    await findByText('Formas de Pagamento');
+    await findByText('PIX');
+    await findByText('R$ 80,00');
+    await findByText('Cartão');
+    // R$ 50,00 may appear in both Pendente and Cartão
+    const fiftyElements = await findAllByText('R$ 50,00');
+    expect(fiftyElements.length).toBeGreaterThanOrEqual(1);
+    await findByText('Dinheiro');
+    await findByText('R$ 20,00');
+  });
+});

@@ -11,57 +11,8 @@ jest.mock('react-native', () => {
   return RN;
 });
 
-jest.mock('../../theme', () => ({
-  useTheme: () => ({
-    colors: {
-      primary: '#7B2D2D',
-      secondary: '#D4812B',
-      background: '#FDF8F4',
-      text: '#3D2020',
-      textSecondary: '#8B6B5A',
-      surface: '#FFFFFF',
-      divider: '#E8DDD5',
-      error: '#B54040',
-      success: '#5A8C5A',
-      warning: '#D4812B',
-      aguardando: '#D4812B',
-      preparando: '#5B8BA8',
-      pronto: '#5A8C5A',
-      received: '#2E7D32',
-      pending: '#C62828',
-    },
-    typography: { fontFamily: 'Inter', sizes: { xs: 10, sm: 12, md: 14, lg: 16, xl: 20, xxl: 32 }, weights: { regular: 400, medium: 500, bold: 600 } },
-    spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
-    borderRadius: { sm: 8, md: 12, lg: 24, full: 9999 },
-    businessName: 'Test',
-  }),
-}));
-
-jest.mock('../../theme/ThemeProvider', () => ({
-  useTheme: () => ({
-    colors: {
-      primary: '#7B2D2D',
-      secondary: '#D4812B',
-      background: '#FDF8F4',
-      text: '#3D2020',
-      textSecondary: '#8B6B5A',
-      surface: '#FFFFFF',
-      divider: '#E8DDD5',
-      error: '#B54040',
-      success: '#5A8C5A',
-      warning: '#D4812B',
-      aguardando: '#D4812B',
-      preparando: '#5B8BA8',
-      pronto: '#5A8C5A',
-      received: '#2E7D32',
-      pending: '#C62828',
-    },
-    typography: { fontFamily: 'Inter', sizes: { xs: 10, sm: 12, md: 14, lg: 16, xl: 20, xxl: 32 }, weights: { regular: 400, medium: 500, bold: 600 } },
-    spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
-    borderRadius: { sm: 8, md: 12, lg: 24, full: 9999 },
-    businessName: 'Test',
-  }),
-}));
+jest.mock('../../theme', () => require('../helpers/mockTheme').themeMocks);
+jest.mock('../../theme/ThemeProvider', () => require('../helpers/mockTheme').themeMocks);
 
 // ─── Test ───────────────────────────────────────────────────────────────────
 

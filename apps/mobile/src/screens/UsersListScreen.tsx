@@ -8,8 +8,8 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
-import { Screen } from '../components/Layout';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Screen, Header } from '../components/Layout';
 import { FilterChips, type FilterChipOption } from '../components/FilterChips';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
@@ -49,7 +49,6 @@ const ROLE_ICONS: Record<UserRole, string> = {
 export function UsersListScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const navigation = useNavigation();
 
   // ─── Color constants (theme-based) ──────────────────────────────────────────
 
@@ -133,31 +132,6 @@ export function UsersListScreen() {
   }, []);
 
   // ─── Styles (Penpot pixel-perfect) ────────────────────────────────────────
-
-  // AppBar: height 56, bg white, flex row, paddingHorizontal 16, gap 12, alignItems center
-  const appBarStyle: ViewStyle = {
-    height: 56,
-    backgroundColor: theme.colors.surface,
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    alignItems: 'center',
-  };
-
-  const backIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 24,
-    color: theme.colors.textSecondary,
-  };
-
-  const titleStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '400',
-    color: theme.colors.text,
-    flex: 1,
-    textAlign: 'center',
-  };
 
   // Content area: flex column, gap 12, padding 16
   const contentStyle: ViewStyle = {
@@ -395,26 +369,9 @@ export function UsersListScreen() {
   };
 
   return (
-    <Screen padding={false} hasHeader={false}>
-      {/* AppBar: arrow_back + "Usuários" */}
-      <View style={appBarStyle} accessibilityRole="header">
-        <Pressable
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/');
-            }
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          testID="back-button"
-        >
-          <RNText style={backIconStyle}>arrow_back</RNText>
-        </Pressable>
-        <RNText style={titleStyle}>Usuários</RNText>
-        <View style={{ width: 24 }} />
-      </View>
+    <Screen padding={false}>
+      {/* Header */}
+      <Header title="Usuários" onBack={() => router.back()} />
 
       {/* Content */}
       <View style={contentStyle}>

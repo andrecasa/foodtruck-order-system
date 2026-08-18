@@ -15,6 +15,7 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
 import type { MenuItem, Order } from '@order-system/shared';
+import { formatPrice } from '../utils/format';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;
@@ -24,14 +25,6 @@ export interface EditOrderItemsScreenProps {
   orderId: string;
   /** The current order data (passed from navigation) */
   order: Order;
-}
-
-/**
- * Formats a value in centavos to BRL currency string (R$ X,XX).
- */
-function formatCurrency(centavos: number): string {
-  const reais = centavos / 100;
-  return `R$ ${reais.toFixed(2).replace('.', ',')}`;
 }
 
 /**
@@ -454,7 +447,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
                     <View key={item.id} style={menuItemRowStyle}>
                       <View style={menuItemInfoStyle}>
                         <RNText style={itemNameStyle}>{item.name}</RNText>
-                        <RNText style={itemPriceStyle}>{formatCurrency(item.price)}</RNText>
+                        <RNText style={itemPriceStyle}>{formatPrice(item.price)}</RNText>
                       </View>
                       <View style={stepperContainerStyle}>
                         <TouchableOpacity
@@ -494,7 +487,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
         {/* Total */}
         <View style={totalContainerStyle}>
           <RNText style={totalLabelStyle}>Total</RNText>
-          <RNText style={totalAmountStyle} testID="total-amount">{formatCurrency(total)}</RNText>
+          <RNText style={totalAmountStyle} testID="total-amount">{formatPrice(total)}</RNText>
         </View>
 
         {/* API Error */}

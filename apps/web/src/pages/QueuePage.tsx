@@ -521,7 +521,7 @@ export function QueuePage() {
       <PrototypeBanner />
       {!isPrototypeMode && isStale && <ConnectionBanner status={realtimeStatus} />}
       <Header
-        title="Fila de Pedidos"
+        title="Pedidos"
         icon="receipt_long"
         rightElement={
           <button onClick={handleLogout} style={logoutButtonStyle} aria-label="Sair">

@@ -4,14 +4,13 @@ import {
   Text as RNText,
   TextInput,
   TouchableOpacity,
-  Pressable,
   type ViewStyle,
   type TextStyle,
   type TextInputProps,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
-import { Screen, ScrollContainer } from '../components/Layout';
+import { Screen, ScrollContainer, Header } from '../components/Layout';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
 
@@ -190,35 +189,6 @@ export function CreateMenuItemScreen() {
 
   // ─── Styles (Penpot-aligned) ────────────────────────────────────────────────
 
-  // AppBar: row, height 56, bg white, shadow, gap 12, paddingHorizontal 16
-  const appBarStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 16,
-    height: 56,
-    gap: 12,
-    backgroundColor: theme.colors.surface,
-  };
-
-  // Back icon: Material Symbols "arrow_back" 24px, color #8B6B5A
-  const backIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 24,
-    fontWeight: '400',
-    color: theme.colors.textSecondary,
-  };
-
-  // Title: Inter 18px weight 400, color #3D2020, flex 1, centered
-  const titleStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '400',
-    color: theme.colors.text,
-    flex: 1,
-    textAlign: 'center',
-  };
-
   // Content: column, gap 20, padding 16 top/left/right, paddingBottom 24
   const contentStyle: ViewStyle = {
     paddingTop: 16,
@@ -331,17 +301,7 @@ export function CreateMenuItemScreen() {
   if (success) {
     return (
       <Screen padding={false}>
-        <View style={appBarStyle} accessibilityRole="header">
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-          >
-            <RNText style={backIconStyle}>arrow_back</RNText>
-          </Pressable>
-          <RNText style={titleStyle}>Cardápio</RNText>
-          <View style={{ width: 24 }} />
-        </View>
+        <Header title="Cardápio" onBack={() => router.back()} />
         <View
           style={{
             flex: 1,
@@ -381,18 +341,8 @@ export function CreateMenuItemScreen() {
 
   return (
     <Screen padding={false}>
-      {/* AppBar — arrow_back + "Novo Item" + spacer */}
-      <View style={appBarStyle} accessibilityRole="header">
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-        >
-          <RNText style={backIconStyle}>arrow_back</RNText>
-        </Pressable>
-        <RNText style={titleStyle}>Cardápio</RNText>
-        <View style={{ width: 24 }} />
-      </View>
+      {/* Header */}
+      <Header title="Cardápio" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* 1. Categoria Field (first per Penpot order) */}

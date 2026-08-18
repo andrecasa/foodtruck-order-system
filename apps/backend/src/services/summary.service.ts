@@ -6,6 +6,36 @@ import type { DailySummary, MonthlySummaryResponse, DayBreakdown } from '@order-
 
 const SAO_PAULO_TZ = 'America/Sao_Paulo';
 
+// --- Cache for monthly summary (past months never change) ---
+
+interface CacheEntry {
+  data: MonthlySummaryResponse;
+  expiresAt: number;
+}
+
+const monthlyCache = new Map<string, CacheEntry>();
+const CACHE_TTL_CURRENT_MONTH = 60_000; // 1 minute for current month
+const CACHE_TTL_PAST_MONTH = 3600_000;  // 1 hour for past months
+
+function getCacheKey(year: number, month: number): string {
+  return `${year}-${month}`;
+}
+
+function isCurrentMonth(year: number, month: number): boolean {
+  const now = new Date();
+  const zonedNow = toZonedTime(now, SAO_PAULO_TZ);
+  return zonedNow.getFullYear() === year && zonedNow.getMonth() + 1 === month;
+}
+
+/** Invalidate cache for a specific month (called after order changes) */
+export function invalidateMonthlySummaryCache(year?: number, month?: number): void {
+  if (year && month) {
+    monthlyCache.delete(getCacheKey(year, month));
+  } else {
+    monthlyCache.clear();
+  }
+}
+
 // --- Error classes ---
 
 export class ServiceError extends Error {

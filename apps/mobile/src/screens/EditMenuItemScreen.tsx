@@ -3,7 +3,6 @@ import {
   View,
   Text as RNText,
   TouchableOpacity,
-  Pressable,
   TextInput,
   type ViewStyle,
   type TextStyle,
@@ -11,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
-import { Screen, ScrollContainer } from '../components/Layout';
+import { Screen, ScrollContainer, Header } from '../components/Layout';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
@@ -238,32 +237,6 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
 
   // ─── Styles (Penpot-aligned) ────────────────────────────────────────────────
 
-  const appBarStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 16,
-    height: 56,
-    gap: 12,
-    backgroundColor: theme.colors.surface,
-  };
-
-  const backIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 24,
-    fontWeight: '400',
-    color: theme.colors.textSecondary,
-  };
-
-  const titleStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '400',
-    color: theme.colors.text,
-    flex: 1,
-    textAlign: 'center',
-  };
-
   const contentStyle: ViewStyle = {
     paddingTop: 16,
     paddingHorizontal: 16,
@@ -389,17 +362,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   if (success) {
     return (
       <Screen padding={false}>
-        <View style={appBarStyle} accessibilityRole="header">
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-          >
-            <RNText style={backIconStyle}>arrow_back</RNText>
-          </Pressable>
-          <RNText style={titleStyle}>Cardápio</RNText>
-          <View style={{ width: 24 }} />
-        </View>
+        <Header title="Cardápio" onBack={() => router.back()} />
         <View
           style={{
             flex: 1,
@@ -439,18 +402,8 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
 
   return (
     <Screen padding={false}>
-      {/* AppBar — arrow_back + "Editar Item" + spacer */}
-      <View style={appBarStyle} accessibilityRole="header">
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-        >
-          <RNText style={backIconStyle}>arrow_back</RNText>
-        </Pressable>
-        <RNText style={titleStyle}>Cardápio</RNText>
-        <View style={{ width: 24 }} />
-      </View>
+      {/* Header */}
+      <Header title="Cardápio" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* 1. Categoria Field (first per Penpot order) */}

@@ -275,7 +275,7 @@ export interface DailySummary {
 ```typescript
 // packages/shared/src/types/theme.ts
 
-export interface ThemeConfig {
+export interface  {
   businessName: string;
   logo: string;                    // URL ou path local
   colors: {

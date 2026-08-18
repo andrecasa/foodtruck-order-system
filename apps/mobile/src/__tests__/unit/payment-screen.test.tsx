@@ -36,42 +36,14 @@ jest.mock('../../components/PrototypeBanner', () => ({
   PrototypeBanner: () => null,
 }));
 
-const mockTheme = {
-  colors: {
-    primary: '#7B2D2D',
-    secondary: '#D4812B',
-    background: '#FDF8F4',
-    text: '#3D2020',
-    success: '#5A8C5A',
-    warning: '#D4812B',
-    error: '#B54040',
-    textSecondary: '#8B6B5A',
-    surface: '#FFFFFF',
-    divider: '#E8DDD5',
-  },
-  typography: {
-    fontFamily: 'Inter',
-    sizes: { xs: 10, sm: 12, md: 14, lg: 16, xl: 20, xxl: 32 },
-    weights: { regular: 400, medium: 500, bold: 600 },
-  },
-  spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
-  borderRadius: { sm: 8, md: 12, lg: 24, full: 9999 },
-  businessName: 'Pastel das Meninas',
-  logo: '',
-};
+import { mockTheme } from '../helpers/mockTheme';
 
 jest.mock('../../theme', () => ({
-  useTheme: () => mockTheme,
-  ThemeProvider: ({ children }: any) => children,
-  defaultTheme: mockTheme,
-  loadTheme: () => mockTheme,
+  ...require('../helpers/mockTheme').themeMocks,
   deepMergeTheme: (base: any) => base,
 }));
 
-jest.mock('../../theme/ThemeProvider', () => ({
-  useTheme: () => mockTheme,
-  ThemeProvider: ({ children }: any) => children,
-}));
+jest.mock('../../theme/ThemeProvider', () => require('../helpers/mockTheme').themeMocks);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

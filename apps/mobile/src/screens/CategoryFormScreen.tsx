@@ -4,14 +4,13 @@ import {
   Text as RNText,
   TextInput,
   TouchableOpacity,
-  Pressable,
   ActivityIndicator,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme';
-import { Screen, ScrollContainer } from '../components/Layout';
+import { Screen, ScrollContainer, Header } from '../components/Layout';
 import { BottomNav } from '../components/BottomNav';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
@@ -122,30 +121,6 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
-  const appBarStyle: ViewStyle = {
-    height: 56,
-    backgroundColor: theme.colors.surface,
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    alignItems: 'center',
-  };
-
-  const backIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 24,
-    color: theme.colors.textSecondary,
-  };
-
-  const titleStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '400',
-    color: theme.colors.text,
-    flex: 1,
-    textAlign: 'center',
-  };
-
   const contentStyle: ViewStyle = {
     paddingHorizontal: 16,
     paddingVertical: 24,
@@ -236,20 +211,9 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Screen padding={false} hasHeader={false}>
-      {/* AppBar */}
-      <View style={appBarStyle} accessibilityRole="header">
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          testID="back-button"
-        >
-          <RNText style={backIconStyle}>arrow_back</RNText>
-        </Pressable>
-        <RNText style={titleStyle}>Categoria</RNText>
-        <View style={{ width: 24 }} />
-      </View>
+    <Screen padding={false}>
+      {/* Header */}
+      <Header title="Categoria" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* Nome Field */}

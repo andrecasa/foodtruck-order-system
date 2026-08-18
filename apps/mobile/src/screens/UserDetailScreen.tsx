@@ -12,7 +12,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../theme';
 import { withOpacity } from '../utils/color';
-import { Screen, ScrollContainer } from '../components/Layout';
+import { Screen, ScrollContainer, Header } from '../components/Layout';
 import { Modal } from '../components/Modal';
 import { BottomNav } from '../components/BottomNav';
 import { ToggleSwitch } from '../components/ToggleSwitch';
@@ -247,30 +247,6 @@ export function UserDetailScreen() {
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
-  const appBarStyle: ViewStyle = {
-    height: 56,
-    backgroundColor: theme.colors.surface,
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    alignItems: 'center',
-  };
-
-  const backIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 24,
-    color: theme.colors.textSecondary,
-  };
-
-  const titleStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '400',
-    color: theme.colors.text,
-    flex: 1,
-    textAlign: 'center',
-  };
-
   const contentStyle: ViewStyle = {
     paddingHorizontal: 16,
     paddingVertical: 24,
@@ -464,19 +440,8 @@ export function UserDetailScreen() {
 
   if (fetchLoading) {
     return (
-      <Screen padding={false} hasHeader={false}>
-        <View style={appBarStyle} accessibilityRole="header">
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-            testID="back-button"
-          >
-            <RNText style={backIconStyle}>arrow_back</RNText>
-          </Pressable>
-          <RNText style={titleStyle}>Usuário</RNText>
-          <View style={{ width: 24 }} />
-        </View>
+      <Screen padding={false}>
+        <Header title="Usuário" onBack={() => router.back()} />
         <View style={centeredContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <RNText
@@ -499,19 +464,8 @@ export function UserDetailScreen() {
 
   if (apiError && !user) {
     return (
-      <Screen padding={false} hasHeader={false}>
-        <View style={appBarStyle} accessibilityRole="header">
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-            testID="back-button"
-          >
-            <RNText style={backIconStyle}>arrow_back</RNText>
-          </Pressable>
-          <RNText style={titleStyle}>Usuário</RNText>
-          <View style={{ width: 24 }} />
-        </View>
+      <Screen padding={false}>
+        <Header title="Usuário" onBack={() => router.back()} />
         <View style={centeredContainerStyle}>
           <RNText
             style={{
@@ -548,20 +502,9 @@ export function UserDetailScreen() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Screen padding={false} hasHeader={false}>
-      {/* AppBar */}
-      <View style={appBarStyle} accessibilityRole="header">
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          testID="back-button"
-        >
-          <RNText style={backIconStyle}>arrow_back</RNText>
-        </Pressable>
-        <RNText style={titleStyle}>Usuário</RNText>
-        <View style={{ width: 24 }} />
-      </View>
+    <Screen padding={false}>
+      {/* Header */}
+      <Header title="Usuário" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
         {/* User Info Card — same as list card with switch toggle */}

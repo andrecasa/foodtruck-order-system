@@ -12,14 +12,7 @@ import { Screen, ScrollContainer, Modal, Header } from '../components';
 import { Text } from '../components/Typography';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
-
-/** Formats price in centavos to R$ X,XX */
-function formatPrice(priceInCentavos: number): string {
-  return (priceInCentavos / 100).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-}
+import { formatPrice } from '../utils/format';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'pix', label: 'PIX' },
@@ -233,7 +226,12 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
 
             {/* Line 3: Items */}
             <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text }}>
-              {order.items.map(item => `${item.quantity}x ${item.name}`).join(' • ')}
+              {order.items.map(item => {
+                const subtotal = item.quantity * item.unitPrice;
+                return item.quantity >= 1
+                  ? `${item.quantity}x ${item.name} (${formatPrice(subtotal)})`
+                  : `${item.quantity}x ${item.name}`;
+              }).join('\n')}
             </RNText>
 
             {/* Line 4: Price */}

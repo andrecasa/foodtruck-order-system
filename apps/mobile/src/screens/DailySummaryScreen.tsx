@@ -19,6 +19,8 @@ import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
 import { formatPrice } from '../utils/format';
+import { SubCard } from '../components/SubCard';
+import { PaymentRow } from '../components/PaymentRow';
 
 /**
  * Resumo do Dia — Daily financial summary screen.
@@ -278,68 +280,4 @@ export function DailySummaryScreen() {
   );
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
 
-interface SubCardProps {
-  icon: string;
-  color: string;
-  backgroundColor: string;
-  value: string;
-  label: string;
-  labelColor: string;
-}
-
-function SubCard({ icon, color, backgroundColor, value, label, labelColor }: SubCardProps) {
-  const subCardStyle: ViewStyle = {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    height: 60,
-    backgroundColor,
-    gap: 8,
-  };
-
-  const iconWrapStyle: ViewStyle = {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: color + '1F',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  return (
-    <View style={subCardStyle} accessibilityLabel={`${label}: ${value}`}>
-      <View style={iconWrapStyle}>
-        <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18, color }}>{icon}</RNText>
-      </View>
-      <View style={{ flex: 1 }}>
-        <RNText style={{ fontSize: 15, fontWeight: '600', color }} numberOfLines={1}>{value}</RNText>
-        <RNText style={{ fontSize: 10, fontWeight: '400', color: labelColor }}>{label}</RNText>
-      </View>
-    </View>
-  );
-}
-
-interface PaymentRowProps {
-  icon: string;
-  iconColor: string;
-  label: string;
-  value: string;
-  textColor: string;
-}
-
-function PaymentRow({ icon, iconColor, label, value, textColor }: PaymentRowProps) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', height: 44, gap: 12 }}>
-      <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: iconColor + '1F', alignItems: 'center', justifyContent: 'center' }}>
-        <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16, color: iconColor }}>{icon}</RNText>
-      </View>
-      <RNText style={{ flex: 1, fontSize: 14, fontWeight: '400', color: textColor }}>{label}</RNText>
-      <RNText style={{ fontSize: 14, fontWeight: '600', color: textColor }}>{value}</RNText>
-    </View>
-  );
-}

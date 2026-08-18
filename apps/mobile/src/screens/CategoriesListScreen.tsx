@@ -9,8 +9,8 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
-import { Screen } from '../components/Layout';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Screen, Header } from '../components/Layout';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
@@ -26,7 +26,6 @@ import type { Category } from '@order-system/shared';
 export function CategoriesListScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const navigation = useNavigation();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,30 +127,6 @@ export function CategoriesListScreen() {
   }, [categories, reordering]);
 
   // ─── Styles (Penpot pixel-perfect) ────────────────────────────────────────
-
-  const appBarStyle: ViewStyle = {
-    height: 56,
-    backgroundColor: theme.colors.surface,
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    alignItems: 'center',
-  };
-
-  const backIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 24,
-    color: theme.colors.textSecondary,
-  };
-
-  const titleStyle: TextStyle = {
-    flex: 1,
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 18,
-    fontWeight: '400',
-    color: theme.colors.text,
-    textAlign: 'center',
-  };
 
   const contentStyle: ViewStyle = {
     flex: 1,
@@ -399,26 +374,9 @@ export function CategoriesListScreen() {
   };
 
   return (
-    <Screen padding={false} hasHeader={false}>
-      {/* AppBar: arrow_back + "Categorias" */}
-      <View style={appBarStyle} accessibilityRole="header">
-        <Pressable
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/');
-            }
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          testID="back-button"
-        >
-          <RNText style={backIconStyle}>arrow_back</RNText>
-        </Pressable>
-        <RNText style={titleStyle}>Categorias</RNText>
-        <View style={{ width: 24 }} />
-      </View>
+    <Screen padding={false}>
+      {/* Header */}
+      <Header title="Categorias" onBack={() => router.back()} />
 
       {/* Content */}
       <View style={contentStyle}>

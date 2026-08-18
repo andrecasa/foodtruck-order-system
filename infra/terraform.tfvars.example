@@ -1,0 +1,26 @@
+# =============================================================================
+# Valores das variáveis Terraform
+# Copie este arquivo para terraform.tfvars e preencha com seus valores reais.
+# NÃO commite terraform.tfvars no git!
+# =============================================================================
+
+aws_region    = "sa-east-1"
+environment   = "prod"
+instance_type = "t3.small"   # 2 vCPU, 2 GB RAM (~$15/mês)
+
+# Nome do Key Pair já criado na AWS (Console > EC2 > Key Pairs)
+key_pair_name = "order-system-key"
+
+# Domínio (deixe vazio se não tiver)
+domain_name = ""
+
+# Restrinja SSH ao seu IP (descubra em: curl ifconfig.me)
+ssh_allowed_cidrs = ["SEU_IP_AQUI/32"]
+
+# Tamanho dos discos
+root_volume_size = 20  # GB - Sistema operacional + Docker
+data_volume_size = 5   # GB - PostgreSQL + Evolution API
+
+# Backups
+enable_backups        = true
+backup_retention_days = 30

@@ -49,6 +49,20 @@ export async function getOrders(req: AuthenticatedRequest, res: Response): Promi
 }
 
 /**
+ * GET /api/orders/:id
+ * Get a single order by ID.
+ */
+export async function getOrderById(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const orderId = req.params.id as string;
+    const order = await orderService.getOrderById(orderId);
+    res.status(200).json(order);
+  } catch (err) {
+    handleServiceError(err, res, 'Erro ao buscar pedido.');
+  }
+}
+
+/**
  * POST /api/orders
  * Create a new order with Zod validation, price snapshots, and sequential numbering.
  */

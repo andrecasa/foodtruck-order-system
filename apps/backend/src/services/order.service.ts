@@ -155,6 +155,57 @@ export async function getOrders(statuses: string[], date?: string): Promise<Orde
 }
 
 /**
+ * Gets a single order by ID with its items.
+ */
+export async function getOrderById(orderId: string): Promise<OrderRecord> {
+  const orderResult = await pool.query(
+    `SELECT id, daily_number, customer_name, origin, status, payment_status,
+            payment_method, total_amount_cents, order_date, created_at,
+            started_at, ready_at, delivered_at, paid_at
+     FROM orders WHERE id = $1`,
+    [orderId]
+  );
+
+  if (orderResult.rows.length === 0) {
+    throw new ServiceError('Pedido não encontrado', 404, 'NOT_FOUND');
+  }
+
+  const o = orderResult.rows[0];
+
+  const itemsResult = await pool.query(
+    `SELECT id, menu_item_id, item_name, unit_price_cents, quantity
+     FROM order_items WHERE order_id = $1`,
+    [orderId]
+  );
+
+  const items: OrderItemRecord[] = itemsResult.rows.map((i: any) => ({
+    id: i.id,
+    menuItemId: i.menu_item_id,
+    itemName: i.item_name,
+    unitPriceCents: i.unit_price_cents,
+    quantity: i.quantity,
+  }));
+
+  return {
+    id: o.id,
+    dailyNumber: o.daily_number,
+    customerName: o.customer_name,
+    origin: o.origin,
+    status: o.status,
+    paymentStatus: o.payment_status,
+    paymentMethod: o.payment_method,
+    totalAmountCents: o.total_amount_cents,
+    orderDate: o.order_date,
+    createdAt: o.created_at,
+    startedAt: o.started_at,
+    readyAt: o.ready_at,
+    deliveredAt: o.delivered_at,
+    paidAt: o.paid_at,
+    items,
+  };
+}
+
+/**
  * Creates a new order with price snapshots and sequential numbering.
  * Validates all menu items exist and are active.
  */

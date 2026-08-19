@@ -1,11 +1,5 @@
 import React from 'react';
 import { useTheme } from '../theme/ThemeProvider';
-import {
-  BADGE_BG_PRESENCIAL,
-  BADGE_BG_WHATSAPP,
-  BADGE_TEXT_PRESENCIAL,
-  BADGE_TEXT_WHATSAPP,
-} from '@order-system/shared';
 
 export type BadgeOrigin = 'presencial' | 'whatsapp';
 
@@ -31,8 +25,8 @@ export function OriginBadge({ origin }: OriginBadgeProps) {
   const label = isWhatsApp ? 'WhatsApp' : 'Presencial';
 
   const style: React.CSSProperties = {
-    backgroundColor: isWhatsApp ? BADGE_BG_WHATSAPP : BADGE_BG_PRESENCIAL,
-    color: isWhatsApp ? BADGE_TEXT_WHATSAPP : BADGE_TEXT_PRESENCIAL,
+    backgroundColor: `${theme.colors.preparando}14`,
+    color: theme.colors.preparando,
     borderRadius: '11px',
     height: '22px',
     paddingLeft: '12px',

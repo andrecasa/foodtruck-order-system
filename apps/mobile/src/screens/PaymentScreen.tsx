@@ -220,9 +220,9 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 </RNText>
               </View>
               {/* Origin badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.primary + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.primary }}>{order.origin === 'whatsapp' ? 'chat' : 'storefront'}</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.primary }}>
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.preparando + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.preparando }}>{order.origin === 'whatsapp' ? 'chat' : 'storefront'}</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.preparando }}>
                   {order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
                 </RNText>
               </View>

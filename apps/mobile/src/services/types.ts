@@ -39,6 +39,7 @@ export interface ApiClient {
 
   // Orders
   getOrders(filter?: { status?: OrderStatus[]; date?: string }): Promise<Order[]>;
+  getOrderById(id: string): Promise<Order>;
   createOrder(data: CreateOrderRequest): Promise<Order>;
   updateOrderStatus(id: string, data: UpdateOrderStatusRequest): Promise<Order>;
   updateOrderItems(orderId: string, data: UpdateOrderItemsRequest): Promise<Order>;

@@ -353,6 +353,12 @@ export const realClient: ApiClient = {
     );
   },
 
+  async getOrderById(id: string): Promise<Order> {
+    const response = await authFetch(`/api/orders/${id}`);
+    const raw = await response.json();
+    return mapOrder(raw);
+  },
+
   async createOrder(data: CreateOrderRequest): Promise<Order> {
     const response = await authFetch('/api/orders', {
       method: 'POST',

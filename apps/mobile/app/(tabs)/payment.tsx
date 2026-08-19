@@ -33,16 +33,11 @@ export default function PaymentRoute() {
 
         try {
           setLoading(true);
-          const orders = await apiClient.getOrders({});
-          const found = orders.find((o) => o.id === orderId);
-          if (!found) {
-            setError('Pedido não encontrado');
-          } else {
-            setOrder(found);
-            setError(null);
-          }
+          const found = await apiClient.getOrderById(orderId);
+          setOrder(found);
+          setError(null);
         } catch {
-          setError('Erro ao carregar pedido');
+          setError('Pedido não encontrado');
         } finally {
           setLoading(false);
         }

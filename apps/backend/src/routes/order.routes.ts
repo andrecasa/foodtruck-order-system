@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createOrder, getOrders, updateOrderStatus, registerPayment, updateOrderItems, deleteOrder } from '../controllers/order.controller.js';
+import { createOrder, getOrders, getOrderById, updateOrderStatus, registerPayment, updateOrderItems, deleteOrder } from '../controllers/order.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { syncUserMiddleware } from '../middleware/sync-user.middleware.js';
 
@@ -13,6 +13,9 @@ router.post('/', authMiddleware, syncUserMiddleware, createOrder);
 
 // PATCH /api/orders/:id/status - Update order status
 router.patch('/:id/status', authMiddleware, syncUserMiddleware, updateOrderStatus);
+
+// GET /api/orders/:id - Get single order by ID
+router.get('/:id', authMiddleware, syncUserMiddleware, getOrderById);
 
 // PUT /api/orders/:id/items - Update order items
 router.put('/:id/items', authMiddleware, syncUserMiddleware, updateOrderItems);

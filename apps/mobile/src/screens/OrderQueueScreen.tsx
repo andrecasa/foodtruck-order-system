@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 import {
   Screen,
@@ -207,6 +207,14 @@ export function OrderQueueScreen() {
     fetchDaysWithOrders(year, month);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Refresh data when screen regains focus (e.g., after deleting an order)
+  useFocusEffect(
+    useCallback(() => {
+      refetchOrders();
+      fetchDaysWithOrders(year, month);
+    }, [refetchOrders, year, month, fetchDaysWithOrders])
+  );
+
   // Realtime: subscribe to order events for live updates
   const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
 
@@ -222,6 +230,7 @@ export function OrderQueueScreen() {
       // Handle order deletion
       if (event.event === 'order_deleted') {
         setOrders((prev) => prev.filter((o) => o.id !== payload.id));
+        fetchDaysWithOrders(year, month);
         return;
       }
 
@@ -361,9 +370,9 @@ export function OrderQueueScreen() {
                 </RNText>
               </View>
               {/* Origin badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.primary + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.primary }}>{ORIGIN_ICON[order.origin] || 'storefront'}</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.primary }}>
+              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.preparando + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.preparando }}>{ORIGIN_ICON[order.origin] || 'storefront'}</RNText>
+                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.preparando }}>
                   {order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
                 </RNText>
               </View>

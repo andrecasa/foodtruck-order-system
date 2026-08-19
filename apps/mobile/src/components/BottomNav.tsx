@@ -1,6 +1,5 @@
 import React from 'react';
 import { Pressable, View, Text as RNText, type ViewStyle, type TextStyle } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import { useTheme } from '../theme';
 
@@ -35,11 +34,9 @@ export function BottomNav() {
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const insets = useSafeAreaInsets();
 
   const containerStyle: ViewStyle = {
-    height: 56 + insets.bottom,
-    paddingBottom: insets.bottom,
+    height: 56,
     backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     justifyContent: 'space-around',

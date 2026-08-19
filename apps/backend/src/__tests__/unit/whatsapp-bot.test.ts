@@ -493,6 +493,9 @@ describe('WhatsApp Bot - State Machine', () => {
       // Update session (touch last_activity)
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
+      // Admin lookup for created_by
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'admin-uuid-1' }] });
+
       // Order creation transaction
       mockConnect.mockResolvedValue({
         query: mockQuery,

@@ -131,7 +131,7 @@ export function MonthlySummaryScreen() {
   const loadingContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
 
   const monthSelectorStyle: ViewStyle = {
-    backgroundColor: theme.colors.primary + '1F',
+    backgroundColor: theme.colors.primary,
     borderRadius: 22,
     height: 44,
     width: '100%',
@@ -144,14 +144,14 @@ export function MonthlySummaryScreen() {
   const arrowStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 20,
-    color: theme.colors.primary,
+    color: theme.colors.surface,
   };
 
   const monthLabelStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: theme.colors.surface,
     flex: 1,
     textAlign: 'center',
   };

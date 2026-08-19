@@ -263,6 +263,12 @@ export function QueuePage() {
     const payload = event.payload;
     if (!payload) return;
 
+    // Handle order deletion
+    if (event.event === 'order_deleted' && payload.id) {
+      setOrders((prev) => prev.filter((o) => o.id !== payload.id));
+      return;
+    }
+
     let raw: any;
     if (payload.record) {
       raw = payload.record;

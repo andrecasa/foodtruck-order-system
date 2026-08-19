@@ -324,13 +324,17 @@ export const realClient: ApiClient = {
     });
   },
 
-  async getOrders(filter?: { status?: OrderStatus[] }): Promise<Order[]> {
+  async getOrders(filter?: { status?: OrderStatus[]; date?: string }): Promise<Order[]> {
     let url = '/api/orders';
+    const params = new URLSearchParams();
     if (filter?.status && filter.status.length > 0) {
-      const params = new URLSearchParams();
       params.set('status', filter.status.join(','));
-      url += `?${params.toString()}`;
     }
+    if (filter?.date) {
+      params.set('date', filter.date);
+    }
+    const query = params.toString();
+    if (query) url += `?${query}`;
     const response = await authFetch(url);
     const data = await response.json();
     const orders: Order[] = (Array.isArray(data) ? data : data.orders || []).map(mapOrder);
@@ -374,6 +378,10 @@ export const realClient: ApiClient = {
     });
     const raw = await response.json();
     return mapOrder(raw);
+  },
+
+  async deleteOrder(id: string): Promise<void> {
+    await authFetch(`/api/orders/${id}`, { method: 'DELETE' });
   },
 
   async registerPayment(id: string, data: RegisterPaymentRequest): Promise<Order> {

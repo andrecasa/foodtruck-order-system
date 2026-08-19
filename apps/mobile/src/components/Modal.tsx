@@ -30,6 +30,10 @@ export interface ModalProps {
   onCancel?: () => void;
   /** Visual variant: 'default' uses primary color, 'danger' uses error color */
   variant?: ModalVariant;
+  /** Error message to display inside the modal (above buttons) */
+  errorMessage?: string | null;
+  /** Whether the modal action is loading (disables buttons) */
+  loading?: boolean;
   /** Optional test ID */
   testID?: string;
 }
@@ -49,6 +53,8 @@ export function Modal({
   onConfirm,
   onCancel,
   variant = 'default',
+  errorMessage,
+  loading = false,
   testID,
 }: ModalProps) {
   const theme = useTheme();
@@ -131,6 +137,13 @@ export function Modal({
     color: theme.colors.textSecondary,
   };
 
+  const errorTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.error,
+  };
+
   return (
     <RNModal
       visible={visible}
@@ -161,10 +174,15 @@ export function Modal({
 
           <View style={bodyStyle}>{children}</View>
 
+          {errorMessage ? (
+            <Text style={errorTextStyle}>{errorMessage}</Text>
+          ) : null}
+
           <View style={actionsStyle}>
             <Pressable
-              style={cancelButtonStyle}
+              style={[cancelButtonStyle, loading && { opacity: 0.5 }]}
               onPress={handleCancel}
+              disabled={loading}
               accessibilityRole="button"
               accessibilityLabel={cancelLabel}
             >
@@ -173,8 +191,9 @@ export function Modal({
 
             {onConfirm && (
               <Pressable
-                style={confirmButtonStyle}
+                style={[confirmButtonStyle, loading && { opacity: 0.7 }]}
                 onPress={onConfirm}
+                disabled={loading}
                 accessibilityRole="button"
                 accessibilityLabel={confirmLabel}
               >

@@ -34,6 +34,10 @@ export function CalendarCard({ year, month, selectedDay, daysWithOrders, onDayPr
   const grid = generateCalendarGrid(year, month);
   const ordersSet = new Set(daysWithOrders);
 
+  // Determine today's day number (only if viewing the current month)
+  const now = new Date();
+  const todayDay = (year === now.getFullYear() && month === now.getMonth() + 1) ? now.getDate() : -1;
+
   const cardStyle: ViewStyle = {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
@@ -68,8 +72,9 @@ export function CalendarCard({ year, month, selectedDay, daysWithOrders, onDayPr
               key={`${rowIndex}-${colIndex}`}
               day={day}
               isSelected={day === selectedDay}
+              isToday={day === todayDay}
               hasOrders={day !== null && ordersSet.has(day)}
-              isTappable={allDaysTappable || (day !== null && ordersSet.has(day))}
+              isTappable={allDaysTappable || (day !== null && ordersSet.has(day)) || day === todayDay}
               onPress={onDayPress}
               theme={theme}
             />
@@ -83,13 +88,14 @@ export function CalendarCard({ year, month, selectedDay, daysWithOrders, onDayPr
 interface DayCellProps {
   day: number | null;
   isSelected: boolean;
+  isToday: boolean;
   hasOrders: boolean;
   isTappable: boolean;
   onPress: (day: number) => void;
   theme: ReturnType<typeof useTheme>;
 }
 
-function DayCell({ day, isSelected, hasOrders, isTappable, onPress, theme }: DayCellProps) {
+function DayCell({ day, isSelected, isToday, hasOrders, isTappable, onPress, theme }: DayCellProps) {
   if (day === null) {
     return <View style={dayCellStyle} />;
   }
@@ -120,7 +126,16 @@ function DayCell({ day, isSelected, hasOrders, isTappable, onPress, theme }: Day
     justifyContent: 'center',
   };
 
-  // Selected day: green circle outline, dark text
+  const todayCircleStyle: ViewStyle = {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.colors.primary + '1F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  // Selected day: green circle outline
   if (isSelected) {
     return (
       <TouchableOpacity
@@ -132,6 +147,23 @@ function DayCell({ day, isSelected, hasOrders, isTappable, onPress, theme }: Day
       >
         <View style={selectedCircleStyle}>
           <Text style={dayTextStyle}>{day}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  // Today (not selected): primary tinted circle, always tappable
+  if (isToday) {
+    return (
+      <TouchableOpacity
+        style={dayCellStyle}
+        onPress={() => onPress(day)}
+        accessibilityLabel={`Dia ${day}, hoje`}
+        accessibilityRole="button"
+        testID={`calendar-day-${day}`}
+      >
+        <View style={todayCircleStyle}>
+          <Text style={{ ...dayTextStyle, fontWeight: '600' }}>{day}</Text>
         </View>
       </TouchableOpacity>
     );

@@ -273,6 +273,16 @@ async function createWhatsAppOrder(phoneNumber: string, customerName: string, ca
   const zonedDate = toZonedTime(now, SAO_PAULO_TZ);
   const orderDate = format(zonedDate, 'yyyy-MM-dd', { timeZone: SAO_PAULO_TZ });
 
+  // Get the first active admin as the creator for bot orders
+  const adminResult = await pool.query(
+    "SELECT id FROM users WHERE role = 'admin' AND status = 'ativo' ORDER BY created_at ASC LIMIT 1"
+  );
+  if (adminResult.rows.length === 0) {
+    console.error('[whatsapp-bot] No active admin found to attribute order');
+    return null;
+  }
+  const createdBy = adminResult.rows[0].id;
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -284,10 +294,10 @@ async function createWhatsAppOrder(phoneNumber: string, customerName: string, ca
     const dailyNumber = seqResult.rows[0].daily_number;
 
     const orderResult = await client.query(
-      `INSERT INTO orders (daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_at)
-       VALUES ($1, $2, 'whatsapp', 'aguardando', 'pendente', $3, $4, $5)
+      `INSERT INTO orders (daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_by, created_at)
+       VALUES ($1, $2, 'whatsapp', 'aguardando', 'pendente', $3, $4, $5, $6)
        RETURNING id, daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_at`,
-      [dailyNumber, customerName, totalAmountCents, orderDate, now.toISOString()]
+      [dailyNumber, customerName, totalAmountCents, orderDate, createdBy, now.toISOString()]
     );
     const order = orderResult.rows[0];
 

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_method TEXT CHECK (payment_method IN ('dinheiro', 'pix', 'cartão') OR payment_method IS NULL),
   total_amount_cents INT NOT NULL,
   order_date DATE NOT NULL,
+  created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   started_at TIMESTAMPTZ,
   ready_at TIMESTAMPTZ,

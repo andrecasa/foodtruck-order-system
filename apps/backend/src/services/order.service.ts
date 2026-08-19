@@ -28,6 +28,7 @@ export interface CreateOrderInput {
   customerName: string;
   origin: string;
   items: OrderItemInput[];
+  createdBy: string;
 }
 
 export interface OrderItemRecord {
@@ -74,11 +75,16 @@ export class ServiceError extends Error {
 /**
  * Lists orders for today, optionally filtered by status.
  */
-export async function getOrders(statuses: string[]): Promise<OrderRecord[]> {
-  // Get today's date in São Paulo timezone
-  const now = new Date();
-  const zonedDate = toZonedTime(now, SAO_PAULO_TZ);
-  const today = format(zonedDate, 'yyyy-MM-dd', { timeZone: SAO_PAULO_TZ });
+export async function getOrders(statuses: string[], date?: string): Promise<OrderRecord[]> {
+  // Use provided date or default to today in São Paulo timezone
+  let orderDate: string;
+  if (date) {
+    orderDate = date;
+  } else {
+    const now = new Date();
+    const zonedDate = toZonedTime(now, SAO_PAULO_TZ);
+    orderDate = format(zonedDate, 'yyyy-MM-dd', { timeZone: SAO_PAULO_TZ });
+  }
 
   let query: string;
   let params: unknown[];
@@ -92,7 +98,7 @@ export async function getOrders(statuses: string[]): Promise<OrderRecord[]> {
       WHERE o.order_date = $1 AND o.status = ANY($2::text[])
       ORDER BY o.created_at ASC
     `;
-    params = [today, statuses];
+    params = [orderDate, statuses];
   } else {
     query = `
       SELECT o.id, o.daily_number, o.customer_name, o.origin, o.status, o.payment_status,
@@ -102,7 +108,7 @@ export async function getOrders(statuses: string[]): Promise<OrderRecord[]> {
       WHERE o.order_date = $1
       ORDER BY o.created_at ASC
     `;
-    params = [today];
+    params = [orderDate];
   }
 
   const ordersResult = await pool.query(query, params);
@@ -153,7 +159,7 @@ export async function getOrders(statuses: string[]): Promise<OrderRecord[]> {
  * Validates all menu items exist and are active.
  */
 export async function createOrder(input: CreateOrderInput): Promise<OrderRecord> {
-  const { customerName, origin, items } = input;
+  const { customerName, origin, items, createdBy } = input;
 
   // Validate all menu items exist and are active
   const menuItemIds = items.map((i) => i.menuItemId);
@@ -218,10 +224,10 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderRecord>
 
     // Insert order
     const orderResult = await client.query(
-      `INSERT INTO orders (daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_at)
-       VALUES ($1, $2, $3, 'aguardando', 'pendente', $4, $5, $6)
-       RETURNING id, daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_at`,
-      [dailyNumber, customerName, origin, totalAmountCents, orderDate, now.toISOString()]
+      `INSERT INTO orders (daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_by, created_at)
+       VALUES ($1, $2, $3, 'aguardando', 'pendente', $4, $5, $6, $7)
+       RETURNING id, daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_by, created_at`,
+      [dailyNumber, customerName, origin, totalAmountCents, orderDate, createdBy, now.toISOString()]
     );
     const order = orderResult.rows[0];
 
@@ -578,4 +584,31 @@ export async function updateOrderItems(orderId: string, items: OrderItemInput[],
   } finally {
     client.release();
   }
+}
+
+/**
+ * Deletes an order by ID.
+ * order_items are automatically removed via ON DELETE CASCADE.
+ * Broadcasts an order_deleted event on the orders:queue channel.
+ */
+export async function deleteOrder(orderId: string): Promise<void> {
+  // Look up order to verify it exists
+  const orderResult = await pool.query(
+    `SELECT id, daily_number, customer_name, status, payment_status FROM orders WHERE id = $1`,
+    [orderId]
+  );
+
+  if (orderResult.rows.length === 0) {
+    throw new ServiceError(
+      'Pedido não encontrado',
+      404,
+      'NOT_FOUND',
+    );
+  }
+
+  // Delete order (order_items cascade automatically)
+  await pool.query('DELETE FROM orders WHERE id = $1', [orderId]);
+
+  // Broadcast deletion event
+  broadcast('orders:queue', 'order_deleted', { id: orderId });
 }

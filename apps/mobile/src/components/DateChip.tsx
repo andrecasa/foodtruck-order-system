@@ -20,7 +20,12 @@ export interface DateChipProps {
  */
 export function DateChip({ day, month, year, onPress }: DateChipProps) {
   const theme = useTheme();
-  const dateText = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+
+  const now = new Date();
+  const isToday = day === now.getDate() && month === now.getMonth() + 1 && year === now.getFullYear();
+  const dateText = isToday
+    ? 'Hoje'
+    : `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 
   const containerStyle: ViewStyle = {
     flexDirection: 'row',
@@ -30,21 +35,21 @@ export function DateChip({ day, month, year, onPress }: DateChipProps) {
     width: '100%',
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.primary + '1F', // 12% opacity
+    backgroundColor: theme.colors.primary,
   };
 
   const dateTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: theme.colors.surface,
   };
 
   const calendarIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
     fontSize: 18,
     fontWeight: '400',
-    color: theme.colors.primary,
+    color: theme.colors.surface,
   };
 
   return (

@@ -69,14 +69,14 @@ export function CalendarModal({
       Animated.parallel([
         Animated.spring(translateY, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           damping: 20,
           stiffness: 200,
         }),
         Animated.timing(backdropOpacity, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
     } else {
@@ -89,12 +89,12 @@ export function CalendarModal({
       Animated.timing(translateY, {
         toValue: SHEET_HEIGHT,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(backdropOpacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       setIsVisible(false);
@@ -123,7 +123,7 @@ export function CalendarModal({
           // Snap back
           Animated.spring(translateY, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: false,
             damping: 20,
             stiffness: 200,
           }).start();
@@ -133,11 +133,11 @@ export function CalendarModal({
   ).current;
 
   const fetchDaysForMonth = async (newYear: number, newMonth: number) => {
-    if (newYear === year && newMonth === month) {
-      setModalDaysWithOrders(daysWithOrders);
-    } else if (onMonthChange) {
+    if (onMonthChange) {
       const days = await onMonthChange(newYear, newMonth);
       setModalDaysWithOrders(days);
+    } else if (newYear === year && newMonth === month) {
+      setModalDaysWithOrders(daysWithOrders);
     } else {
       setModalDaysWithOrders([]);
     }

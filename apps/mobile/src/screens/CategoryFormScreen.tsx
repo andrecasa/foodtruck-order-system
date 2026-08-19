@@ -45,26 +45,28 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
   const [fieldError, setFieldError] = useState('');
   const [apiError, setApiError] = useState('');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // ─── Delete ─────────────────────────────────────────────────────────────────
 
   const handleDeletePress = () => {
+    setDeleteError(null);
     setDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!id) return;
-    setDeleteModalVisible(false);
     setDeleting(true);
-    setApiError('');
+    setDeleteError(null);
 
     try {
       await apiClient.deleteCategory(id);
+      setDeleteModalVisible(false);
       router.back();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao excluir categoria';
-      setApiError(message);
+      setDeleteError(message);
     } finally {
       setDeleting(false);
     }
@@ -292,6 +294,8 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         variant="danger"
+        errorMessage={deleteError}
+        loading={deleting}
         testID="delete-category-modal"
       >
         <Text size="md">

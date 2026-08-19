@@ -95,6 +95,7 @@ export function UserDetailScreen() {
 
   // Delete modal state
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // ─── Load user data ─────────────────────────────────────────────────────────
@@ -232,15 +233,15 @@ export function UserDetailScreen() {
 
   const handleDelete = async () => {
     if (!params.id) return;
+    setDeleting(true);
+    setDeleteError(null);
     try {
-      setDeleting(true);
       await apiClient.deleteUser(params.id);
       setDeleteModalVisible(false);
       router.back();
     } catch (err) {
-      setDeleteModalVisible(false);
       const message = err instanceof Error ? err.message : 'Erro ao excluir usuário';
-      setApiError(message);
+      setDeleteError(message);
     } finally {
       setDeleting(false);
     }
@@ -371,7 +372,7 @@ export function UserDetailScreen() {
     color: theme.colors.surface,
   };
 
-  // Danger button (Excluir) — Penpot "Editar Usuário" spec
+  // Danger button (Excluir) — matches other CRUD screens pattern
   const dangerButtonStyle: ViewStyle = {
     width: '100%',
     height: 44,
@@ -380,14 +381,14 @@ export function UserDetailScreen() {
     borderWidth: 1,
     borderColor: theme.colors.error,
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
   };
 
   const dangerIconStyle: TextStyle = {
     fontFamily: 'Material Symbols Outlined',
-    fontSize: 20,
+    fontSize: 18,
     color: theme.colors.error,
   };
 
@@ -720,17 +721,18 @@ export function UserDetailScreen() {
         </TouchableOpacity>
 
         {/* Danger Button — Excluir */}
-        <Pressable
+        <TouchableOpacity
           style={[dangerButtonStyle, deleting && { opacity: 0.5 }]}
-          onPress={() => setDeleteModalVisible(true)}
+          onPress={() => { setDeleteError(null); setDeleteModalVisible(true); }}
           disabled={deleting}
+          activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Excluir"
           testID="delete-user-button"
         >
           <RNText style={dangerIconStyle}>delete</RNText>
           <RNText style={dangerTextStyle}>Excluir</RNText>
-        </Pressable>
+        </TouchableOpacity>
       </ScrollContainer>
 
       {/* Delete Confirmation Modal */}
@@ -743,6 +745,8 @@ export function UserDetailScreen() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteModalVisible(false)}
         variant="danger"
+        errorMessage={deleteError}
+        loading={deleting}
         testID="delete-modal"
       >
         <View style={{ gap: 8 }}>

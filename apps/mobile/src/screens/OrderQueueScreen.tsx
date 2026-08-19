@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 import {
   Screen,
@@ -12,6 +12,8 @@ import {
   type FilterChipOption,
 } from '../components';
 import { Toast } from '../components/Toast';
+import { DateChip } from '../components/DateChip';
+import { CalendarModal } from '../components/CalendarModal';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
@@ -72,6 +74,9 @@ const ORIGIN_ICON: Record<string, string> = {
 /** Default active filters — hides entregue */
 const DEFAULT_FILTERS: OrderStatus[] = ['aguardando', 'preparando', 'pronto'];
 
+/** All status filters — used when viewing past dates */
+const ALL_FILTERS: OrderStatus[] = ['aguardando', 'preparando', 'pronto', 'entregue'];
+
 export function OrderQueueScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -85,6 +90,29 @@ export function OrderQueueScreen() {
   const prevOfflineRef = useRef(isOffline);
   const { error: networkError, dismiss: dismissError, withRetry } = useNetworkError();
 
+  // Date selection state
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [day, setDay] = useState(now.getDate());
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [daysWithOrders, setDaysWithOrders] = useState<number[]>([]);
+
+  const selectedDateStr = useMemo(
+    () => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    [year, month, day]
+  );
+
+  // Fetch days with orders for the calendar dots
+  const fetchDaysWithOrders = useCallback(async (fetchYear: number, fetchMonth: number) => {
+    try {
+      const data = await apiClient.getMonthlySummary(fetchYear, fetchMonth);
+      setDaysWithOrders(data.days.map((d: { day: number }) => d.day));
+    } catch {
+      setDaysWithOrders([]);
+    }
+  }, []);
+
   /** Filter chip options — colors and icons match Penpot status palette */
   const filterOptions: FilterChipOption[] = [
     { key: 'aguardando', label: 'Aguardando', color: theme.colors.aguardando, icon: 'schedule' },
@@ -93,23 +121,36 @@ export function OrderQueueScreen() {
     { key: 'entregue', label: 'Entregue', color: theme.colors.textSecondary, icon: 'check_circle' },
   ];
 
-  const fetchOrders = useCallback(async () => {
+  /** Fetch orders for a given date and filters (explicit params, no stale closures) */
+  const fetchOrders = useCallback(async (date: string, filters: string[]) => {
     if (!isAuthenticated) return;
-    if (selectedFilters.length === 0) {
+    if (filters.length === 0) {
       setOrders([]);
       setLoading(false);
       return;
     }
     try {
       const data = await apiClient.getOrders({
-        status: selectedFilters as OrderStatus[],
+        status: filters as OrderStatus[],
+        date,
       });
 
-      // If no results but entregue filter is off, check if there are entregue orders
-      // Only do this auto-fallback if the user hasn't manually toggled filters
-      if (data.length === 0 && !selectedFilters.includes('entregue') && !userToggledFilters.current) {
+      // Sort delivered orders by deliveredAt descending
+      if (filters.includes('entregue') && filters.length === 1) {
+        data.sort((a, b) => {
+          const aTime = a.deliveredAt ? new Date(a.deliveredAt).getTime() : 0;
+          const bTime = b.deliveredAt ? new Date(b.deliveredAt).getTime() : 0;
+          return bTime - aTime;
+        });
+      }
+
+      // Auto-fallback: if no results and entregue not selected, try with entregue (only today)
+      const today = new Date();
+      const dateIsToday = date === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      if (data.length === 0 && !filters.includes('entregue') && !userToggledFilters.current && dateIsToday) {
         const allData = await apiClient.getOrders({
-          status: [...selectedFilters, 'entregue'] as OrderStatus[],
+          status: [...filters, 'entregue'] as OrderStatus[],
+          date,
         });
         if (allData.length > 0 && allData.every(o => o.status === 'entregue')) {
           setOrders(allData);
@@ -118,33 +159,53 @@ export function OrderQueueScreen() {
         }
       }
 
-      // Sort delivered orders by deliveredAt descending
-      if (selectedFilters.includes('entregue') && selectedFilters.length === 1) {
-        data.sort((a, b) => {
-          const aTime = a.deliveredAt ? new Date(a.deliveredAt).getTime() : 0;
-          const bTime = b.deliveredAt ? new Date(b.deliveredAt).getTime() : 0;
-          return bTime - aTime;
-        });
-      }
-
       setOrders(data);
     } catch {
-      // Silently handle — toast shown via withRetry when used
+      // Silently handle
     } finally {
       setLoading(false);
     }
-  }, [selectedFilters, isAuthenticated]);
+  }, [isAuthenticated]);
 
-  useEffect(() => {
-    fetchOrders();
+  /** Handler when user selects a day in the calendar */
+  const handleDaySelect = useCallback((selectedDay: number, selectedMonth: number, selectedYear: number) => {
+    setCalendarModalVisible(false);
+    setDay(selectedDay);
+    if (selectedYear !== year || selectedMonth !== month) {
+      setYear(selectedYear);
+      setMonth(selectedMonth);
+      fetchDaysWithOrders(selectedYear, selectedMonth);
+    }
+    const newFilters = ALL_FILTERS as string[];
+    setSelectedFilters(newFilters);
+    userToggledFilters.current = false;
+    const newDateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+    lastFetchParamsRef.current = { date: newDateStr, filters: newFilters };
+    fetchOrders(newDateStr, newFilters);
+  }, [year, month, fetchDaysWithOrders, fetchOrders]);
+
+  /** Handler when user changes filter chips */
+  const handleFiltersChange = useCallback((filters: string[]) => {
+    userToggledFilters.current = true;
+    setSelectedFilters(filters);
+    lastFetchParamsRef.current = { date: selectedDateStr, filters };
+    fetchOrders(selectedDateStr, filters);
+  }, [selectedDateStr, fetchOrders]);
+
+  /** Ref to track the last fetched date/filters (avoids realtime overwriting with stale values) */
+  const lastFetchParamsRef = useRef({ date: selectedDateStr, filters: selectedFilters });
+
+  /** Refetch using last known params (for realtime/polling/reconnect) */
+  const refetchOrders = useCallback(() => {
+    const { date, filters } = lastFetchParamsRef.current;
+    return fetchOrders(date, filters);
   }, [fetchOrders]);
 
-  // Refetch orders when screen regains focus (e.g., after payment modal closes)
-  useFocusEffect(
-    useCallback(() => {
-      fetchOrders();
-    }, [fetchOrders])
-  );
+  // Initial load
+  useEffect(() => {
+    fetchOrders(selectedDateStr, selectedFilters);
+    fetchDaysWithOrders(year, month);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Realtime: subscribe to order events for live updates
   const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
@@ -154,45 +215,22 @@ export function OrderQueueScreen() {
     onEvent: useCallback((event) => {
       const payload = event.payload;
       if (!payload || !payload.id) {
-        // Unknown payload — fall back to full refetch
-        fetchOrders();
+        refetchOrders();
         return;
       }
 
-      setOrders((prev) => {
-        const orderStatus = payload.status as OrderStatus | undefined;
+      // Handle order deletion
+      if (event.event === 'order_deleted') {
+        setOrders((prev) => prev.filter((o) => o.id !== payload.id));
+        return;
+      }
 
-        // If the order's status is not in the current filters, remove it
-        if (orderStatus && !selectedFilters.includes(orderStatus)) {
-          return prev.filter((o) => o.id !== payload.id);
-        }
-
-        // Check if order already exists in the list
-        const existingIndex = prev.findIndex((o) => o.id === payload.id);
-
-        if (existingIndex >= 0) {
-          // Merge: update existing order with new data
-          const updated = [...prev];
-          updated[existingIndex] = { ...prev[existingIndex]!, ...payload };
-          return updated;
-        }
-
-        // New order — add to list if it matches filters
-        if (orderStatus && selectedFilters.includes(orderStatus) && payload.customerName) {
-          const newList = [...prev, payload as Order];
-          newList.sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          );
-          return newList;
-        }
-
-        return prev;
-      });
-    }, [selectedFilters, fetchOrders]),
+      // For realtime updates, just refetch to avoid stale filter issues
+      refetchOrders();
+    }, [refetchOrders]),
     onReconnect: useCallback(() => {
-      // Full reload after reconnection to ensure consistency
-      fetchOrders();
-    }, [fetchOrders]),
+      refetchOrders();
+    }, [refetchOrders]),
   });
 
   // Fallback polling — only active when realtime is disconnected and device is online
@@ -200,15 +238,15 @@ export function OrderQueueScreen() {
     if (!isAuthenticated || realtimeStatus === 'connected' || isOffline) return;
 
     const interval = setInterval(() => {
-      fetchOrders();
+      refetchOrders();
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchOrders, isAuthenticated, realtimeStatus, isOffline]);
+  }, [refetchOrders, isAuthenticated, realtimeStatus, isOffline]);
 
   // Refetch when transitioning from offline → online
   useEffect(() => {
     if (prevOfflineRef.current && !isOffline) {
-      fetchOrders();
+      refetchOrders();
     }
     prevOfflineRef.current = isOffline;
   }, [isOffline]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -220,7 +258,7 @@ export function OrderQueueScreen() {
     setAdvancingId(order.id);
     try {
       await withRetry(() => apiClient.updateOrderStatus(order.id, { status: nextStatus }));
-      await fetchOrders();
+      await refetchOrders();
     } catch {
       // Error shown via withRetry toast
     } finally {
@@ -438,10 +476,11 @@ export function OrderQueueScreen() {
         <Header title="Pedidos" icon="receipt_long" />
         <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
         <ScrollContainer style={contentGapStyle}>
+          <DateChip day={day} month={month} year={year} onPress={() => setCalendarModalVisible(true)} />
           <FilterChips
             options={filterOptions}
             selected={selectedFilters}
-            onSelectionChange={(filters) => { userToggledFilters.current = true; setSelectedFilters(filters); }}
+            onSelectionChange={handleFiltersChange}
             testID="status-filter"
           />
           <View style={emptyContainerStyle}>
@@ -491,6 +530,28 @@ export function OrderQueueScreen() {
             </View>
           </View>
         </ScrollContainer>
+
+        {/* Calendar Modal */}
+        <CalendarModal
+          visible={calendarModalVisible}
+          onClose={() => setCalendarModalVisible(false)}
+          year={year}
+          month={month}
+          selectedDay={day}
+          onDaySelect={handleDaySelect}
+          daysWithOrders={daysWithOrders}
+          onMonthChange={async (newYear, newMonth) => {
+            try {
+              const data = await apiClient.getMonthlySummary(newYear, newMonth);
+              const days = data.days.map((d: { day: number }) => d.day);
+              setDaysWithOrders(days);
+              return days;
+            } catch {
+              setDaysWithOrders([]);
+              return [];
+            }
+          }}
+        />
       </Screen>
     );
   }
@@ -500,16 +561,41 @@ export function OrderQueueScreen() {
       <Header title="Pedidos" icon="receipt_long" />
       <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
       <ScrollContainer style={contentGapStyle}>
+        {/* Date Selector */}
+        <DateChip day={day} month={month} year={year} onPress={() => setCalendarModalVisible(true)} />
+
         {/* Status Filter (Penpot: row of tinted chips, gap 8px) */}
         <FilterChips
           options={filterOptions}
           selected={selectedFilters}
-          onSelectionChange={(filters) => { userToggledFilters.current = true; setSelectedFilters(filters); }}
+          onSelectionChange={handleFiltersChange}
           testID="status-filter"
         />
 
         {orders.map((order) => renderOrderCard(order))}
       </ScrollContainer>
+
+      {/* Calendar Modal */}
+      <CalendarModal
+        visible={calendarModalVisible}
+        onClose={() => setCalendarModalVisible(false)}
+        year={year}
+        month={month}
+        selectedDay={day}
+        onDaySelect={handleDaySelect}
+        daysWithOrders={daysWithOrders}
+        onMonthChange={async (newYear, newMonth) => {
+          try {
+            const data = await apiClient.getMonthlySummary(newYear, newMonth);
+            const days = data.days.map((d: { day: number }) => d.day);
+            setDaysWithOrders(days);
+            return days;
+          } catch {
+            setDaysWithOrders([]);
+            return [];
+          }
+        }}
+      />
     </Screen>
   );
 }

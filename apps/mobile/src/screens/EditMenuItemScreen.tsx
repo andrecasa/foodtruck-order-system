@@ -87,6 +87,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   const [apiError, setApiError] = useState('');
   const [success, setSuccess] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
 
@@ -204,16 +205,17 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
 
   // Delete handler
   const handleDeletePress = () => {
+    setDeleteError(null);
     setDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = async () => {
-    setDeleteModalVisible(false);
     setDeleting(true);
-    setApiError('');
+    setDeleteError(null);
 
     try {
       await apiClient.deleteMenuItem(id);
+      setDeleteModalVisible(false);
       setDeleted(true);
       setSuccess(true);
       setTimeout(() => {
@@ -225,7 +227,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
       }, 1500);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao excluir item';
-      setApiError(message);
+      setDeleteError(message);
     } finally {
       setDeleting(false);
     }
@@ -540,6 +542,8 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         variant="danger"
+        errorMessage={deleteError}
+        loading={deleting}
         testID="delete-confirmation-modal"
       >
         <Text size="md">

@@ -25,8 +25,8 @@ function handleServiceError(err: unknown, res: Response, fallbackMessage: string
 
 /**
  * GET /api/orders
- * List orders for today, optionally filtered by status.
- * Query params: ?status=aguardando&status=preparando
+ * List orders for a given date, optionally filtered by status.
+ * Query params: ?status=aguardando&status=preparando&date=2026-08-19
  */
 export async function getOrders(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
@@ -39,7 +39,9 @@ export async function getOrders(req: AuthenticatedRequest, res: Response): Promi
       statuses = statusFilter.split(',').map(s => s.trim()).filter(Boolean);
     }
 
-    const orders = await orderService.getOrders(statuses);
+    const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+
+    const orders = await orderService.getOrders(statuses, date);
     res.status(200).json(orders);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao buscar pedidos.');
@@ -72,7 +74,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    const order = await orderService.createOrder(parsed.data);
+    const order = await orderService.createOrder({ ...parsed.data, createdBy: req.user!.id });
     res.status(201).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao criar pedido.');
@@ -170,5 +172,19 @@ export async function updateOrderItems(req: AuthenticatedRequest, res: Response)
     res.status(200).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao atualizar itens do pedido.');
+  }
+}
+
+/**
+ * DELETE /api/orders/:id
+ * Delete an order and its associated items/payment data.
+ */
+export async function deleteOrder(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const orderId = req.params.id as string;
+    await orderService.deleteOrder(orderId);
+    res.status(204).send();
+  } catch (err) {
+    handleServiceError(err, res, 'Erro ao excluir pedido.');
   }
 }

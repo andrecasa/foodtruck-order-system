@@ -48,6 +48,8 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const router = useRouter();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,6 +124,20 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
   const handleCancelModal = useCallback(() => {
     setConfirmModalVisible(false);
   }, []);
+
+  const handleDeleteOrder = useCallback(async () => {
+    setDeleteError(null);
+    setLoading(true);
+    try {
+      await apiClient.deleteOrder(order.id);
+      setDeleteModalVisible(false);
+      router.back();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir pedido');
+    } finally {
+      setLoading(false);
+    }
+  }, [order.id, router]);
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
@@ -278,6 +294,30 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           </TouchableOpacity>
         )}
 
+        {/* Delete Order button */}
+        <TouchableOpacity
+          style={{
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: theme.colors.surface,
+            borderWidth: 1,
+            borderColor: theme.colors.error,
+            flexDirection: 'row',
+            gap: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            alignSelf: 'stretch',
+          }}
+          onPress={() => { setDeleteError(null); setDeleteModalVisible(true); }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Excluir"
+          testID="delete-order-button"
+        >
+          <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18, color: theme.colors.error }}>delete</RNText>
+          <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.error }}>Excluir</RNText>
+        </TouchableOpacity>
+
         {/* Error Message */}
         {error ? (
           <View style={errorContainerStyle}>
@@ -402,6 +442,28 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
             {PAYMENT_METHODS.find((m) => m.value === selectedMethod)?.label ?? ''}
           </Text>
           ?
+        </Text>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        title="Excluir pedido"
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        onConfirm={handleDeleteOrder}
+        onCancel={() => setDeleteModalVisible(false)}
+        errorMessage={deleteError}
+        loading={loading}
+        testID="delete-confirmation-modal"
+      >
+        <Text size="md">
+          Tem certeza que deseja excluir o pedido{' '}
+          <Text size="md" weight="bold">
+            #{order.dailyNumber}
+          </Text>
+          ? Esta ação não pode ser desfeita.
         </Text>
       </Modal>
     </Screen>

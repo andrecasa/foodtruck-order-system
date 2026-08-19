@@ -78,6 +78,7 @@ export function UserFormScreen() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState('');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // ─── Load user data in edit mode ────────────────────────────────────────────
@@ -229,21 +230,22 @@ export function UserFormScreen() {
   // ─── Delete ─────────────────────────────────────────────────────────────────
 
   const handleDeletePress = () => {
+    setDeleteError(null);
     setDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!params.id) return;
-    setDeleteModalVisible(false);
     setDeleting(true);
-    setApiError('');
+    setDeleteError(null);
 
     try {
       await apiClient.deleteUser(params.id);
+      setDeleteModalVisible(false);
       router.back();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao excluir usuário';
-      setApiError(message);
+      setDeleteError(message);
     } finally {
       setDeleting(false);
     }
@@ -660,6 +662,8 @@ export function UserFormScreen() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         variant="danger"
+        errorMessage={deleteError}
+        loading={deleting}
         testID="delete-user-modal"
       >
         <Text size="md">

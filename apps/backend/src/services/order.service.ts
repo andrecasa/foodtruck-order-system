@@ -465,10 +465,10 @@ export async function updateOrderItems(orderId: string, items: OrderItemInput[],
 
   const order = orderResult.rows[0];
 
-  // Check order status is 'aguardando'
-  if (order.status !== 'aguardando') {
+  // Check if order has already been paid
+  if (order.payment_status === 'pago') {
     throw new ServiceError(
-      'Pedido só pode ser editado no status aguardando',
+      'Pedido não pode ser editado após o pagamento',
       422,
       'VALIDATION_ERROR',
     );

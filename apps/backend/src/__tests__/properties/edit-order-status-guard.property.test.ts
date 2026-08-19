@@ -36,15 +36,16 @@ vi.mock('date-fns-tz', () => ({
 import { updateOrderItems } from '../../controllers/order.controller.js';
 
 /**
- * Feature: edit-order, Property 2: Status Guard
+ * Feature: edit-order, Property 2: Payment Guard
  *
- * For any order whose status is NOT `aguardando` (i.e., `preparando`, `pronto`, or `entregue`)
- * and for any valid item list, submitting an update items request SHALL be rejected with HTTP 422,
+ * For any order whose payment_status is `pago` (regardless of order status),
+ * submitting an update items request SHALL be rejected with HTTP 422,
  * and the order's items and total SHALL remain unchanged.
  *
- * **Validates: Requirements 1.2, 5.3**
+ * For any order whose payment_status is `pendente` (in any order status),
+ * the payment guard SHALL NOT reject the request.
  */
-describe('Property 2: Status Guard', () => {
+describe('Property 2: Payment Guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -58,8 +59,8 @@ describe('Property 2: Status Guard', () => {
     });
   });
 
-  // Generator: non-aguardando status
-  const nonAguardandoStatus = fc.constantFrom('preparando', 'pronto', 'entregue');
+  // Generator: any order status
+  const anyOrderStatus = fc.constantFrom('aguardando', 'preparando', 'pronto', 'entregue');
 
   // Generator: valid UUID
   const validUuid = fc.uuid();
@@ -106,11 +107,11 @@ describe('Property 2: Status Guard', () => {
     return res;
   }
 
-  it('rejects update with 422 for any order with status ≠ aguardando', async () => {
+  it('rejects update with 422 for any paid order regardless of status', async () => {
     await fc.assert(
       fc.asyncProperty(
         orderId,
-        nonAguardandoStatus,
+        anyOrderStatus,
         validItemsList,
         totalAmountCents,
         async (id, status, items, total) => {
@@ -120,7 +121,7 @@ describe('Property 2: Status Guard', () => {
             release: mockRelease,
           });
 
-          // Setup order lookup returning order with non-aguardando status
+          // Setup order lookup returning a PAID order
           mockPoolQuery.mockResolvedValueOnce({
             rows: [{
               id,
@@ -128,15 +129,15 @@ describe('Property 2: Status Guard', () => {
               customer_name: 'Test Customer',
               origin: 'presencial',
               status,
-              payment_status: 'pendente',
-              payment_method: null,
+              payment_status: 'pago',
+              payment_method: 'pix',
               total_amount_cents: total,
               order_date: '2024-06-15',
               created_at: '2024-06-15T13:00:00.000Z',
               started_at: null,
               ready_at: null,
               delivered_at: null,
-              paid_at: null,
+              paid_at: '2024-06-15T13:05:00.000Z',
             }],
           });
 
@@ -148,7 +149,7 @@ describe('Property 2: Status Guard', () => {
           // Property: response is 422 with VALIDATION_ERROR
           expect(res.statusCode).toBe(422);
           expect(res.body.error).toBe('VALIDATION_ERROR');
-          expect(res.body.message).toBe('Pedido só pode ser editado no status aguardando');
+          expect(res.body.message).toBe('Pedido não pode ser editado após o pagamento');
 
           // Property: no transaction was started (order remains unchanged)
           expect(mockConnect).not.toHaveBeenCalled();
@@ -159,11 +160,11 @@ describe('Property 2: Status Guard', () => {
     );
   });
 
-  it('does not modify order data when status guard rejects (no DB writes)', async () => {
+  it('does not modify order data when payment guard rejects (no DB writes)', async () => {
     await fc.assert(
       fc.asyncProperty(
         orderId,
-        nonAguardandoStatus,
+        anyOrderStatus,
         validItemsList,
         async (id, status, items) => {
           vi.clearAllMocks();
@@ -172,7 +173,7 @@ describe('Property 2: Status Guard', () => {
             release: mockRelease,
           });
 
-          // Setup order lookup
+          // Setup order lookup — paid order
           mockPoolQuery.mockResolvedValueOnce({
             rows: [{
               id,
@@ -180,15 +181,15 @@ describe('Property 2: Status Guard', () => {
               customer_name: 'Maria',
               origin: 'whatsapp',
               status,
-              payment_status: 'pendente',
-              payment_method: null,
+              payment_status: 'pago',
+              payment_method: 'dinheiro',
               total_amount_cents: 5000,
               order_date: '2024-06-15',
               created_at: '2024-06-15T13:00:00.000Z',
               started_at: null,
               ready_at: null,
               delivered_at: null,
-              paid_at: null,
+              paid_at: '2024-06-15T13:10:00.000Z',
             }],
           });
 

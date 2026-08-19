@@ -14,6 +14,7 @@ import { Text } from '../components/Typography';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
+import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
 import { formatPrice } from '../utils/format';
 
@@ -403,28 +404,17 @@ export function CreateOrderScreen() {
         {/* Origin Selector */}
         <View>
           <RNText style={originLabelStyle}>Origem do Pedido</RNText>
-          <View style={originSelectorStyle}>
-            <TouchableOpacity
-              style={originTabStyle(origin === 'presencial')}
-              onPress={() => setOrigin('presencial')}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: origin === 'presencial' }}
-              accessibilityLabel="Presencial"
-              testID="origin-presencial"
-            >
-              <RNText style={originTabTextStyle(origin === 'presencial')}>Presencial</RNText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={originTabStyle(origin === 'whatsapp')}
-              onPress={() => setOrigin('whatsapp')}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: origin === 'whatsapp' }}
-              accessibilityLabel="WhatsApp"
-              testID="origin-whatsapp"
-            >
-              <RNText style={originTabTextStyle(origin === 'whatsapp')}>WhatsApp</RNText>
-            </TouchableOpacity>
-          </View>
+          <SwipeableOriginSelector
+            value={origin}
+            onChange={setOrigin}
+            primaryColor={theme.colors.primary}
+            surfaceColor={theme.colors.surface}
+            dividerColor={theme.colors.divider}
+            backgroundColor={theme.colors.surface}
+            inactiveTextColor={theme.colors.textSecondary}
+            fontFamily={theme.typography.fontFamily}
+            testID="origin-selector"
+          />
         </View>
 
         {/* Menu Items Selection */}

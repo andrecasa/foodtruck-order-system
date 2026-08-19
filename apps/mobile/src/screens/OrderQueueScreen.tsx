@@ -95,6 +95,11 @@ export function OrderQueueScreen() {
 
   const fetchOrders = useCallback(async () => {
     if (!isAuthenticated) return;
+    if (selectedFilters.length === 0) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
     try {
       const data = await apiClient.getOrders({
         status: selectedFilters as OrderStatus[],

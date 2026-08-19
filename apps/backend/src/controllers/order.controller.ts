@@ -133,7 +133,7 @@ export async function registerPayment(req: AuthenticatedRequest, res: Response):
 
 /**
  * PUT /api/orders/:id/items
- * Update order items (full replacement) for orders in 'aguardando' status.
+ * Update order items (full replacement). Rejects if order is already paid.
  */
 export async function updateOrderItems(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {

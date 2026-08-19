@@ -248,7 +248,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
         </View>
 
         {/* "+ Adicionar Item" button */}
-        {!isAlreadyPaid && order.status === 'aguardando' && (
+        {!isAlreadyPaid && (
           <TouchableOpacity
             style={{
               height: 44,

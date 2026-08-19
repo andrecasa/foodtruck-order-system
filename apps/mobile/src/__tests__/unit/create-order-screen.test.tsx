@@ -85,9 +85,8 @@ describe('CreateOrderScreen', () => {
 
     const { findByText, getByTestId } = render(<CreateOrderScreen />);
 
-    // Origin selector tabs
-    expect(getByTestId('origin-presencial')).toBeTruthy();
-    expect(getByTestId('origin-whatsapp')).toBeTruthy();
+    // Origin selector
+    expect(getByTestId('origin-selector')).toBeTruthy();
 
     // Menu items rendered after loading
     await findByText('Pastel de Carne');

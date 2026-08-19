@@ -37,9 +37,7 @@ export function FilterChips({ options, selected, onSelectionChange }: FilterChip
 
   const handleToggle = (key: string) => {
     if (selected.includes(key)) {
-      if (selected.length > 1) {
-        onSelectionChange(selected.filter((k) => k !== key));
-      }
+      onSelectionChange(selected.filter((k) => k !== key));
     } else {
       onSelectionChange([...selected, key]);
     }

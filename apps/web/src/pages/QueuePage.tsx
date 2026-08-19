@@ -195,6 +195,11 @@ export function QueuePage() {
   // ─── Data Fetching ────────────────────────────────────────────────────────
 
   const fetchOrders = useCallback(async () => {
+    if (selectedFilters.length === 0) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
     try {
       const fetched = await apiClient.getOrders({ status: selectedFilters as OrderStatus[] });
       setOrders(fetched);

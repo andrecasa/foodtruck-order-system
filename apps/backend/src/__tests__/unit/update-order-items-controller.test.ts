@@ -244,9 +244,9 @@ describe('Order Controller - updateOrderItems', () => {
     });
   });
 
-  describe('Status guard (422)', () => {
-    it('should return 422 when order status is preparando', async () => {
-      setupOrderLookup({ ...mockOrder, status: 'preparando' });
+  describe('Payment guard (422)', () => {
+    it('should return 422 when order is already paid (aguardando)', async () => {
+      setupOrderLookup({ ...mockOrder, status: 'aguardando', payment_status: 'pago', paid_at: '2024-06-15T13:05:00.000Z' });
 
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
@@ -255,11 +255,11 @@ describe('Order Controller - updateOrderItems', () => {
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
-      expect(res.body.message).toBe('Pedido só pode ser editado no status aguardando');
+      expect(res.body.message).toBe('Pedido não pode ser editado após o pagamento');
     });
 
-    it('should return 422 when order status is pronto', async () => {
-      setupOrderLookup({ ...mockOrder, status: 'pronto' });
+    it('should return 422 when order is already paid (preparando)', async () => {
+      setupOrderLookup({ ...mockOrder, status: 'preparando', payment_status: 'pago', paid_at: '2024-06-15T13:05:00.000Z' });
 
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
@@ -267,11 +267,11 @@ describe('Order Controller - updateOrderItems', () => {
       await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
-      expect(res.body.message).toBe('Pedido só pode ser editado no status aguardando');
+      expect(res.body.message).toBe('Pedido não pode ser editado após o pagamento');
     });
 
-    it('should return 422 when order status is entregue', async () => {
-      setupOrderLookup({ ...mockOrder, status: 'entregue' });
+    it('should return 422 when order is already paid (entregue)', async () => {
+      setupOrderLookup({ ...mockOrder, status: 'entregue', payment_status: 'pago', paid_at: '2024-06-15T13:05:00.000Z' });
 
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
@@ -279,7 +279,33 @@ describe('Order Controller - updateOrderItems', () => {
       await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
-      expect(res.body.message).toBe('Pedido só pode ser editado no status aguardando');
+      expect(res.body.message).toBe('Pedido não pode ser editado após o pagamento');
+    });
+
+    it('should allow editing when order is preparando but not paid', async () => {
+      setupOrderLookup({ ...mockOrder, status: 'preparando', payment_status: 'pendente' });
+      setupMenuLookup();
+      setupSuccessfulTransaction();
+
+      const req = mockRequest(validBody, { id: orderId });
+      const res = mockResponse();
+
+      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('should allow editing when order is pronto but not paid', async () => {
+      setupOrderLookup({ ...mockOrder, status: 'pronto', payment_status: 'pendente' });
+      setupMenuLookup();
+      setupSuccessfulTransaction();
+
+      const req = mockRequest(validBody, { id: orderId });
+      const res = mockResponse();
+
+      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+
+      expect(res.statusCode).toBe(200);
     });
   });
 

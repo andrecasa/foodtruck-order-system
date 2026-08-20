@@ -207,8 +207,8 @@ aws_region        = "us-east-1"
 environment       = "prod"
 instance_type     = "t3.small"
 key_pair_name     = "order-system-key"
-domain_name       = ""                         # preencha depois se tiver domínio
-ssh_allowed_cidrs = ["curl -4 ifconfig.me/32"]         # veja abaixo como descobrir
+domain_name       = "foodtruck.app.br"
+ssh_allowed_cidrs = ["SEU_IP_AQUI/32"]
 enable_backups    = true
 ```
 
@@ -258,8 +258,8 @@ Quando pedir `Enter a value:`, digite `yes` e pressione Enter.
 ```
 Outputs:
 
-public_ip     = "54.207.xxx.xxx"
-ssh_command   = "ssh -i ~/.ssh/order-system-key.pem ec2-user@54.207.xxx.xxx"
+public_ip     = "3.92.xxx.xxx"
+ssh_command   = "ssh -i ~/.ssh/order-system-key.pem ec2-user@3.92.xxx.xxx"
 ssm_connect   = "aws ssm start-session --target i-0abc123 --region us-east-1"
 instance_id   = "i-0abc123def456"
 ```
@@ -275,7 +275,7 @@ instance_id   = "i-0abc123def456"
 Espere 2-3 minutos após o `terraform apply` (o user-data precisa terminar de instalar Docker, Nginx, etc).
 
 ```bash
-ssh -i ~/.ssh/order-system-key.pem ec2-user@54.207.xxx.xxx
+ssh -i ~/.ssh/order-system-key.pem ec2-user@3.92.xxx.xxx
 ```
 
 Se der erro "Permission denied", verifique:
@@ -330,7 +330,7 @@ O deploy criou um `.env` a partir do `.env.example`. Agora edite com valores de 
 
 ```bash
 cd /opt/order-system
-vi .env
+nano .env
 ```
 
 **Gere os secrets primeiro:**
@@ -357,14 +357,14 @@ EVOLUTION_API_KEY=COLE_O_RESULTADO_DO_SEGUNDO_OPENSSL
 
 # ══════ URLS (use IP ou domínio) ════════════════════
 # Se não tem domínio ainda, use o IP:
-API_EXTERNAL_URL=http://54.207.xxx.xxx
-SITE_URL=http://54.207.xxx.xxx
-EVOLUTION_SERVER_URL=http://54.207.xxx.xxx:8080
+API_EXTERNAL_URL=http://SEU_IP
+SITE_URL=http://SEU_IP
+EVOLUTION_SERVER_URL=http://SEU_IP:8080
 
 # Quando tiver domínio + HTTPS, troque para:
-# API_EXTERNAL_URL=https://meu-dominio.com.br
-# SITE_URL=https://meu-dominio.com.br
-# EVOLUTION_SERVER_URL=https://meu-dominio.com.br/evolution
+# API_EXTERNAL_URL=https://api.foodtruck.app.br
+# SITE_URL=https://web.foodtruck.app.br
+# EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
 ```
 
 Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
@@ -426,7 +426,7 @@ sudo systemctl restart nginx
 
 **Testar acesso externo** (na sua máquina local, não na EC2):
 ```bash
-curl http://54.207.xxx.xxx/api/health
+curl -H "Host: api.foodtruck.app.br" http://SEU_IP/api/health
 # Deve retornar: {"status":"ok"} ou similar
 ```
 
@@ -454,7 +454,7 @@ pnpm --filter @order-system/web build
 
 O build gera arquivos em `apps/web/dist/`. O Nginx já está configurado para servir dessa pasta.
 
-**Testar:** Abra `http://54.207.xxx.xxx` no navegador. Deve carregar o painel.
+**Testar:** Abra `http://SEU_IP` no navegador (ou configure `/etc/hosts` com o domínio). Deve carregar o painel.
 
 ---
 
@@ -605,7 +605,7 @@ sudo certbot renew --dry-run
 
 ```bash
 cd /opt/order-system
-vi .env
+nano .env
 ```
 
 Altere para:

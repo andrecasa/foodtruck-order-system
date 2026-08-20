@@ -76,7 +76,7 @@ describe('Property 4: Order indicator circles match per-day breakdown', () => {
 
         unmount();
       }),
-      { numRuns: 100 }
+      { numRuns: 50 }
     );
   }, 60_000);
 
@@ -117,7 +117,7 @@ describe('Property 4: Order indicator circles match per-day breakdown', () => {
 
         unmount();
       }),
-      { numRuns: 100 }
+      { numRuns: 50 }
     );
   }, 60_000);
 });

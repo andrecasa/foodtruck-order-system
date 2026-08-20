@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
-import { Screen, ScrollContainer, Header } from '../components/Layout';
+import { Screen, Header } from '../components/Layout';
+import { FormScreen } from '../components/FormScreen';
+import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
@@ -240,6 +242,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   // ─── Styles (Penpot-aligned) ────────────────────────────────────────────────
 
   const contentStyle: ViewStyle = {
+    flexGrow: 1,
     paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 24,
@@ -403,11 +406,12 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   }
 
   return (
-    <Screen padding={false}>
-      {/* Header */}
-      <Header title="Cardápio" onBack={() => router.back()} />
-
-      <ScrollContainer padding={false} style={contentStyle}>
+    <FormScreen
+      title="Cardápio"
+      onBack={() => router.back()}
+      contentContainerStyle={contentStyle}
+      footer={<BottomNav />}
+    >
         {/* 1. Categoria Field (first per Penpot order) */}
         <View>
           <RNText style={labelStyle}>Categoria</RNText>
@@ -530,7 +534,6 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           <RNText style={deleteIconStyle}>delete</RNText>
           <RNText style={deleteButtonTextStyle}>Excluir</RNText>
         </TouchableOpacity>
-      </ScrollContainer>
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -554,7 +557,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
           ? Esta ação não pode ser desfeita.
         </Text>
       </Modal>
-    </Screen>
+    </FormScreen>
   );
 }
 

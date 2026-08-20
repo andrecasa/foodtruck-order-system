@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme';
-import { Screen, ScrollContainer, Header } from '../components/Layout';
+import { FormScreen } from '../components/FormScreen';
 import { BottomNav } from '../components/BottomNav';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
@@ -124,6 +124,7 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
   const contentStyle: ViewStyle = {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingVertical: 24,
     gap: 20,
@@ -213,11 +214,12 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Screen padding={false}>
-      {/* Header */}
-      <Header title="Categoria" onBack={() => router.back()} />
-
-      <ScrollContainer padding={false} style={contentStyle}>
+    <FormScreen
+      title="Categoria"
+      onBack={() => router.back()}
+      contentContainerStyle={contentStyle}
+      footer={<BottomNav />}
+    >
         {/* Nome Field */}
         <View style={fieldContainerStyle}>
           <RNText style={labelStyle}>Nome</RNText>
@@ -282,7 +284,6 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
             <RNText style={deleteButtonTextStyle}>Excluir</RNText>
           </TouchableOpacity>
         )}
-      </ScrollContainer>
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -306,9 +307,6 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
           ? Esta ação não pode ser desfeita.
         </Text>
       </Modal>
-
-      {/* Bottom Navigation */}
-      <BottomNav />
-    </Screen>
+    </FormScreen>
   );
 }

@@ -176,21 +176,29 @@ export interface ScrollContainerProps {
   /** Applies padding using theme.spacing.md. Defaults to true. */
   padding?: boolean;
   style?: StyleProp<ViewStyle>;
+  /**
+   * When true, the ScrollView fills available vertical space (flex: 1),
+   * so sibling elements like a fixed BottomNav stay pinned at the bottom
+   * and the content between scrolls. Defaults to false for backward compatibility.
+   */
+  fillHeight?: boolean;
 }
 
 /**
  * Scrollable content area using ScrollView with theme-based spacing.
  */
-export function ScrollContainer({ children, padding = true, style }: ScrollContainerProps) {
+export function ScrollContainer({ children, padding = true, style, fillHeight = false }: ScrollContainerProps) {
   const theme = useTheme();
 
   return (
     <ScrollView
+      style={fillHeight ? { flex: 1 } : undefined}
       contentContainerStyle={[
         padding && { padding: theme.spacing.md },
         style,
       ]}
       showsVerticalScrollIndicator
+      keyboardShouldPersistTaps="handled"
     >
       {children}
     </ScrollView>

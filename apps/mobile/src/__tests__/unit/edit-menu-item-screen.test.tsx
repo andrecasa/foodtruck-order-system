@@ -37,6 +37,10 @@ jest.mock('../../components/DrawerMenu', () => ({
   DrawerMenu: () => null,
 }));
 
+jest.mock('../../components/BottomNav', () => ({
+  BottomNav: () => null,
+}));
+
 jest.mock('../../theme', () => ({
   ...require('../helpers/mockTheme').themeMocks,
   deepMergeTheme: (base: any) => base,

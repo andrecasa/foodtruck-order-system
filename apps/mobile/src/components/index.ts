@@ -6,6 +6,8 @@ export { Modal } from './Modal';
 export type { ModalProps, ModalVariant } from './Modal';
 export { Screen, Header, ScrollContainer, Grid } from './Layout';
 export type { ScreenProps, HeaderProps, ScrollContainerProps, GridProps } from './Layout';
+export { FormScreen } from './FormScreen';
+export type { FormScreenProps } from './FormScreen';
 export { DrawerMenu } from './DrawerMenu';
 export type { DrawerMenuProps } from './DrawerMenu';
 export { Text, Heading } from './Typography';

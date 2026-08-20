@@ -22,7 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.ordersystem.mobile",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",
@@ -32,6 +32,12 @@
     "plugins": [
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "aa217e3b-0b0b-4e75-b816-f8cae701ffda"
+      }
+    }
   }
 }

@@ -12,7 +12,8 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../theme';
 import { withOpacity } from '../utils/color';
-import { Screen, ScrollContainer, Header } from '../components/Layout';
+import { Screen, Header } from '../components/Layout';
+import { FormScreen } from '../components/FormScreen';
 import { ErrorState } from '../components/ErrorState';
 import { Modal } from '../components/Modal';
 import { BottomNav } from '../components/BottomNav';
@@ -250,6 +251,7 @@ export function UserDetailScreen() {
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
   const contentStyle: ViewStyle = {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingVertical: 24,
     gap: 20,
@@ -477,11 +479,12 @@ export function UserDetailScreen() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Screen padding={false}>
-      {/* Header */}
-      <Header title="Usuário" onBack={() => router.back()} />
-
-      <ScrollContainer padding={false} style={contentStyle}>
+    <FormScreen
+      title="Usuário"
+      onBack={() => router.back()}
+      contentContainerStyle={contentStyle}
+      footer={<BottomNav />}
+    >
         {/* User Info Card — same as list card with switch toggle */}
         {user && (
           <View style={userInfoCardStyle} testID="user-info-card">
@@ -733,7 +736,6 @@ export function UserDetailScreen() {
           <RNText style={dangerIconStyle}>delete</RNText>
           <RNText style={dangerTextStyle}>Excluir</RNText>
         </TouchableOpacity>
-      </ScrollContainer>
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -765,9 +767,6 @@ export function UserDetailScreen() {
           )}
         </View>
       </Modal>
-
-      {/* Bottom Navigation */}
-      <BottomNav />
-    </Screen>
+    </FormScreen>
   );
 }

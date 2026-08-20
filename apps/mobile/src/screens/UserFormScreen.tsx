@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../theme';
-import { Screen, ScrollContainer, Header } from '../components/Layout';
+import { Screen, Header } from '../components/Layout';
+import { FormScreen } from '../components/FormScreen';
 import { ErrorState } from '../components/ErrorState';
 import { BottomNav } from '../components/BottomNav';
 import { Modal } from '../components/Modal';
@@ -258,6 +259,7 @@ export function UserFormScreen() {
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
   const contentStyle: ViewStyle = {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingVertical: 24,
     gap: 20,
@@ -422,11 +424,12 @@ export function UserFormScreen() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Screen padding={false}>
-      {/* Header */}
-      <Header title="Usuário" onBack={() => router.back()} />
-
-      <ScrollContainer padding={false} style={contentStyle}>
+    <FormScreen
+      title="Usuário"
+      onBack={() => router.back()}
+      contentContainerStyle={contentStyle}
+      footer={<BottomNav />}
+    >
         {/* Função Field (Role Selector) */}
         <View style={fieldContainerStyle}>
           <RNText style={labelStyle}>Função</RNText>
@@ -650,33 +653,28 @@ export function UserFormScreen() {
             <RNText style={cancelButtonTextStyle}>Excluir</RNText>
           </TouchableOpacity>
         )}
-      </ScrollContainer>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        visible={deleteModalVisible}
-        onClose={handleCancelDelete}
-        title="Excluir usuário"
-        confirmLabel="Excluir"
-        cancelLabel="Cancelar"
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-        variant="danger"
-        errorMessage={deleteError}
-        loading={deleting}
-        testID="delete-user-modal"
-      >
-        <Text size="md">
-          Deseja excluir o usuário{' '}
-          <Text size="md" weight="bold">
-            {name}
+        {/* Delete Confirmation Modal */}
+        <Modal
+          visible={deleteModalVisible}
+          onClose={handleCancelDelete}
+          title="Excluir usuário"
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          variant="danger"
+          errorMessage={deleteError}
+          loading={deleting}
+          testID="delete-user-modal"
+        >
+          <Text size="md">
+            Deseja excluir o usuário{' '}
+            <Text size="md" weight="bold">
+              {name}
+            </Text>
+            ? Esta ação não pode ser desfeita.
           </Text>
-          ? Esta ação não pode ser desfeita.
-        </Text>
-      </Modal>
-
-      {/* Bottom Navigation */}
-      <BottomNav />
-    </Screen>
+        </Modal>
+    </FormScreen>
   );
 }

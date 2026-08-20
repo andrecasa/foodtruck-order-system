@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
-import { Screen, ScrollContainer, Header } from '../components/Layout';
+import { FormScreen } from '../components/FormScreen';
 import { Text } from '../components/Typography';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -205,6 +205,7 @@ export function CreateOrderScreen() {
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
   const contentStyle: ViewStyle = {
+    flexGrow: 1,
     padding: 16,
     gap: 20,
   };
@@ -380,11 +381,7 @@ export function CreateOrderScreen() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Screen padding={false}>
-      {/* AppBar */}
-      <Header title="Pedido" onBack={() => router.back()} />
-
-      <ScrollContainer padding={false} style={contentStyle}>
+    <FormScreen title="Pedido" onBack={() => router.back()} contentContainerStyle={contentStyle}>
         {/* Customer Name */}
         <Input
           accessibilityLabel="Nome do Cliente"
@@ -495,7 +492,6 @@ export function CreateOrderScreen() {
           disabled={loading}
           testID="submit-order"
         />
-      </ScrollContainer>
-    </Screen>
+    </FormScreen>
   );
 }

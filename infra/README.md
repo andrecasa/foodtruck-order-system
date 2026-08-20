@@ -990,6 +990,28 @@ aws ssm start-session --target i-0abc123def456 --region us-east-1
 
 Vantagem: não precisa gerenciar Key Pair nem manter IP atualizado no Security Group.
 
+### Rotacionar credenciais (JWT_SECRET)
+
+Quando quiser invalidar todas as sessões e gerar novas chaves:
+
+```bash
+cd /opt/order-system
+
+# Gerar novo secret e regenerar ANON_KEY + SERVICE_ROLE_KEY de uma vez:
+./scripts/generate-keys.sh "$(openssl rand -base64 32)"
+
+# Reiniciar para aplicar
+docker compose down
+docker compose up -d
+```
+
+O script `generate-keys.sh` atualiza automaticamente:
+- `.env` (JWT_SECRET, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY)
+- `apps/mobile/.env` (EXPO_PUBLIC_SUPABASE_ANON_KEY)
+- `kong.yml` (chaves do gateway)
+
+> ⚠️ Após rotacionar, todos os usuários logados serão desconectados. O app mobile precisa ser rebuilado com a nova `ANON_KEY`. Planeje para horário de baixo uso.
+
 ---
 
 ## Migração futura

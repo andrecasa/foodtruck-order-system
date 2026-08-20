@@ -25,7 +25,7 @@ resource "aws_security_group" "app" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # SSH (restrito ao IP do operador)
+  # SSH (restrito ao IP do operador — se nenhum CIDR fornecido, SSH fica fechado; use SSM)
   dynamic "ingress" {
     for_each = length(var.ssh_allowed_cidrs) > 0 ? [1] : []
     content {
@@ -34,18 +34,6 @@ resource "aws_security_group" "app" {
       to_port     = 22
       protocol    = "tcp"
       cidr_blocks = var.ssh_allowed_cidrs
-    }
-  }
-
-  # Fallback: SSH aberto se nenhum CIDR específico fornecido (NÃO recomendado para produção)
-  dynamic "ingress" {
-    for_each = length(var.ssh_allowed_cidrs) == 0 ? [1] : []
-    content {
-      description = "SSH (aberto - configure ssh_allowed_cidrs!)"
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
     }
   }
 

@@ -8,9 +8,9 @@ echo ">>> Atualizando sistema..."
 dnf update -y
 
 echo ">>> Instalando Docker..."
-dnf install -y docker git
-systemctl enable docker
-systemctl start docker
+dnf install -y docker git cronie
+systemctl enable docker crond
+systemctl start docker crond
 
 echo ">>> Instalando Docker Compose plugin..."
 mkdir -p /usr/local/lib/docker/cli-plugins
@@ -69,6 +69,7 @@ mkdir -p /opt/order-system
 chown ec2-user:ec2-user /opt/order-system
 
 echo ">>> Configurando backup automático..."
+mkdir -p /etc/cron.d
 cat > /etc/cron.d/order-system-backup << 'CRON'
 # Backup do banco e sessão WhatsApp a cada 6 horas
 0 */6 * * * root /opt/order-system/scripts/backup.sh >> /var/log/order-system-backup.log 2>&1

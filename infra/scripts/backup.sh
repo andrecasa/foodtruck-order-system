@@ -23,8 +23,21 @@ echo "[$(date)] Iniciando backup..."
 # 1. Backup do PostgreSQL (via docker exec)
 # ─────────────────────────────────────────────
 echo "[$(date)] Fazendo dump do PostgreSQL..."
-docker exec $(docker ps -qf "name=db") \
+PG_CONTAINER=$(docker ps -qf "name=db")
+if [ -z "$PG_CONTAINER" ]; then
+  echo "[ERROR] Container do PostgreSQL não está rodando"
+  exit 1
+fi
+
+docker exec "$PG_CONTAINER" \
   pg_dumpall -U postgres | gzip > "$BACKUP_DIR/postgres_$TIMESTAMP.sql.gz"
+
+# Verificar se o dump não está vazio (mínimo 100 bytes comprimido)
+DUMP_SIZE=$(stat -c%s "$BACKUP_DIR/postgres_$TIMESTAMP.sql.gz" 2>/dev/null || echo 0)
+if [ "$DUMP_SIZE" -lt 100 ]; then
+  echo "[ERROR] Dump do PostgreSQL parece inválido (${DUMP_SIZE} bytes)"
+  exit 1
+fi
 
 # ─────────────────────────────────────────────
 # 2. Backup da sessão do Evolution API

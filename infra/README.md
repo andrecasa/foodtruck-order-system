@@ -1,25 +1,37 @@
 # 🚀 Infraestrutura AWS — Foodtruck Order System
 
-Terraform para provisionar a stack completa do sistema de pedidos na AWS usando a abordagem **EC2 + Docker Compose** (Opção A).
-
-## Índice
-
-- [Visão Geral da Arquitetura](#visão-geral-da-arquitetura)
-- [Pré-requisitos](#pré-requisitos)
-- [Custo Estimado](#custo-estimado)
-- [Passo a Passo Completo](#passo-a-passo-completo)
-- [Configuração de Domínio e HTTPS](#configuração-de-domínio-e-https)
-- [Volume Persistente (Evolution API)](#volume-persistente-evolution-api)
-- [Backups Automáticos](#backups-automáticos)
-- [Segurança](#segurança)
-- [Monitoramento](#monitoramento)
-- [Manutenção e Operação](#manutenção-e-operação)
-- [Troubleshooting](#troubleshooting)
-- [Migração Futura](#migração-futura)
+Terraform para provisionar a stack completa na AWS usando **EC2 + Docker Compose**.
 
 ---
 
-## Visão Geral da Arquitetura
+## Índice
+
+1. [O que será criado](#o-que-será-criado)
+2. [Custo estimado](#custo-estimado)
+3. [Pré-requisitos](#pré-requisitos)
+4. [Passo 1 — Instalar ferramentas](#passo-1--instalar-ferramentas)
+5. [Passo 2 — Criar credenciais AWS](#passo-2--criar-credenciais-aws)
+6. [Passo 3 — Criar Key Pair (acesso SSH)](#passo-3--criar-key-pair-acesso-ssh)
+7. [Passo 4 — Configurar variáveis do Terraform](#passo-4--configurar-variáveis-do-terraform)
+8. [Passo 5 — Subir a infraestrutura](#passo-5--subir-a-infraestrutura)
+9. [Passo 6 — Conectar na EC2](#passo-6--conectar-na-ec2)
+10. [Passo 7 — Deploy da aplicação](#passo-7--deploy-da-aplicação)
+11. [Passo 8 — Configurar variáveis de produção](#passo-8--configurar-variáveis-de-produção)
+12. [Passo 9 — Subir containers em produção](#passo-9--subir-containers-em-produção)
+13. [Passo 10 — Configurar Nginx (reverse proxy)](#passo-10--configurar-nginx-reverse-proxy)
+14. [Passo 11 — Build do painel web](#passo-11--build-do-painel-web)
+15. [Passo 12 — Configurar domínio e HTTPS](#passo-12--configurar-domínio-e-https)
+16. [Passo 13 — Conectar WhatsApp](#passo-13--conectar-whatsapp)
+17. [Verificar se tudo está funcionando](#verificar-se-tudo-está-funcionando)
+18. [Backups automáticos](#backups-automáticos)
+19. [Operações do dia a dia](#operações-do-dia-a-dia)
+20. [Troubleshooting](#troubleshooting)
+21. [Segurança](#segurança)
+22. [Migração futura](#migração-futura)
+
+---
+
+## O que será criado
 
 ```
                     ┌─────────────────────────────┐
@@ -27,31 +39,26 @@ Terraform para provisionar a stack completa do sistema de pedidos na AWS usando 
                     └─────────────┬───────────────┘
                                   │
                     ┌─────────────▼───────────────┐
-                    │    Elastic IP (fixo)         │
+                    │    Elastic IP (IP fixo)      │
                     └─────────────┬───────────────┘
                                   │
                     ┌─────────────▼───────────────┐
                     │    EC2 (t3.small)            │
-                    │  ┌───────────────────────┐  │
-                    │  │  Nginx (reverse proxy) │  │
-                    │  │  + Let's Encrypt SSL   │  │
-                    │  └───────────┬───────────┘  │
-                    │              │               │
-                    │  ┌───────────▼───────────┐  │
-                    │  │  Docker Compose        │  │
-                    │  │  ├── Backend (Express) │  │
-                    │  │  ├── PostgreSQL        │  │
-                    │  │  ├── Kong (Gateway)    │  │
-                    │  │  ├── GoTrue (Auth)     │  │
-                    │  │  ├── Realtime (WS)     │  │
-                    │  │  └── Evolution API     │  │
-                    │  └───────────────────────┘  │
                     │                             │
-                    │  ┌───────────────────────┐  │
-                    │  │  EBS Volume (5 GB)     │  │
-                    │  │  ├── /postgres         │  │
-                    │  │  └── /evolution        │  │
-                    │  └───────────────────────┘  │
+                    │  Nginx (reverse proxy)       │
+                    │  + Let's Encrypt (HTTPS)     │
+                    │                             │
+                    │  Docker Compose:             │
+                    │  ├── Backend (Express)       │
+                    │  ├── PostgreSQL              │
+                    │  ├── Kong (API Gateway)      │
+                    │  ├── GoTrue (Auth)           │
+                    │  ├── Realtime (WebSocket)    │
+                    │  └── Evolution API (WhatsApp)│
+                    │                             │
+                    │  EBS Volume (5 GB)           │
+                    │  ├── /postgres               │
+                    │  └── /evolution              │
                     └─────────────────────────────┘
                                   │
                     ┌─────────────▼───────────────┐
@@ -59,325 +66,682 @@ Terraform para provisionar a stack completa do sistema de pedidos na AWS usando 
                     └─────────────────────────────┘
 ```
 
-### Recursos criados pelo Terraform
+| Recurso | Pra que serve |
+|---------|---------------|
+| VPC + Subnet | Rede isolada na AWS |
+| Security Group | Firewall — controla quais portas ficam abertas |
+| EC2 t3.small | O servidor onde tudo roda |
+| Elastic IP | IP público fixo (não muda ao reiniciar) |
+| EBS Volume 5GB | Disco extra para dados do banco e WhatsApp |
+| S3 Bucket | Guarda backups do banco e sessão WhatsApp |
+| IAM Role | Permissão para a EC2 acessar o S3 e SSM |
 
-| Recurso | Descrição |
-|---|---|
-| VPC + Subnet pública | Rede isolada com acesso à internet |
-| Security Group | Portas 80, 443, 22 (SSH restrito) |
-| EC2 (t3.small) | Servidor principal |
-| Elastic IP | IP público fixo |
-| EBS Volume (gp3) | Disco separado para dados persistentes |
-| S3 Bucket | Armazenamento de backups |
-| IAM Role | Permissões EC2 → S3 + SSM |
+---
+
+## Custo estimado
+
+| Recurso | Custo/mês (us-east-1) |
+|---------|----------------------|
+| EC2 t3.small | ~$15 |
+| EBS 30GB (sistema) | ~$2.40 |
+| EBS 5GB (dados) | ~$0.40 |
+| Elastic IP (em uso) | $0 |
+| S3 (~1GB backups) | ~$0.03 |
+| Tráfego (~10GB) | ~$0.90 |
+| **Total** | **~$19/mês** |
+
+> 💡 Elastic IP só é grátis enquanto está associado a uma instância rodando. Se destruir a EC2 sem remover o EIP, cobra ~$3.60/mês.
 
 ---
 
 ## Pré-requisitos
 
-### Na sua máquina local
-
-1. **AWS CLI** configurado com credenciais:
-   ```bash
-   # Instalar
-   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
-   unzip awscliv2.zip && sudo ./aws/install
-
-   # Configurar
-   aws configure
-   # AWS Access Key ID: sua-access-key
-   # AWS Secret Access Key: sua-secret-key
-   # Default region: sa-east-1
-   # Default output: json
-   ```
-
-2. **Terraform** (>= 1.5):
-   ```bash
-   # Ubuntu/Debian
-   wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-   sudo apt update && sudo apt install terraform
-   ```
-
-3. **Key Pair na AWS** (para acesso SSH):
-   ```bash
-   # Criar key pair via CLI
-   aws ec2 create-key-pair \
-     --key-name order-system-key \
-     --query 'KeyMaterial' \
-     --output text > ~/.ssh/order-system-key.pem
-
-   chmod 400 ~/.ssh/order-system-key.pem
-   ```
-
-### Conta AWS
-
-- Conta AWS ativa com permissões de administrador (ou pelo menos EC2, VPC, S3, IAM)
-- Billing alerts configurados (recomendado)
+- Conta na AWS (pode ser a Free Tier, mas t3.small não é gratuita)
+- Computador com Linux ou macOS (WSL no Windows funciona)
+- Acesso à internet
 
 ---
 
-## Custo Estimado
+## Passo 1 — Instalar ferramentas
 
-| Recurso | Custo mensal (sa-east-1) |
-|---|---|
-| EC2 t3.small (2vCPU, 2GB) | ~$18 |
-| EBS root 20GB gp3 | ~$1.80 |
-| EBS data 5GB gp3 | ~$0.45 |
-| Elastic IP (em uso) | $0 |
-| S3 backups (~1GB) | ~$0.03 |
-| Transferência (~10GB) | ~$1 |
-| **Total estimado** | **~$21/mês** |
+Você precisa de duas ferramentas na sua máquina: **AWS CLI** e **Terraform**.
 
-> Para economizar mais: considere Reserved Instances (~40% desconto) ou Savings Plans após validar que a stack funciona bem.
+### AWS CLI
+
+```bash
+# Baixar e instalar
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+unzip awscliv2.zip
+sudo ./aws/install
+rm -rf aws awscliv2.zip
+
+# Confirmar instalação
+aws --version
+# Deve mostrar algo como: aws-cli/2.x.x ...
+```
+
+### Terraform
+
+```bash
+# Ubuntu/Debian
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+
+# Confirmar instalação
+terraform version
+# Deve mostrar algo como: Terraform v1.x.x
+```
 
 ---
 
-## Passo a Passo Completo
+## Passo 2 — Criar credenciais AWS
 
-### 1. Configurar variáveis
+Você precisa de um "Access Key" para o Terraform poder criar recursos na sua conta.
+
+1. Acesse o **Console AWS** → busque **IAM** → **Users** → **Create user**
+2. Nome: `terraform-deploy`
+3. Em "Permissions", selecione **Attach policies directly** → marque `AdministratorAccess`
+   > ⚠️ Para MVP está ok. Em produção real, crie uma policy mais restrita.
+4. Após criar o usuário, vá em **Security credentials** → **Create access key**
+5. Escolha "Command Line Interface (CLI)"
+6. Copie o **Access Key ID** e **Secret Access Key** (só aparecem uma vez!)
+
+Agora configure no terminal:
+
+```bash
+aws configure
+```
+
+Responda:
+```
+AWS Access Key ID: cole-aqui-seu-access-key-id
+AWS Secret Access Key: cole-aqui-seu-secret-access-key
+Default region name: us-east-1
+Default output format: json
+```
+
+**Teste rápido** para confirmar que funciona:
+```bash
+aws sts get-caller-identity
+# Deve mostrar o Account ID e o nome do usuário
+```
+
+---
+
+## Passo 3 — Criar Key Pair (acesso SSH)
+
+O Key Pair é o "passaporte" para conectar via SSH na EC2.
+
+```bash
+aws ec2 create-key-pair \
+  --key-name order-system-key \
+  --region us-east-1 \
+  --query 'KeyMaterial' \
+  --output text > ~/.ssh/order-system-key.pem
+
+# Proteger o arquivo (obrigatório, senão SSH recusa)
+chmod 400 ~/.ssh/order-system-key.pem
+```
+
+**Confirmando que foi criado:**
+```bash
+aws ec2 describe-key-pairs --key-names order-system-key --region us-east-1
+```
+
+> 🔑 Guarde esse arquivo `.pem` com cuidado. Se perder, não tem como recuperar — vai precisar criar outro.
+
+---
+
+## Passo 4 — Configurar variáveis do Terraform
 
 ```bash
 cd infra/
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Edite `terraform.tfvars`:
+Edite o arquivo `terraform.tfvars`:
+
 ```hcl
-aws_region        = "sa-east-1"
+aws_region        = "us-east-1"
 environment       = "prod"
 instance_type     = "t3.small"
 key_pair_name     = "order-system-key"
-domain_name       = "meu-foodtruck.com.br"  # ou deixe vazio
-ssh_allowed_cidrs = ["177.xxx.xxx.xxx/32"]   # seu IP (curl ifconfig.me)
+domain_name       = ""                         # preencha depois se tiver domínio
+ssh_allowed_cidrs = ["curl -4 ifconfig.me/32"]         # veja abaixo como descobrir
+enable_backups    = true
 ```
 
-### 2. Inicializar e aplicar Terraform
+**Para descobrir seu IP público:**
+```bash
+curl -4 ifconfig.me
+# Exemplo de resultado: 177.38.42.195
+# Use: ssh_allowed_cidrs = ["177.38.42.195/32"]
+```
+
+> 💡 O `/32` significa "apenas este IP". Se seu IP for dinâmico (muda quando reinicia o roteador), você vai precisar atualizar esse valor de tempos em tempos — ou usar SSM para acesso sem SSH (explicado na seção Segurança).
+
+> ⚠️ Se deixar `ssh_allowed_cidrs = []` (vazio), a porta SSH fica **fechada**. Você ainda pode acessar via SSM (Systems Manager), que é mais seguro.
+
+---
+
+## Passo 5 — Subir a infraestrutura
 
 ```bash
+cd infra/
+
+# 1. Inicializar Terraform (baixa os plugins necessários)
 terraform init
-terraform plan          # Revise o que será criado
-terraform apply         # Digite "yes" para confirmar
 ```
 
-O output mostrará:
+Você verá algo como:
 ```
-public_ip    = "54.xxx.xxx.xxx"
-ssh_command  = "ssh -i ~/.ssh/order-system-key.pem ec2-user@54.xxx.xxx.xxx"
+Terraform has been successfully initialized!
 ```
-
-### 3. Conectar na EC2
 
 ```bash
-ssh -i ~/.ssh/order-system-key.pem ec2-user@<IP_DO_OUTPUT>
+# 2. Ver o que será criado (revisão — não cria nada ainda)
+terraform plan
 ```
 
-### 4. Deploy da aplicação
+Revise a lista. Deve mostrar algo como `Plan: 12 to add, 0 to change, 0 to destroy.`
 
-Na EC2:
+```bash
+# 3. Criar tudo (vai pedir confirmação)
+terraform apply
+```
+
+Quando pedir `Enter a value:`, digite `yes` e pressione Enter.
+
+**Aguarde 1-2 minutos.** Ao final, verá os outputs:
+
+```
+Outputs:
+
+public_ip     = "54.207.xxx.xxx"
+ssh_command   = "ssh -i ~/.ssh/order-system-key.pem ec2-user@54.207.xxx.xxx"
+ssm_connect   = "aws ssm start-session --target i-0abc123 --region us-east-1"
+instance_id   = "i-0abc123def456"
+```
+
+**Anote o `public_ip`** — é o endereço do seu servidor.
+
+> ⚠️ O Elastic IP só é gratuito enquanto associado a uma instância ativa. Se você fizer `terraform destroy` parcialmente e deixar o EIP solto, vai cobrar.
+
+---
+
+## Passo 6 — Conectar na EC2
+
+Espere 2-3 minutos após o `terraform apply` (o user-data precisa terminar de instalar Docker, Nginx, etc).
+
+```bash
+ssh -i ~/.ssh/order-system-key.pem ec2-user@54.207.xxx.xxx
+```
+
+Se der erro "Permission denied", verifique:
+- O arquivo `.pem` existe e tem permissão 400
+- O IP está na lista `ssh_allowed_cidrs`
+- Espere mais 1-2 minutos (user-data ainda rodando)
+
+**Para verificar se o setup automático finalizou:**
+```bash
+# Dentro da EC2:
+sudo cat /var/log/cloud-init-output.log | tail -5
+# Deve terminar com: ">>> User data concluído!"
+```
+
+**Verificação rápida:**
+```bash
+docker --version        # Docker instalado?
+docker compose version  # Docker Compose instalado?
+lsblk                  # EBS data aparece como xvdf?
+df -h /mnt/app-data    # Volume montado?
+```
+
+---
+
+## Passo 7 — Deploy da aplicação
+
+Ainda na EC2:
+
 ```bash
 # Clonar o repositório
 git clone https://github.com/andrecasa/foodtruck-order-system.git /opt/order-system
 cd /opt/order-system
 
-# Executar o script de deploy
+# Tornar script executável e rodar
 chmod +x infra/scripts/deploy.sh
 bash infra/scripts/deploy.sh
 ```
 
-### 5. Configurar variáveis de produção
+O script vai:
+1. Criar o `docker-compose.override.yml` (aponta volumes pro EBS)
+2. Subir os containers
+3. Aguardar estabilizar
+4. Executar seed do admin
 
-```bash
-nano /opt/order-system/.env
-```
+> Se falhar no git clone (repo privado), configure um Personal Access Token ou deploy key. Veja: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
 
-**Valores importantes para produção:**
-```env
-# ALTERE OBRIGATORIAMENTE:
-JWT_SECRET=gere-uma-chave-forte-com-openssl-rand-base64-32
-EVOLUTION_API_KEY=gere-outra-chave-forte
-POSTGRES_PASSWORD=senha-forte-banco
+---
 
-# Ajuste as URLs para o IP/domínio público:
-API_EXTERNAL_URL=https://seu-dominio.com
-SITE_URL=https://seu-dominio.com
-EVOLUTION_SERVER_URL=https://seu-dominio.com:8080
-```
+## Passo 8 — Configurar variáveis de produção
 
-Gerar secrets seguros:
-```bash
-# JWT Secret
-openssl rand -base64 32
-
-# API Keys
-openssl rand -hex 24
-```
-
-### 6. Reconstruir com novas variáveis
+O deploy criou um `.env` a partir do `.env.example`. Agora edite com valores de produção:
 
 ```bash
 cd /opt/order-system
+vi .env
+```
+
+**Gere os secrets primeiro:**
+```bash
+# JWT Secret (copie o resultado)
+openssl rand -base64 32
+
+# API Key para Evolution (copie o resultado)
+openssl rand -hex 24
+
+# Senha do banco (copie o resultado)
+openssl rand -base64 16
+```
+
+**Valores para alterar no `.env`:**
+
+```env
+# ════ OBRIGATÓRIO ALTERAR ══════════════════════════
+JWT_SECRET=COLE_O_RESULTADO_DO_PRIMEIRO_OPENSSL
+ANON_KEY=será-gerado-pelo-generate-keys
+SERVICE_ROLE_KEY=será-gerado-pelo-generate-keys
+POSTGRES_PASSWORD=COLE_O_RESULTADO_DO_TERCEIRO_OPENSSL
+EVOLUTION_API_KEY=COLE_O_RESULTADO_DO_SEGUNDO_OPENSSL
+
+# ══════ URLS (use IP ou domínio) ════════════════════
+# Se não tem domínio ainda, use o IP:
+API_EXTERNAL_URL=http://54.207.xxx.xxx
+SITE_URL=http://54.207.xxx.xxx
+EVOLUTION_SERVER_URL=http://54.207.xxx.xxx:8080
+
+# Quando tiver domínio + HTTPS, troque para:
+# API_EXTERNAL_URL=https://meu-dominio.com.br
+# SITE_URL=https://meu-dominio.com.br
+# EVOLUTION_SERVER_URL=https://meu-dominio.com.br/evolution
+```
+
+Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
+
+---
+
+## Passo 9 — Subir containers em produção
+
+```bash
+cd /opt/order-system
+
+# Parar tudo (se estiver rodando do deploy anterior)
 docker compose down
+
+# Subir com as novas variáveis
 docker compose up -d --build
-sleep 15
+
+# Aguardar estabilizar
+sleep 20
+
+# Gerar chaves do Supabase (ANON_KEY e SERVICE_ROLE_KEY)
 ./scripts/generate-keys.sh
+
+# Reiniciar para pegar as novas chaves
+docker compose down
+docker compose up -d
+
+# Seed do admin
 ./scripts/seed-admin.sh
 ```
 
-### 7. Configurar Nginx
+**Verificar se tudo subiu:**
+```bash
+docker compose ps
+```
+
+Todos os serviços devem estar com status `Up` ou `healthy`.
+
+---
+
+## Passo 10 — Configurar Nginx (reverse proxy)
+
+O Nginx recebe as requisições da internet e direciona para o container correto.
 
 ```bash
-sudo cp /opt/order-system/infra/scripts/nginx.conf /etc/nginx/conf.d/order-system.conf
+# Copiar config
+sudo cp /opt/order-system/infra/scripts/nginx.conf /etc/nginx/conf.d/foodtruck.app.br.conf
 
-# Editar com seu domínio
-sudo nano /etc/nginx/conf.d/order-system.conf
+# Remover config padrão (conflita na porta 80)
+sudo rm -f /etc/nginx/conf.d/default.conf
 
-# Testar e reiniciar
+# Testar se a config está correta
 sudo nginx -t
+# Deve mostrar: "syntax is ok" e "test is successful"
+
+# Reiniciar Nginx
 sudo systemctl restart nginx
 ```
 
-### 8. Build do painel web
+**Testar acesso externo** (na sua máquina local, não na EC2):
+```bash
+curl http://54.207.xxx.xxx/api/health
+# Deve retornar: {"status":"ok"} ou similar
+```
+
+Se retornar "502 Bad Gateway", o backend ainda não está pronto. Espere mais e tente novamente.
+
+---
+
+## Passo 11 — Build do painel web
+
+O painel web é servido como arquivos estáticos pelo Nginx.
 
 ```bash
-cd /opt/order-system
-
-# Instalar Node.js 20 (se não veio no user-data)
+# Instalar Node.js 20
 curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
 sudo dnf install -y nodejs
 
 # Ativar pnpm
-corepack enable
+sudo corepack enable
 
-# Instalar e buildar
+# Instalar dependências e buildar
+cd /opt/order-system
 pnpm install
 pnpm --filter @order-system/web build
-
-# Os arquivos estáticos ficam em apps/web/dist/
-# O Nginx já está apontando para lá
 ```
 
-### 9. Ativar HTTPS (após apontar DNS)
+O build gera arquivos em `apps/web/dist/`. O Nginx já está configurado para servir dessa pasta.
 
-```bash
-sudo certbot --nginx -d seu-dominio.com
-# Siga as instruções interativas
-# Certbot configura renovação automática via timer do systemd
-```
+**Testar:** Abra `http://54.207.xxx.xxx` no navegador. Deve carregar o painel.
 
 ---
 
-## Configuração de Domínio e HTTPS
+## Passo 12 — Configurar domínio e HTTPS
 
-### Sem domínio (apenas IP)
+### 12.1 — Configurar DNS no Registro.br (modo avançado)
 
-Funciona, mas:
-- Sem HTTPS (navegadores mostram "não seguro")
-- App mobile precisa permitir HTTP (menos seguro)
-- Não recomendado para produção real
+1. Acesse https://registro.br → login → "Meus domínios" → `foodtruck.app.br`
+2. Clique na aba **DNS**
+3. Em "Configurar endereçamento", clique em **"MODO AVANÇADO"**
+4. O Registro.br vai iniciar a transição da zona (~2 horas). Aguarde até poder adicionar registros.
+5. Quando liberar, adicione os seguintes registros:
 
-### Com domínio
+```
+foodtruck.app.br        A    3.92.247.3
+api.foodtruck.app.br    A    3.92.247.3
+web.foodtruck.app.br    A    3.92.247.3
+```
 
-1. **Registrar domínio** (Registro.br, GoDaddy, Cloudflare, etc.)
-2. **Criar registro DNS tipo A** apontando para o Elastic IP:
-   ```
-   Tipo: A
-   Nome: @ (ou subdomínio como "api")
-   Valor: 54.xxx.xxx.xxx (IP do output do Terraform)
-   TTL: 300
-   ```
-3. **Ativar HTTPS** com Certbot (passo 9 acima)
-4. **Renovação automática** — Certbot já configura, mas verifique:
-   ```bash
-   sudo certbot renew --dry-run
-   ```
+> ⚠️ No Registro.br modo avançado, não se usa `@`. O domínio raiz é o próprio nome completo.
+> Não são aceitos os caracteres "@" e "*".
 
-### Configuração para o App Mobile
+6. Salve e aguarde propagação (5-15 min após a zona estar ativa)
 
-Após ter o domínio com HTTPS, atualize o `.env` do mobile:
+### 12.2 — Verificar propagação
+
+```bash
+dig +short foodtruck.app.br
+dig +short api.foodtruck.app.br
+dig +short web.foodtruck.app.br
+# Todos devem retornar: 3.92.247.3
+```
+
+Se não tiver `dig`, use: https://www.whatsmydns.net
+
+### 12.3 — Configurar Nginx com subdomínios
+
+Na EC2, crie a configuração do Nginx:
+
+```bash
+sudo bash -c 'cat > /etc/nginx/conf.d/foodtruck.app.br.conf << '\''EOF'\''
+# ─────────────────────────────────────────────────────────────
+# web.foodtruck.app.br — Painel Web (arquivos estáticos)
+# ─────────────────────────────────────────────────────────────
+server {
+    listen 80;
+    server_name web.foodtruck.app.br foodtruck.app.br;
+
+    location / {
+        root /opt/order-system/apps/web/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+            expires 30d;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    # Headers de segurança
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+    gzip_min_length 1000;
+
+    client_max_body_size 10M;
+}
+
+# ─────────────────────────────────────────────────────────────
+# api.foodtruck.app.br — Backend API + Auth + Realtime
+# ─────────────────────────────────────────────────────────────
+server {
+    listen 80;
+    server_name api.foodtruck.app.br;
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Supabase Auth (Kong gateway)
+    location /auth/ {
+        proxy_pass http://127.0.0.1:8000/auth/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Supabase Realtime (WebSocket)
+    location /realtime/ {
+        proxy_pass http://127.0.0.1:8000/realtime/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 86400;
+    }
+
+    # Headers de segurança
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    client_max_body_size 10M;
+}
+EOF'
+```
+
+Teste e recarregue:
+
+```bash
+sudo rm -f /etc/nginx/conf.d/default.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 12.4 — Ativar HTTPS com Certbot
+
+Após os subdomínios estarem propagados (`dig` retornando o IP):
+
+```bash
+sudo certbot --nginx -d foodtruck.app.br -d web.foodtruck.app.br -d api.foodtruck.app.br
+```
+
+O Certbot vai pedir:
+- Seu email (para avisos de expiração)
+- Aceitar termos (Y)
+- Redirecionar HTTP→HTTPS (escolha **2 - Redirect**)
+
+Teste a renovação automática:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+### 12.5 — Atualizar URLs da aplicação
+
+```bash
+cd /opt/order-system
+vi .env
+```
+
+Altere para:
+
 ```env
-EXPO_PUBLIC_API_URL=https://seu-dominio.com/api
-EXPO_PUBLIC_SUPABASE_URL=https://seu-dominio.com
+API_EXTERNAL_URL=https://api.foodtruck.app.br
+SITE_URL=https://web.foodtruck.app.br
+EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
+```
+
+Reinicie:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+### 12.6 — Atualizar o app mobile
+
+No `.env` do projeto mobile (na sua máquina local):
+
+```env
+EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br/api
+EXPO_PUBLIC_SUPABASE_URL=https://api.foodtruck.app.br
+```
+
+### 12.7 — Verificar
+
+```bash
+# Backend
+curl https://api.foodtruck.app.br/api/health
+
+# Painel web — abrir no navegador:
+# https://web.foodtruck.app.br
+# https://foodtruck.app.br (mesmo conteúdo)
 ```
 
 ---
 
-## Volume Persistente (Evolution API)
+## Passo 13 — Conectar WhatsApp
 
-### Por que é crítico
-
-A Evolution API armazena as **credenciais da sessão WhatsApp** (chaves Baileys) no filesystem. Sem persistência:
-- Container recriado = QR Code necessário novamente
-- Bot offline até reconexão manual
-
-### Estrutura no EBS
-
-```
-/mnt/app-data/
-├── postgres/       # Dados do PostgreSQL
-│   ├── base/
-│   ├── pg_wal/
-│   └── ...
-└── evolution/      # Sessão WhatsApp
-    └── order-system/
-        ├── auth/   # ← Credenciais críticas (noise keys)
-        └── store/  # Cache de contatos
-```
-
-### Cenários de falha e proteção
-
-| Cenário | Proteção |
-|---|---|
-| `docker compose down` + `up` | ✅ Volume EBS permanece montado |
-| EC2 reiniciada (reboot) | ✅ EBS remonta via fstab |
-| EC2 **terminada** | ✅ EBS separado sobrevive (não usa `delete_on_termination`) |
-| Disco corrompido | ✅ Backup S3 a cada 6h |
-| Migração para outra EC2 | ✅ Desanexar EBS e reanexar na nova instância |
-
-### Restaurar sessão do Evolution API a partir do backup
+A Evolution API gerencia a conexão com WhatsApp.
 
 ```bash
-# 1. Listar backups disponíveis
-aws s3 ls s3://order-system-backups-ACCOUNT_ID/evolution/
+# Verificar status da instância
+curl http://localhost:8080/instance/connectionState/order-system \
+  -H "apikey: SUA_EVOLUTION_API_KEY"
 
-# 2. Baixar o mais recente
-aws s3 cp s3://order-system-backups-ACCOUNT_ID/evolution/evolution_2026-08-18_1200.tar.gz /tmp/
+# Gerar QR Code para conectar
+curl http://localhost:8080/instance/connect/order-system \
+  -H "apikey: SUA_EVOLUTION_API_KEY"
+```
 
-# 3. Parar Evolution API
-docker compose stop evolution-api
+Para escanear o QR Code, acesse a interface web da Evolution API pelo navegador da sua máquina local.
 
-# 4. Restaurar
-rm -rf /mnt/app-data/evolution/*
-tar xzf /tmp/evolution_2026-08-18_1200.tar.gz -C /mnt/app-data/evolution/
+**Como funciona:** você vai criar um "túnel" SSH que faz a porta 8080 do servidor (que está fechada pro mundo) aparecer como uma porta da sua própria máquina. Não precisa instalar nada extra, não precisa de interface gráfica no Linux do servidor, e não precisa abrir portas no firewall.
 
-# 5. Reiniciar
-docker compose start evolution-api
+```bash
+# Na sua máquina local (NÃO na EC2) — rode e deixe o terminal aberto:
+ssh -i ~/.ssh/order-system-key.pem -L 9090:localhost:8080 ec2-user@3.92.247.3
+```
+
+O que esse comando faz:
+- `-L 9090:localhost:8080` → "pegue o que está na porta 8080 da EC2 e disponibilize na porta 9090 da minha máquina"
+- Usamos 9090 em vez de 8080 para não conflitar caso tenha Evolution API rodando localmente em dev
+- Enquanto esse terminal estiver aberto, o túnel funciona
+- Quando fechar o terminal (ou Ctrl+C), o acesso se encerra
+
+Agora abra **o navegador da sua máquina local** e acesse:
+
+```
+http://localhost:9090/manager
+```
+
+Você verá a interface gráfica da Evolution API com o QR Code. Escaneie com o WhatsApp do food truck (WhatsApp > Aparelhos conectados > Conectar aparelho).
+
+Após conectar, pode fechar o terminal do SSH — o túnel encerra e ninguém mais acessa a porta.
+
+> 💡 Resumo: o navegador é da sua máquina, o servidor é o Linux na AWS. O túnel SSH conecta os dois sem expor nada na internet.
+
+> 💡 A sessão fica salva no EBS em `/mnt/app-data/evolution/`. Mesmo reiniciando containers, não precisa escanear novamente.
+
+---
+
+## Verificar se tudo está funcionando
+
+**Na EC2:**
+
+```bash
+# 1. Containers rodando
+docker compose ps
+# Todos devem estar "Up"
+
+# 2. Backend respondendo
+curl http://localhost:4000/api/health
+
+# 3. WhatsApp conectado
+curl http://localhost:8080/instance/connectionState/order-system \
+  -H "apikey: SUA_EVOLUTION_API_KEY"
+# state deve ser "open"
+
+# 4. Backup funcionando
+sudo /opt/order-system/scripts/backup.sh
+# Deve terminar com "Backup concluído com sucesso!"
+
+# 5. Backups chegando no S3
+aws s3 ls s3://order-system-backups-$(aws sts get-caller-identity --query Account --output text)/postgres/
+```
+
+**Na sua máquina local:**
+
+```bash
+# 6. Nginx proxy funcionando (acesso externo)
+curl https://api.foodtruck.app.br/api/health
+
+# 7. Painel web carregando
+Abra no navegador: https://web.foodtruck.app.br
 ```
 
 ---
 
-## Backups Automáticos
+## Backups automáticos
 
-### O que é copiado
+### O que é feito
 
-- **PostgreSQL** — dump completo (`pg_dumpall`) compactado
-- **Evolution API** — diretório de sessão compactado
+- **PostgreSQL** — dump completo compactado
+- **Evolution API** — sessão WhatsApp compactada
 
-### Frequência e retenção
+### Quando roda
 
-- Executa a cada **6 horas** via cron
-- Retido por **30 dias** no S3 (configurável via `backup_retention_days`)
-- S3 Lifecycle deleta automaticamente backups antigos
+A cada 6 horas automaticamente (via cron). Retenção de 30 dias no S3.
 
-### Verificar se backups estão funcionando
+### Verificar logs
 
 ```bash
-# Na EC2:
 cat /var/log/order-system-backup.log
-
-# Listar backups no S3:
-aws s3 ls s3://order-system-backups-ACCOUNT_ID/postgres/ --recursive
-aws s3 ls s3://order-system-backups-ACCOUNT_ID/evolution/ --recursive
 ```
 
 ### Executar backup manual
@@ -386,296 +750,287 @@ aws s3 ls s3://order-system-backups-ACCOUNT_ID/evolution/ --recursive
 sudo /opt/order-system/scripts/backup.sh
 ```
 
-### Restaurar PostgreSQL a partir do backup
+### Restaurar banco de dados
 
 ```bash
-# 1. Baixar backup
-aws s3 cp s3://order-system-backups-ACCOUNT_ID/postgres/postgres_2026-08-18_1200.sql.gz /tmp/
+# 1. Ver backups disponíveis
+BUCKET=$(aws s3 ls | grep order-system-backups | awk '{print $3}')
+aws s3 ls s3://$BUCKET/postgres/
 
-# 2. Descompactar
+# 2. Baixar o mais recente
+aws s3 cp s3://$BUCKET/postgres/postgres_2026-08-18_1200.sql.gz /tmp/
+
+# 3. Descompactar
 gunzip /tmp/postgres_2026-08-18_1200.sql.gz
 
-# 3. Parar backend (evitar escritas)
+# 4. Parar backend (evitar escritas durante restore)
 docker compose stop backend
 
-# 4. Restaurar
+# 5. Restaurar
 cat /tmp/postgres_2026-08-18_1200.sql | docker exec -i $(docker ps -qf "name=db") psql -U postgres
 
-# 5. Reiniciar tudo
+# 6. Reiniciar
 docker compose up -d
 ```
 
----
-
-## Segurança
-
-### Checklist de produção
-
-- [ ] **JWT_SECRET** — Gere com `openssl rand -base64 32` (NUNCA use o default)
-- [ ] **POSTGRES_PASSWORD** — Senha forte, diferente do dev
-- [ ] **EVOLUTION_API_KEY** — Gere com `openssl rand -hex 24`
-- [ ] **SSH restrito** — Configure `ssh_allowed_cidrs` com seu IP
-- [ ] **HTTPS ativo** — Certbot com renovação automática
-- [ ] **Firewall** — Apenas portas 80, 443, 22 abertas
-- [ ] **Disable signup** — `DISABLE_SIGNUP=true` no GoTrue (usuários criados apenas pelo admin)
-- [ ] **Secrets fora do git** — `.env` e `terraform.tfvars` no `.gitignore`
-
-### Acesso SSH vs SSM
-
-O Terraform configura AWS SSM automaticamente. Isso permite acesso à EC2 **sem abrir porta 22**:
+### Restaurar sessão WhatsApp
 
 ```bash
-# Conectar via SSM (sem SSH key, sem porta 22)
-aws ssm start-session --target i-xxxxxxxxx --region sa-east-1
-```
+BUCKET=$(aws s3 ls | grep order-system-backups | awk '{print $3}')
+aws s3 cp s3://$BUCKET/evolution/evolution_2026-08-18_1200.tar.gz /tmp/
 
-Para usar SSM exclusivamente, remova a regra de SSH do security group.
-
-### Rotação de secrets
-
-```bash
-# 1. Gerar novo JWT_SECRET
-NEW_SECRET=$(openssl rand -base64 32)
-
-# 2. Atualizar .env
-sed -i "s/JWT_SECRET=.*/JWT_SECRET=$NEW_SECRET/" /opt/order-system/.env
-
-# 3. Regenerar chaves Supabase
-cd /opt/order-system && ./scripts/generate-keys.sh
-
-# 4. Reiniciar serviços
-docker compose down && docker compose up -d
-```
-
-> ⚠️ Rotação de JWT_SECRET invalida todas as sessões ativas. Planeje para horário de baixo uso.
-
----
-
-## Monitoramento
-
-### CloudWatch (incluso)
-
-A EC2 já envia métricas básicas para o CloudWatch:
-- CPU Utilization
-- Disk I/O
-- Network In/Out
-
-### Alarmes recomendados (criar manualmente no Console)
-
-| Métrica | Threshold | Ação |
-|---|---|---|
-| CPU > 80% por 5 min | Alto uso sustentado | Avaliar upgrade de instância |
-| Disk Used > 85% | Disco quase cheio | Limpar logs/expandir EBS |
-| StatusCheckFailed | Instância com problema | Restart automático |
-
-### Monitoramento na EC2
-
-```bash
-# Status dos containers
-docker compose ps
-
-# Logs em tempo real
-docker compose logs -f backend
-docker compose logs -f evolution-api
-
-# Uso de disco
-df -h /mnt/app-data
-
-# Uso de memória/CPU
-htop  # ou: top, free -h
-
-# Health check do backend
-curl http://localhost:4000/api/health
-```
-
-### Alerta simples via cron (sem CloudWatch)
-
-```bash
-# Adicionar ao crontab: verifica backend a cada 5 min
-*/5 * * * * curl -sf http://localhost:4000/api/health || echo "Backend DOWN $(date)" >> /var/log/order-system-alerts.log
+docker compose stop evolution-api
+rm -rf /mnt/app-data/evolution/*
+tar xzf /tmp/evolution_2026-08-18_1200.tar.gz -C /mnt/app-data/evolution/
+docker compose start evolution-api
 ```
 
 ---
 
-## Manutenção e Operação
+## Operações do dia a dia
 
-### Atualizar a aplicação (novo deploy)
+### Atualizar a aplicação (novo código)
 
 ```bash
-ssh -i ~/.ssh/order-system-key.pem ec2-user@<IP>
+ssh -i ~/.ssh/order-system-key.pem ec2-user@SEU_IP
 cd /opt/order-system
 git pull origin main
 docker compose up -d --build backend
-# Se mudou frontend:
+
+# Se mudou o frontend:
 pnpm --filter @order-system/web build
 ```
 
-### Escalar a instância (mais RAM/CPU)
+### Reiniciar tudo
 
 ```bash
-# 1. Na sua máquina local, altere variables.tf ou terraform.tfvars:
-instance_type = "t3.medium"  # 2 vCPU, 4 GB RAM
+cd /opt/order-system
+docker compose down
+docker compose up -d
+```
 
-# 2. Aplique:
+### Ver logs de um serviço
+
+```bash
+docker compose logs -f backend       # backend em tempo real
+docker compose logs -f evolution-api  # whatsapp
+docker compose logs db --tail 50     # últimas 50 linhas do banco
+```
+
+### Verificar espaço em disco
+
+```bash
+df -h                  # visão geral
+df -h /mnt/app-data    # volume de dados
+du -sh /mnt/app-data/* # o que está ocupando
+```
+
+### Limpar espaço
+
+```bash
+docker system prune -f         # remove containers/images parados
+docker image prune -a -f       # remove imagens não utilizadas
+```
+
+### Escalar (mais RAM/CPU)
+
+Na sua máquina local:
+```bash
+cd infra/
+# Edite terraform.tfvars:
+# instance_type = "t3.medium"   (4GB RAM em vez de 2GB)
+
 terraform apply
-# Isso vai parar e reiniciar a EC2 (downtime de ~2-3 min)
+# ⚠️ Isso reinicia a EC2 (~2-3 min de downtime)
+```
 
-# 3. Reconecte e suba os containers:
-ssh ec2-user@<IP>
-cd /opt/order-system && docker compose up -d
+Após reiniciar, reconecte e suba containers:
+```bash
+ssh -i ~/.ssh/order-system-key.pem ec2-user@SEU_IP
+cd /opt/order-system
+docker compose up -d
 ```
 
 ### Expandir disco de dados
 
+Na sua máquina local:
 ```bash
-# 1. Altere no terraform.tfvars:
-data_volume_size = 10  # de 5 para 10 GB
+cd infra/
+# Edite terraform.tfvars:
+# data_volume_size = 10   (de 5 para 10 GB)
 
-# 2. Aplique:
 terraform apply
+```
 
-# 3. Na EC2, expanda o filesystem:
-sudo growpart /dev/xvdf 1  # se tiver partição
+Na EC2:
+```bash
 sudo resize2fs /dev/xvdf
-df -h /mnt/app-data  # confirmar novo tamanho
-```
-
-### Reconectar WhatsApp (se desconectou)
-
-```bash
-# 1. Verificar status
-curl http://localhost:8080/instance/connectionState/order-system \
-  -H "apikey: SUA_EVOLUTION_API_KEY"
-
-# 2. Se state=close, gerar novo QR Code:
-curl http://localhost:8080/instance/connect/order-system \
-  -H "apikey: SUA_EVOLUTION_API_KEY"
-
-# 3. Escanear o QR Code retornado com o WhatsApp do food truck
-```
-
-### Limpar espaço em disco
-
-```bash
-# Logs antigos do Docker
-docker system prune -f
-
-# Imagens não utilizadas
-docker image prune -a -f
-
-# Verificar o que está ocupando espaço
-du -sh /mnt/app-data/*
-du -sh /var/lib/docker/*
+df -h /mnt/app-data   # confirmar novo tamanho
 ```
 
 ---
 
 ## Troubleshooting
 
-### EC2 não inicia / user-data falhou
+### Não consigo conectar via SSH
+
+| Causa provável | Solução |
+|---|---|
+| IP mudou | Execute `curl ifconfig.me` e atualize `ssh_allowed_cidrs` no `terraform.tfvars`, depois `terraform apply` |
+| `ssh_allowed_cidrs` está vazio | SSH fica fechado por segurança. Use SSM: `aws ssm start-session --target INSTANCE_ID --region us-east-1` |
+| Arquivo .pem errado | Verifique se está usando `~/.ssh/order-system-key.pem` com `chmod 400` |
+| EC2 ainda iniciando | Espere 3 minutos após `terraform apply` |
+
+### User-data não completou (Docker não instalado)
 
 ```bash
-# Ver logs do user-data:
+# Ver log completo do setup inicial
 sudo cat /var/log/cloud-init-output.log
+
+# Se falhou, pode reexecutar manualmente:
+sudo bash /opt/order-system/infra/scripts/user-data.sh
 ```
 
 ### Container não sobe
 
 ```bash
-docker compose logs <serviço>
-# Ex: docker compose logs db
-# Ex: docker compose logs backend
+# Ver erro específico
+docker compose logs NOME_DO_SERVICO
+# Exemplos: db, backend, evolution-api, kong, gotrue
+
+# Problema comum: porta já em uso
+docker compose down
+docker compose up -d
 ```
 
-### Disco EBS não montou
+### Backend retorna erro de conexão com banco
 
 ```bash
-# Verificar se o device existe
-lsblk
-
-# Montar manualmente
-sudo mount /dev/xvdf /mnt/app-data
-
-# Verificar fstab
-cat /etc/fstab
-```
-
-### Erro de permissão no PostgreSQL
-
-```bash
-# O PostgreSQL precisa que o diretório pertença ao uid 70 (postgres no Alpine)
-sudo chown -R 70:70 /mnt/app-data/postgres
-docker compose restart db
-```
-
-### Backend não conecta no banco
-
-```bash
-# Verificar se o banco está healthy
+# Banco está rodando?
 docker compose ps db
 docker exec $(docker ps -qf "name=db") pg_isready -U postgres
 
-# Verificar variáveis de ambiente
+# Verificar variáveis
 docker compose exec backend env | grep POSTGRES
 ```
 
 ### Nginx retorna 502 Bad Gateway
 
 ```bash
-# Backend não está respondendo
+# Backend está respondendo?
 curl http://localhost:4000/api/health
 
-# Verificar se containers estão rodando
-docker compose ps
+# Se não, ver logs:
+docker compose logs backend
 
-# Reiniciar tudo
-docker compose down && docker compose up -d
+# Reiniciar:
+docker compose restart backend
+```
+
+### EBS não montou ao reiniciar
+
+```bash
+lsblk                        # xvdf aparece?
+sudo mount /dev/xvdf /mnt/app-data
+cat /etc/fstab               # entrada existe?
+```
+
+### Erro de permissão no PostgreSQL
+
+```bash
+# Postgres precisa ser dono do diretório
+sudo chown -R 70:70 /mnt/app-data/postgres
+docker compose restart db
+```
+
+### WhatsApp desconectou
+
+```bash
+# Verificar status
+curl http://localhost:8080/instance/connectionState/order-system \
+  -H "apikey: SUA_EVOLUTION_API_KEY"
+
+# Se "state": "close", reconectar:
+curl http://localhost:8080/instance/connect/order-system \
+  -H "apikey: SUA_EVOLUTION_API_KEY"
+# Escaneie o QR Code novamente
 ```
 
 ---
 
-## Migração Futura
+## Segurança
 
-### Para ECS Fargate (quando escalar)
+### O que já está configurado automaticamente
 
-Se o food truck crescer e precisar de auto-scaling:
+- **IMDSv2 obrigatório** — protege contra ataques que exploram o metadata endpoint da EC2
+- **SSH fechado por padrão** — se `ssh_allowed_cidrs` está vazio, porta 22 fica bloqueada
+- **Acesso SSM** — permite conectar na EC2 sem SSH (mais seguro)
+- **EBS encriptado** — dados em repouso são criptografados
+- **S3 privado** — bucket de backups bloqueado para acesso público
+- **Headers de segurança no Nginx** — HSTS, X-Frame-Options, etc.
 
-1. Mover PostgreSQL para **RDS** (managed)
-2. Mover cada serviço para uma **ECS Task Definition**
-3. Usar **ALB** (Application Load Balancer) no lugar do Nginx
-4. Evolution API continua precisando de volume persistente (EFS nesse caso)
+### Checklist obrigatório antes de usar em produção
 
-### Para múltiplas instâncias (franquia)
+- [ ] Gerar `JWT_SECRET` com `openssl rand -base64 32`
+- [ ] Gerar `POSTGRES_PASSWORD` forte
+- [ ] Gerar `EVOLUTION_API_KEY` com `openssl rand -hex 24`
+- [ ] Configurar `ssh_allowed_cidrs` com seu IP (ou usar SSM)
+- [ ] Ativar HTTPS com Certbot
+- [ ] Confirmar que `.env` e `terraform.tfvars` estão no `.gitignore`
+- [ ] Definir `DISABLE_SIGNUP=true` no GoTrue (apenas admin cria usuários)
 
-Se abrir mais food trucks:
-- Cada um como um ambiente separado (terraform workspace)
-- Ou multi-tenant com um único backend (mais complexo)
+### Acessar sem SSH (via SSM)
+
+Se preferir nem abrir porta SSH:
+
+```bash
+# Na sua máquina local (precisa do AWS CLI)
+aws ssm start-session --target i-0abc123def456 --region us-east-1
+```
+
+Vantagem: não precisa gerenciar Key Pair nem manter IP atualizado no Security Group.
 
 ---
 
-## Comandos Rápidos de Referência
+## Migração futura
+
+Quando o MVP crescer e precisar escalar:
+
+1. **PostgreSQL → RDS** (banco gerenciado, backups automáticos, alta disponibilidade)
+2. **Containers → ECS Fargate** (auto-scaling, sem gerenciar servidor)
+3. **Nginx → ALB** (Load Balancer gerenciado)
+4. **Evolution API** — continua precisando de volume persistente (usar EFS)
+
+Para múltiplos food trucks: terraform workspaces (um ambiente por truck) ou arquitetura multi-tenant.
+
+---
+
+## Comandos de referência rápida
 
 ```bash
-# ─── Terraform ───
-terraform init              # Primeira vez
-terraform plan              # Ver o que será alterado
-terraform apply             # Aplicar mudanças
-terraform destroy           # ⚠️ Destruir TUDO
-terraform output            # Ver outputs (IP, etc.)
+# ═══ Terraform (na sua máquina) ═══
+terraform init              # primeira vez
+terraform plan              # ver o que será criado/alterado
+terraform apply             # aplicar mudanças
+terraform output            # ver IP, comandos, etc
+terraform destroy           # ⚠️ DESTRUIR TUDO
 
-# ─── EC2 (SSH) ───
-ssh -i ~/.ssh/order-system-key.pem ec2-user@<IP>
+# ═══ Conectar na EC2 ═══
+ssh -i ~/.ssh/order-system-key.pem ec2-user@IP
+# ou via SSM:
+aws ssm start-session --target INSTANCE_ID --region us-east-1
 
-# ─── Docker na EC2 ───
-docker compose ps           # Status dos serviços
-docker compose logs -f      # Logs em tempo real
-docker compose up -d --build backend  # Rebuild backend
-docker compose restart      # Reiniciar tudo
+# ═══ Docker (na EC2) ═══
+docker compose ps                           # status
+docker compose logs -f SERVICO              # logs
+docker compose up -d --build backend        # rebuild backend
+docker compose down && docker compose up -d # reiniciar tudo
 
-# ─── Backup manual ───
-sudo /opt/order-system/scripts/backup.sh
+# ═══ Backup ═══
+sudo /opt/order-system/scripts/backup.sh    # manual
+cat /var/log/order-system-backup.log        # ver logs
 
-# ─── Certificado SSL ───
-sudo certbot --nginx -d dominio.com
-sudo certbot renew --dry-run
+# ═══ HTTPS ═══
+sudo certbot --nginx -d dominio.com.br      # gerar certificado
+sudo certbot renew --dry-run                # testar renovação
 ```

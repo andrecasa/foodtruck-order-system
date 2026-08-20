@@ -3,9 +3,9 @@
 # =============================================================================
 
 variable "aws_region" {
-  description = "Região AWS (sa-east-1 = São Paulo)"
+  description = "Região AWS (us-east-1 = N. Virginia)"
   type        = string
-  default     = "sa-east-1"
+  default     = "us-east-1"
 }
 
 variable "environment" {
@@ -40,7 +40,7 @@ variable "ssh_allowed_cidrs" {
 variable "root_volume_size" {
   description = "Tamanho do disco raiz da EC2 (GB)"
   type        = number
-  default     = 20
+  default     = 30
 }
 
 variable "data_volume_size" {

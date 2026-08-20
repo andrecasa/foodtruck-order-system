@@ -33,6 +33,13 @@ resource "aws_instance" "app" {
     delete_on_termination = true
   }
 
+  # Forçar IMDSv2 (protege contra SSRF no metadata endpoint)
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
   user_data = base64encode(templatefile("${path.module}/scripts/user-data.sh", {
     data_device     = "/dev/xvdf"
     data_mount_path = "/mnt/app-data"

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 vi.mock('../../config/supabase.js', () => ({
@@ -12,6 +12,9 @@ const mockBroadcast = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../config/realtime.js', () => ({
   broadcast: (...args: any[]) => mockBroadcast(...args),
+  tenantChannel: (base: string, tenantId: string) => `${base}:${tenantId}`,
+  REALTIME_CHANNEL_QUEUE: 'orders:queue',
+  REALTIME_CHANNEL_PAYMENT: 'orders:payment',
 }));
 
 // Mock pg Pool - the controller uses pool.query for menu lookups and pool.connect for transactions
@@ -40,6 +43,7 @@ function mockRequest(body?: any): Partial<AuthenticatedRequest> {
     body: body || {},
     params: {},
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   };
 }
 
@@ -194,7 +198,7 @@ describe('Order Controller - createOrder', () => {
       await createOrder(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
-      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue', 'new_order', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'new_order', expect.objectContaining({
         id: 'order-uuid-1',
         dailyNumber: 5,
       }));
@@ -370,10 +374,15 @@ describe('Order Controller - createOrder', () => {
       await createOrder(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
-      // Verify the total passed to the INSERT query
-      const insertOrderCall = mockQuery.mock.calls[2]; // 3rd call is ORDER INSERT
+      // Verify the total passed to the ORDER INSERT query. Via the
+      // TenantRepository the INSERT columns/params are composed dynamically
+      // (including the injected tenant_id), so assert the total is among the
+      // insert params rather than at a fixed positional index.
+      const insertOrderCall = mockQuery.mock.calls[2]; // 3rd client call is ORDER INSERT
       expect(insertOrderCall).toBeDefined();
-      expect(insertOrderCall![1][3]).toBe(2250); // $4 = totalAmountCents
+      expect(insertOrderCall![0]).toContain('INSERT INTO orders');
+      expect(insertOrderCall![1]).toContain(2250); // total_amount_cents
+      expect(insertOrderCall![1]).toContain('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'); // tenant_id injected
     });
   });
 

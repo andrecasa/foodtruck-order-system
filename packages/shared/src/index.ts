@@ -22,6 +22,9 @@ export type {
   CreateCategoryRequest,
   UpdateCategoryRequest,
   ReorderCategoriesRequest,
+  TenantStatus,
+  Tenant,
+  TenantBrandingResponse,
 } from './types/index';
 
 export {
@@ -42,6 +45,12 @@ export {
   updateCategoryRequestSchema,
   reorderCategoriesRequestSchema,
 } from './validators/category.validator';
+
+export {
+  themeConfigPartialSchema,
+  tenantSchema,
+  tenantBrandingResponseSchema,
+} from './validators/tenant.validator';
 
 export {
   ORDER_STATUSES,

@@ -34,7 +34,7 @@ jest.mock('../../components/BottomNav', () => ({
   BottomNav: () => null,
 }));
 
-const mockGetCategories = jest.fn<Promise<Category[]>, []>();
+const mockGetCategories = jest.fn<Promise<Category[]>, any[]>();
 const mockDeleteCategory = jest.fn();
 const mockToggleCategoryStatus = jest.fn();
 const mockReorderCategories = jest.fn();

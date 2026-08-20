@@ -3,7 +3,7 @@ import {
   createMenuItemRequestSchema,
   updateMenuItemRequestSchema,
 } from '@order-system/shared';
-import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as menuService from '../services/menu.service.js';
 
 // --- Error helpers ---
@@ -33,7 +33,7 @@ function handleServiceError(err: unknown, res: Response, fallbackMessage: string
 export async function getMenu(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const showAll = req.query.all === 'true';
-    const menu = await menuService.getMenu(showAll);
+    const menu = await menuService.getMenu(req.tenantId as string, showAll);
     res.status(200).json(menu);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao buscar cardápio.');
@@ -66,7 +66,7 @@ export async function createMenuItem(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const item = await menuService.createMenuItem(parsed.data);
+    const item = await menuService.createMenuItem(req.tenantId as string, parsed.data);
     res.status(201).json(item);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao criar item.');
@@ -101,7 +101,7 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const item = await menuService.updateMenuItem(id as string, parsed.data);
+    const item = await menuService.updateMenuItem(req.tenantId as string, id as string, parsed.data);
     res.status(200).json(item);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao atualizar item.');
@@ -116,7 +116,7 @@ export async function deleteMenuItem(req: AuthenticatedRequest, res: Response): 
   try {
     const { id } = req.params;
 
-    await menuService.deleteMenuItem(id as string);
+    await menuService.deleteMenuItem(req.tenantId as string, id as string);
 
     res.status(200).json({
       message: 'Item excluído com sucesso',
@@ -135,7 +135,7 @@ export async function toggleMenuItemStatus(req: AuthenticatedRequest, res: Respo
     const { id } = req.params;
     const requestedStatus = req.body.status;
 
-    const item = await menuService.toggleMenuItemStatus(id as string, requestedStatus);
+    const item = await menuService.toggleMenuItemStatus(req.tenantId as string, id as string, requestedStatus);
     res.status(200).json(item);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao atualizar status.');

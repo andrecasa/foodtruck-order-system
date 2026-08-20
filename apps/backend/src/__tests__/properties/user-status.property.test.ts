@@ -106,35 +106,39 @@ describe('Property 12: Round-trip desativação/reativação restaura status ati
           };
 
           let phase: 'deactivate' | 'activate' = 'deactivate';
+          // Whether the UPDATE for the current phase has run, so the re-fetch
+          // (findOne after update) returns the post-update row.
+          let updatedInPhase = false;
 
-          // Mock pool.query for both phases
+          // Mock TenantRepository SQL shapes for both phases.
           vi.mocked(pool.query).mockImplementation(async (sql: string) => {
+            // Admin guard (deactivate path): return >1 active admin to allow it.
+            if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
+              return {
+                rows: [{ id: 'a1' }, { id: 'a2' }, { id: 'a3' }, { id: 'a4' }, { id: 'a5' }],
+                command: 'SELECT',
+                rowCount: 5,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+
             if (phase === 'deactivate') {
-              // SELECT user (returns active user)
-              if (typeof sql === 'string' && sql.includes('SELECT *') && sql.includes('WHERE id')) {
-                return {
-                  rows: [originalUser],
-                  command: 'SELECT',
-                  rowCount: 1,
-                  oid: 0,
-                  fields: [],
-                } as never;
-              }
-              // COUNT admins (returns >1 to allow deactivation)
-              if (typeof sql === 'string' && sql.includes('COUNT')) {
-                return {
-                  rows: [{ count: '5' }],
-                  command: 'SELECT',
-                  rowCount: 1,
-                  oid: 0,
-                  fields: [],
-                } as never;
-              }
-              // UPDATE to inativo
               if (typeof sql === 'string' && sql.includes('UPDATE users SET')) {
+                updatedInPhase = true;
                 return {
                   rows: [deactivatedUser],
                   command: 'UPDATE',
+                  rowCount: 1,
+                  oid: 0,
+                  fields: [],
+                } as never;
+              }
+              // findOne user: active before update, inactive after.
+              if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
+                return {
+                  rows: [updatedInPhase ? deactivatedUser : originalUser],
+                  command: 'SELECT',
                   rowCount: 1,
                   oid: 0,
                   fields: [],
@@ -142,21 +146,21 @@ describe('Property 12: Round-trip desativação/reativação restaura status ati
               }
             } else {
               // phase === 'activate'
-              // SELECT user (returns inactive user)
-              if (typeof sql === 'string' && sql.includes('SELECT *') && sql.includes('WHERE id')) {
+              if (typeof sql === 'string' && sql.includes('UPDATE users SET')) {
+                updatedInPhase = true;
                 return {
-                  rows: [deactivatedUser],
-                  command: 'SELECT',
+                  rows: [reactivatedUser],
+                  command: 'UPDATE',
                   rowCount: 1,
                   oid: 0,
                   fields: [],
                 } as never;
               }
-              // UPDATE to ativo
-              if (typeof sql === 'string' && sql.includes('UPDATE users SET')) {
+              // findOne user: inactive before update, active after.
+              if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
                 return {
-                  rows: [reactivatedUser],
-                  command: 'UPDATE',
+                  rows: [updatedInPhase ? reactivatedUser : deactivatedUser],
+                  command: 'SELECT',
                   rowCount: 1,
                   oid: 0,
                   fields: [],
@@ -172,14 +176,16 @@ describe('Property 12: Round-trip desativação/reativação restaura status ati
             error: null,
           } as never);
 
-          // Phase 1: Deactivate the user
+          // Phase 1: Deactivate the user (tenant-scoped)
           phase = 'deactivate';
-          const afterDeactivation = await deactivateUser(userId, requesterId);
+          updatedInPhase = false;
+          const afterDeactivation = await deactivateUser('tenant-a', userId, requesterId);
           expect(afterDeactivation.status).toBe('inativo');
 
-          // Phase 2: Reactivate the user
+          // Phase 2: Reactivate the user (tenant-scoped)
           phase = 'activate';
-          const afterReactivation = await activateUser(userId);
+          updatedInPhase = false;
+          const afterReactivation = await activateUser('tenant-a', userId);
 
           // Verify round-trip: status is back to ativo
           expect(afterReactivation.status).toBe('ativo');

@@ -152,7 +152,7 @@ export function Input({
     alignItems: 'center',
     backgroundColor: backgroundColor ?? theme.colors.surface,
     borderWidth: 1,
-    borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : theme.colors.divider,
+    borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : theme.colors.border,
     borderRadius: 24,
     height: 52,
     paddingHorizontal: 16,

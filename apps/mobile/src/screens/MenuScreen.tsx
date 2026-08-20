@@ -126,7 +126,7 @@ export function MenuScreen() {
   const itemCardStyle: ViewStyle = {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     borderRadius: 12,
     height: 64,
     flexDirection: 'row',
@@ -177,7 +177,7 @@ export function MenuScreen() {
   const novoItemBtnStyle: ViewStyle = {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     borderRadius: 22,
     height: 44,
     flexDirection: 'row',

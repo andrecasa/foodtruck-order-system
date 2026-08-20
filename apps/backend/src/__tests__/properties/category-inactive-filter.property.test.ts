@@ -105,6 +105,7 @@ describe('Feature: categories-crud, Property 8: Inactive categories excluded fro
 
         const req = {
           query: {},
+          tenantId: 'tenant-1',
         } as never;
 
         const statusFn = vi.fn().mockReturnThis();
@@ -169,6 +170,7 @@ describe('Feature: categories-crud, Property 8: Inactive categories excluded fro
 
         const req = {
           query: {},
+          tenantId: 'tenant-1',
         } as never;
 
         const statusFn = vi.fn().mockReturnThis();
@@ -233,6 +235,7 @@ describe('Feature: categories-crud, Property 8: Inactive categories excluded fro
 
         const req = {
           query: {},
+          tenantId: 'tenant-1',
         } as never;
 
         const statusFn = vi.fn().mockReturnThis();

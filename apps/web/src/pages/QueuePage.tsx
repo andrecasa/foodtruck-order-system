@@ -166,7 +166,7 @@ function ActionButton({ label, icon, color, onClick, disabled = false, fontFamil
  */
 export function QueuePage() {
   const theme = useTheme();
-  const { logout } = useAuth();
+  const { logout, tenantId } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -320,13 +320,18 @@ export function QueuePage() {
     await fetchOrders();
   }, [fetchOrders]);
 
-  const channels = useMemo(() => ['orders:queue', 'orders:payment'], []);
+  // Subscribe only to THIS tenant's namespaced channels (R12.7, R12.9). Until
+  // the tenant id resolves, subscribe to nothing.
+  const channels = useMemo(
+    () => (tenantId ? [`orders:queue:${tenantId}`, `orders:payment:${tenantId}`] : []),
+    [tenantId],
+  );
 
   const { status: realtimeStatus } = useRealtime({
     channels,
     onEvent: handleRealtimeEvent,
     onReconnect: handleReconnect,
-    enabled: initialLoaded,
+    enabled: initialLoaded && tenantId !== null,
   });
 
   const staleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -499,7 +504,7 @@ export function QueuePage() {
     alignItems: 'center',
     gap: '6px',
     background: 'none',
-    border: `1px solid ${theme.colors.divider}`,
+    border: `1px solid ${theme.colors.border}`,
     borderRadius: '18px',
     height: '36px',
     padding: '0 12px',
@@ -786,8 +791,8 @@ export function QueuePage() {
                         onClick={() => handleAdvanceStatus(order)}
                         disabled={order.status === 'entregue'}
                         fontFamily={theme.typography.fontFamily}
-                        disabledBg={theme.colors.divider}
-                        disabledText={theme.colors.textSecondary}
+                        disabledBg={theme.colors.surfaceDisabled}
+                        disabledText={theme.colors.textDisabled}
                         surfaceColor={theme.colors.surface}
                       />
                     </Card>

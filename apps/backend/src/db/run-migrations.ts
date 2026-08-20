@@ -67,8 +67,20 @@ export async function runMigrations(): Promise<void> {
       const sql = await readFile(filePath, 'utf-8');
 
       console.log(`[migrations] Applying: ${file}`);
-      await pool.query(sql);
-      await pool.query('INSERT INTO _migrations (name) VALUES ($1)', [file]);
+      // Apply each migration atomically: on failure, roll back so the schema is
+      // left in its prior state instead of a partially-applied one (R1.10).
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(sql);
+        await client.query('INSERT INTO _migrations (name) VALUES ($1)', [file]);
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
       count++;
     }
 

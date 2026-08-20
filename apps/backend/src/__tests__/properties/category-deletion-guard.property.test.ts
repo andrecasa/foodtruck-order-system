@@ -65,6 +65,7 @@ describe('Feature: categories-crud, Property 9: Deletion guard', () => {
 
           const req = {
             params: { id },
+            tenantId: 'tenant-1',
           } as never;
 
           const statusFn = vi.fn().mockReturnThis();
@@ -110,11 +111,11 @@ describe('Feature: categories-crud, Property 9: Deletion guard', () => {
                 fields: [],
               } as never;
             } else if (queryCall === 2) {
-              // Associated items count = 0
+              // Associated items = none (tenant-scoped select returns empty rows)
               return {
-                rows: [{ count: 0 }],
+                rows: [],
                 command: 'SELECT',
-                rowCount: 1,
+                rowCount: 0,
                 oid: 0,
                 fields: [],
               } as never;
@@ -132,6 +133,7 @@ describe('Feature: categories-crud, Property 9: Deletion guard', () => {
 
           const req = {
             params: { id },
+            tenantId: 'tenant-1',
           } as never;
 
           const statusFn = vi.fn().mockReturnThis();

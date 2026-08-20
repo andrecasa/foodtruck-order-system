@@ -207,7 +207,7 @@ aws_region        = "us-east-1"
 environment       = "prod"
 instance_type     = "t3.small"
 key_pair_name     = "order-system-key"
-domain_name       = "foodtruck.app.br"
+domain_name       = "example.com"
 ssh_allowed_cidrs = ["SEU_IP_AQUI/32"]
 enable_backups    = true
 ```
@@ -318,7 +318,7 @@ O script vai:
 1. Criar o `docker-compose.override.yml` (aponta volumes pro EBS)
 2. Subir os containers
 3. Aguardar estabilizar
-4. Executar seed do admin
+4. Provisionar o primeiro tenant + admin logável (onboarding idempotente)
 
 > Se falhar no git clone (repo privado), configure um Personal Access Token ou deploy key. Veja: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
 
@@ -362,9 +362,9 @@ SITE_URL=http://SEU_IP
 EVOLUTION_SERVER_URL=http://SEU_IP:8080
 
 # Quando tiver domínio + HTTPS, troque para:
-# API_EXTERNAL_URL=https://api.foodtruck.app.br
-# SITE_URL=https://web.foodtruck.app.br
-# EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
+# API_EXTERNAL_URL=https://api.example.com
+# SITE_URL=https://web.example.com
+# EVOLUTION_SERVER_URL=https://api.example.com/evolution
 ```
 
 Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
@@ -392,8 +392,8 @@ sleep 20
 docker compose down
 docker compose up -d
 
-# Seed do admin
-./scripts/seed-admin.sh
+# Provisionar o primeiro tenant + admin logável (onboarding idempotente)
+./scripts/seed-first-tenant.sh
 ```
 
 **Verificar se tudo subiu:**
@@ -411,7 +411,7 @@ O Nginx recebe as requisições da internet e direciona para o container correto
 
 ```bash
 # Copiar config
-sudo cp /opt/order-system/infra/scripts/nginx.conf /etc/nginx/conf.d/foodtruck.app.br.conf
+sudo cp /opt/order-system/infra/scripts/nginx.conf /etc/nginx/conf.d/example.com.conf
 
 # Remover config padrão (conflita na porta 80)
 sudo rm -f /etc/nginx/conf.d/default.conf
@@ -426,7 +426,7 @@ sudo systemctl restart nginx
 
 **Testar acesso externo** (na sua máquina local, não na EC2):
 ```bash
-curl -H "Host: api.foodtruck.app.br" http://SEU_IP/api/health
+curl -H "Host: api.example.com" http://SEU_IP/api/health
 # Deve retornar: {"status":"ok"} ou similar
 ```
 
@@ -462,16 +462,16 @@ O build gera arquivos em `apps/web/dist/`. O Nginx já está configurado para se
 
 ### 12.1 — Configurar DNS no Registro.br (modo avançado)
 
-1. Acesse https://registro.br → login → "Meus domínios" → `foodtruck.app.br`
+1. Acesse https://registro.br → login → "Meus domínios" → `example.com`
 2. Clique na aba **DNS**
 3. Em "Configurar endereçamento", clique em **"MODO AVANÇADO"**
 4. O Registro.br vai iniciar a transição da zona (~2 horas). Aguarde até poder adicionar registros.
 5. Quando liberar, adicione os seguintes registros:
 
 ```
-foodtruck.app.br        A    3.92.247.3
-api.foodtruck.app.br    A    3.92.247.3
-web.foodtruck.app.br    A    3.92.247.3
+example.com        A    SEU_IP
+api.example.com    A    SEU_IP
+web.example.com    A    SEU_IP
 ```
 
 > ⚠️ No Registro.br modo avançado, não se usa `@`. O domínio raiz é o próprio nome completo.
@@ -482,10 +482,10 @@ web.foodtruck.app.br    A    3.92.247.3
 ### 12.2 — Verificar propagação
 
 ```bash
-dig +short foodtruck.app.br
-dig +short api.foodtruck.app.br
-dig +short web.foodtruck.app.br
-# Todos devem retornar: 3.92.247.3
+dig +short example.com
+dig +short api.example.com
+dig +short web.example.com
+# Todos devem retornar: SEU_IP
 ```
 
 Se não tiver `dig`, use: https://www.whatsmydns.net
@@ -495,13 +495,13 @@ Se não tiver `dig`, use: https://www.whatsmydns.net
 Na EC2, crie a configuração do Nginx:
 
 ```bash
-sudo bash -c 'cat > /etc/nginx/conf.d/foodtruck.app.br.conf << '\''EOF'\''
+sudo bash -c 'cat > /etc/nginx/conf.d/example.com.conf << '\''EOF'\''
 # ─────────────────────────────────────────────────────────────
-# web.foodtruck.app.br — Painel Web (arquivos estáticos)
+# web.example.com — Painel Web (arquivos estáticos)
 # ─────────────────────────────────────────────────────────────
 server {
     listen 80;
-    server_name web.foodtruck.app.br foodtruck.app.br;
+    server_name web.example.com example.com;
 
     location / {
         root /opt/order-system/apps/web/dist;
@@ -528,11 +528,11 @@ server {
 }
 
 # ─────────────────────────────────────────────────────────────
-# api.foodtruck.app.br — Backend API + Auth + Realtime
+# api.example.com — Backend API + Auth + Realtime
 # ─────────────────────────────────────────────────────────────
 server {
     listen 80;
-    server_name api.foodtruck.app.br;
+    server_name api.example.com;
 
     # Backend API
     location /api/ {
@@ -587,7 +587,7 @@ sudo systemctl reload nginx
 Após os subdomínios estarem propagados (`dig` retornando o IP):
 
 ```bash
-sudo certbot --nginx -d foodtruck.app.br -d web.foodtruck.app.br -d api.foodtruck.app.br
+sudo certbot --nginx -d example.com -d web.example.com -d api.example.com
 ```
 
 O Certbot vai pedir:
@@ -611,9 +611,9 @@ nano .env
 Altere para:
 
 ```env
-API_EXTERNAL_URL=https://api.foodtruck.app.br
-SITE_URL=https://web.foodtruck.app.br
-EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
+API_EXTERNAL_URL=https://api.example.com
+SITE_URL=https://web.example.com
+EVOLUTION_SERVER_URL=https://api.example.com/evolution
 ```
 
 Reinicie:
@@ -628,19 +628,19 @@ docker compose up -d
 No `.env` do projeto mobile (na sua máquina local):
 
 ```env
-EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br/api
-EXPO_PUBLIC_SUPABASE_URL=https://api.foodtruck.app.br
+EXPO_PUBLIC_API_URL=https://api.example.com/api
+EXPO_PUBLIC_SUPABASE_URL=https://api.example.com
 ```
 
 ### 12.7 — Verificar
 
 ```bash
 # Backend
-curl https://api.foodtruck.app.br/api/health
+curl https://api.example.com/api/health
 
 # Painel web — abrir no navegador:
-# https://web.foodtruck.app.br
-# https://foodtruck.app.br (mesmo conteúdo)
+# https://web.example.com
+# https://example.com (mesmo conteúdo)
 ```
 
 ---
@@ -665,7 +665,7 @@ Para escanear o QR Code, acesse a interface web da Evolution API pelo navegador 
 
 ```bash
 # Na sua máquina local (NÃO na EC2) — rode e deixe o terminal aberto:
-ssh -i ~/.ssh/order-system-key.pem -L 9090:localhost:8080 ec2-user@3.92.247.3
+ssh -i ~/.ssh/order-system-key.pem -L 9090:localhost:8080 ec2-user@SEU_IP
 ```
 
 O que esse comando faz:
@@ -708,7 +708,7 @@ curl http://localhost:8080/instance/connectionState/order-system \
 # state deve ser "open"
 
 # 4. Backup funcionando
-sudo /opt/order-system/scripts/backup.sh
+sudo /opt/order-system/infra/scripts/backup.sh
 # Deve terminar com "Backup concluído com sucesso!"
 
 # 5. Backups chegando no S3
@@ -719,10 +719,10 @@ aws s3 ls s3://order-system-backups-$(aws sts get-caller-identity --query Accoun
 
 ```bash
 # 6. Nginx proxy funcionando (acesso externo)
-curl https://api.foodtruck.app.br/api/health
+curl https://api.example.com/api/health
 
 # 7. Painel web carregando
-Abra no navegador: https://web.foodtruck.app.br
+Abra no navegador: https://web.example.com
 ```
 
 ---
@@ -747,7 +747,7 @@ cat /var/log/order-system-backup.log
 ### Executar backup manual
 
 ```bash
-sudo /opt/order-system/scripts/backup.sh
+sudo /opt/order-system/infra/scripts/backup.sh
 ```
 
 ### Restaurar banco de dados
@@ -1049,8 +1049,8 @@ docker compose up -d --build backend        # rebuild backend
 docker compose down && docker compose up -d # reiniciar tudo
 
 # ═══ Backup ═══
-sudo /opt/order-system/scripts/backup.sh    # manual
-cat /var/log/order-system-backup.log        # ver logs
+sudo /opt/order-system/infra/scripts/backup.sh    # manual
+cat /var/log/order-system-backup.log              # ver logs
 
 # ═══ HTTPS ═══
 sudo certbot --nginx -d dominio.com.br      # gerar certificado

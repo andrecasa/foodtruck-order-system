@@ -16,7 +16,7 @@ export interface SwipeableOriginSelectorProps {
   onChange: (value: OrderOrigin) => void;
   primaryColor: string;
   surfaceColor: string;
-  dividerColor: string;
+  borderColor: string;
   backgroundColor: string;
   inactiveTextColor: string;
   fontFamily: string;
@@ -35,7 +35,7 @@ export function SwipeableOriginSelector({
   onChange,
   primaryColor,
   surfaceColor,
-  dividerColor,
+  borderColor,
   backgroundColor,
   inactiveTextColor,
   fontFamily,
@@ -157,7 +157,7 @@ export function SwipeableOriginSelector({
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: dividerColor,
+    borderColor: borderColor,
     backgroundColor,
     padding: MARGIN,
     position: 'relative',

@@ -116,24 +116,26 @@ describe('Property 10: Atualização modifica apenas os campos fornecidos', () =
             updated_at: new Date('2024-06-01'),
           };
 
-          let queryCallCount = 0;
+          // Track whether the UPDATE has already run so the post-update
+          // re-fetch (findOne) returns the updated row.
+          let updated = false;
 
-          // Mock pool.query
+          // Mock pool.query against the TenantRepository SQL shapes. The repo
+          // always emits `... FROM users WHERE tenant_id = $1 AND (...)`.
           vi.mocked(pool.query).mockImplementation(async (sql: string) => {
-            queryCallCount++;
-
-            // First call: SELECT current user
-            if (typeof sql === 'string' && sql.includes('SELECT *') && sql.includes('WHERE id')) {
+            // UPDATE RETURNING
+            if (typeof sql === 'string' && sql.includes('UPDATE users SET')) {
+              updated = true;
               return {
-                rows: [currentUser],
-                command: 'SELECT',
+                rows: [updatedRow],
+                command: 'UPDATE',
                 rowCount: 1,
                 oid: 0,
                 fields: [],
               } as never;
             }
 
-            // Email uniqueness check
+            // Email uniqueness check (scoped): LOWER(email) ... AND id !=
             if (typeof sql === 'string' && sql.includes('LOWER(email)') && sql.includes('id !=')) {
               return {
                 rows: [],
@@ -144,22 +146,23 @@ describe('Property 10: Atualização modifica apenas os campos fornecidos', () =
               } as never;
             }
 
-            // Admin count check (for role changes from admin)
-            if (typeof sql === 'string' && sql.includes('COUNT') && sql.includes('admin')) {
+            // Admin guard: SELECT of active admins (repo.select on users).
+            if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
+              // Multiple admins so a role change away from admin is allowed.
               return {
-                rows: [{ count: '5' }], // Multiple admins, so change is allowed
+                rows: [{ id: 'a1' }, { id: 'a2' }, { id: 'a3' }, { id: 'a4' }, { id: 'a5' }],
                 command: 'SELECT',
-                rowCount: 1,
+                rowCount: 5,
                 oid: 0,
                 fields: [],
               } as never;
             }
 
-            // UPDATE RETURNING
-            if (typeof sql === 'string' && sql.includes('UPDATE users SET')) {
+            // findOne current/updated user: SELECT * FROM users WHERE tenant_id ...
+            if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
               return {
-                rows: [updatedRow],
-                command: 'UPDATE',
+                rows: [updated ? updatedRow : currentUser],
+                command: 'SELECT',
                 rowCount: 1,
                 oid: 0,
                 fields: [],
@@ -178,8 +181,8 @@ describe('Property 10: Atualização modifica apenas os campos fornecidos', () =
             error: null,
           } as never);
 
-          // Call updateUser
-          const result = await updateUser(currentUser.id, updateInput, requesterId);
+          // Call updateUser (tenant-scoped)
+          const result = await updateUser('tenant-a', currentUser.id, updateInput, requesterId);
 
           // Verify: fields that WERE in the update have their new values
           if (fieldsToUpdate.includes('name')) {
@@ -272,9 +275,20 @@ describe('Property 11: Invariante de pelo menos um admin ativo', () => {
         async (userId, requesterId, newRole, name, email) => {
           vi.clearAllMocks();
 
-          // Mock: user exists with role='admin' and status='ativo'
+          // Mock TenantRepository SQL shapes.
           vi.mocked(pool.query).mockImplementation(async (sql: string) => {
-            if (typeof sql === 'string' && sql.includes('SELECT') && sql.includes('WHERE id')) {
+            // Admin guard: single active admin (this is the last one).
+            if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
+              return {
+                rows: [{ id: userId }],
+                command: 'SELECT',
+                rowCount: 1,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // findOne current user (role='admin', status='ativo').
+            if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
               return {
                 rows: [{
                   id: userId,
@@ -291,26 +305,16 @@ describe('Property 11: Invariante de pelo menos um admin ativo', () => {
                 fields: [],
               } as never;
             }
-            // Mock: admin count returns 1 (this is the last admin)
-            if (typeof sql === 'string' && sql.includes('COUNT') && sql.includes('admin')) {
-              return {
-                rows: [{ count: '1' }],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
             return { rows: [], command: 'SELECT', rowCount: 0, oid: 0, fields: [] } as never;
           });
 
           // Attempting to change the last admin's role must be rejected
           await expect(
-            updateUser(userId, { role: newRole }, requesterId),
+            updateUser('tenant-a', userId, { role: newRole }, requesterId),
           ).rejects.toThrow(ServiceError);
 
           try {
-            await updateUser(userId, { role: newRole }, requesterId);
+            await updateUser('tenant-a', userId, { role: newRole }, requesterId);
           } catch (err) {
             expect(err).toBeInstanceOf(ServiceError);
             expect((err as ServiceError).statusCode).toBe(422);
@@ -334,9 +338,20 @@ describe('Property 11: Invariante de pelo menos um admin ativo', () => {
 
           vi.clearAllMocks();
 
-          // Mock: user exists as admin with status='ativo'
+          // Mock TenantRepository SQL shapes.
           vi.mocked(pool.query).mockImplementation(async (sql: string) => {
-            if (typeof sql === 'string' && sql.includes('SELECT') && sql.includes('WHERE id')) {
+            // Admin guard: single active admin (last one).
+            if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
+              return {
+                rows: [{ id: userId }],
+                command: 'SELECT',
+                rowCount: 1,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // findOne user (admin, ativo).
+            if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
               return {
                 rows: [{
                   id: userId,
@@ -353,26 +368,16 @@ describe('Property 11: Invariante de pelo menos um admin ativo', () => {
                 fields: [],
               } as never;
             }
-            // Mock: only 1 active admin in the system
-            if (typeof sql === 'string' && sql.includes('COUNT')) {
-              return {
-                rows: [{ count: '1' }],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
             return { rows: [], command: 'SELECT', rowCount: 0, oid: 0, fields: [] } as never;
           });
 
           // Attempting to deactivate the last admin must be rejected
           await expect(
-            deactivateUser(userId, requesterId),
+            deactivateUser('tenant-a', userId, requesterId),
           ).rejects.toThrow(ServiceError);
 
           try {
-            await deactivateUser(userId, requesterId);
+            await deactivateUser('tenant-a', userId, requesterId);
           } catch (err) {
             expect(err).toBeInstanceOf(ServiceError);
             expect((err as ServiceError).statusCode).toBe(422);
@@ -396,9 +401,30 @@ describe('Property 11: Invariante de pelo menos um admin ativo', () => {
 
           vi.clearAllMocks();
 
-          // Mock: user exists as admin with status='ativo'
+          // Mock TenantRepository SQL shapes.
           vi.mocked(pool.query).mockImplementation(async (sql: string) => {
-            if (typeof sql === 'string' && sql.includes('SELECT') && sql.includes('WHERE id')) {
+            // Orders lookup (scoped select on orders): no orders.
+            if (typeof sql === 'string' && sql.includes('FROM orders')) {
+              return {
+                rows: [],
+                command: 'SELECT',
+                rowCount: 0,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // Admin guard: single active admin (last one).
+            if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
+              return {
+                rows: [{ id: userId }],
+                command: 'SELECT',
+                rowCount: 1,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // findOne user (admin, ativo).
+            if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
               return {
                 rows: [{
                   id: userId,
@@ -415,36 +441,16 @@ describe('Property 11: Invariante de pelo menos um admin ativo', () => {
                 fields: [],
               } as never;
             }
-            // Mock: only 1 active admin in the system
-            if (typeof sql === 'string' && sql.includes('COUNT')) {
-              return {
-                rows: [{ count: '1' }],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
-            // Mock: no orders associated (so delete proceeds to admin check)
-            if (typeof sql === 'string' && sql.includes('orders')) {
-              return {
-                rows: [{ count: '0' }],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
             return { rows: [], command: 'SELECT', rowCount: 0, oid: 0, fields: [] } as never;
           });
 
           // Attempting to delete the last admin must be rejected
           await expect(
-            deleteUser(userId, requesterId),
+            deleteUser('tenant-a', userId, requesterId),
           ).rejects.toThrow(ServiceError);
 
           try {
-            await deleteUser(userId, requesterId);
+            await deleteUser('tenant-a', userId, requesterId);
           } catch (err) {
             expect(err).toBeInstanceOf(ServiceError);
             expect((err as ServiceError).statusCode).toBe(422);

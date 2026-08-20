@@ -29,7 +29,7 @@ export function Card({ children, variant = 'default', onClick, className, ariaLa
       case 'preparando': return theme.colors.preparando;
       case 'pronto': return theme.colors.pronto;
       case 'entregue': return theme.colors.entregue;
-      default: return theme.colors.divider;
+      default: return theme.colors.border;
     }
   };
 

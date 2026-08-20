@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 /**
  * Feature: categories-crud, Property 5: Reorder assigns position-based sort_order
@@ -33,7 +33,8 @@ function mockRequest(body: any): Partial<AuthenticatedRequest> {
     body,
     params: {},
     user: { id: 'admin-user-1', email: 'admin@test.com' },
-  };
+    tenantId: 'tenant-1',
+  } as Partial<AuthenticatedRequest>;
 }
 
 function mockResponse(): Partial<Response> & { statusCode: number; body: any } {
@@ -77,7 +78,8 @@ describe('Property 5: Reorder assigns position-based sort_order', () => {
           vi.mocked(pool.query).mockImplementation(async (query: any) => {
             const queryStr = typeof query === 'string' ? query : '';
 
-            if (queryStr.includes('SELECT id FROM categories')) {
+            // Tenant-scoped select of existing categories (repo.select('categories'))
+            if (queryStr.includes('SELECT * FROM categories')) {
               // Return all original IDs as existing categories
               return { rows: originalIds.map((id) => ({ id })) } as any;
             }
@@ -128,11 +130,13 @@ describe('Property 5: Reorder assigns position-based sort_order', () => {
           expect(mockClient.query).toHaveBeenCalledWith('BEGIN');
           expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
 
-          // Verify each category ID was updated with the correct sort_order
+          // Verify each category ID was updated with the correct sort_order.
+          // Via the TenantRepository the UPDATE is tenant-scoped, so the params
+          // are [sortOrder, tenantId, categoryId] and the WHERE includes tenant_id.
           for (let i = 0; i < permutation.length; i++) {
             expect(mockClient.query).toHaveBeenCalledWith(
               expect.stringContaining('UPDATE categories SET sort_order'),
-              [i, permutation[i]],
+              [i, 'tenant-1', permutation[i]],
             );
           }
 

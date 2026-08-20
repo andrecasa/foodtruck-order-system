@@ -27,7 +27,7 @@ jest.mock('../../hooks/useRealtime', () => ({
   useRealtime: jest.fn(() => ({ status: 'connected' })),
 }));
 
-const mockGetAllMenuItems = jest.fn<Promise<MenuItem[]>, []>();
+const mockGetAllMenuItems = jest.fn<Promise<MenuItem[]>, any[]>();
 const mockToggleMenuItemStatus = jest.fn();
 
 jest.mock('../../services/api-client', () => ({
@@ -58,8 +58,8 @@ function createMenuItems(): MenuItem[] {
       category: 'Pastéis',
       price: 800,
       status: 'ativo',
-      description: '',
-      displayOrder: 1,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     },
     {
       id: 'item-2',
@@ -67,10 +67,10 @@ function createMenuItems(): MenuItem[] {
       category: 'Bebidas',
       price: 600,
       status: 'ativo',
-      description: '',
-      displayOrder: 2,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     },
-  ] as MenuItem[];
+  ];
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

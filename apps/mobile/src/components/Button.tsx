@@ -60,7 +60,7 @@ export function Button({
   const isOutline = variant === 'outline';
 
   const getBackgroundColor = (): string => {
-    if (disabled) return theme.colors.divider;
+    if (disabled) return theme.colors.surfaceDisabled;
     if (isOutline) return 'transparent';
     if (color) return color;
     switch (variant) {
@@ -76,7 +76,7 @@ export function Button({
   };
 
   const getTextColor = (): string => {
-    if (disabled) return theme.colors.divider;
+    if (disabled) return theme.colors.textDisabled;
     switch (variant) {
       case 'outline':
         return color || theme.colors.textSecondary;

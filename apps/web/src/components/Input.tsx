@@ -110,9 +110,9 @@ export function Input({
     fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
     fontSize: '14px',
     fontWeight: 400,
-    color: disabled ? `${theme.colors.text}80` : theme.colors.text,
-    backgroundColor: disabled ? theme.colors.divider : theme.colors.surface,
-    border: error ? `1px solid ${theme.colors.error}` : `1px solid ${theme.colors.divider}`,
+    color: disabled ? theme.colors.textDisabled : theme.colors.text,
+    backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.surface,
+    border: error ? `1px solid ${theme.colors.error}` : `1px solid ${theme.colors.border}`,
     borderRadius: '24px',
     paddingTop: '0',
     paddingBottom: '0',
@@ -159,7 +159,7 @@ export function Input({
         }}
         onBlur={(e) => {
           e.currentTarget.style.backgroundColor = theme.colors.surface;
-          e.currentTarget.style.borderColor = error ? theme.colors.error : theme.colors.divider;
+          e.currentTarget.style.borderColor = error ? theme.colors.error : theme.colors.border;
         }}
       />
       {error ? (

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 function createChain() {
@@ -48,7 +48,9 @@ function mockRequest(body?: any, params?: any, query?: any): Partial<Authenticat
     params: params || {},
     query: query || {},
     user: { id: 'user-1', email: 'test@test.com' },
-  };
+    // Tenant resolved by tenantMiddleware; required by tenant-scoped services.
+    tenantId: 'tenant-1',
+  } as Partial<AuthenticatedRequest>;
 }
 
 function mockResponse(): Partial<Response> & { statusCode: number; body: any } {
@@ -227,19 +229,20 @@ describe('Menu Controller', () => {
 
   describe('PUT /api/menu/:id (updateMenuItem)', () => {
     it('should update item successfully', async () => {
-      // Item exists
+      const updatedRow = {
+        id: '550e8400-e29b-41d4-a716-446655440001', name: 'Pastel Atualizado', price_cents: 900, status: 'ativo',
+        created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-02T00:00:00Z',
+        category_id: 'cat-1',
+      };
+      // Item exists (findOne)
       mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }] });
-      // No name collision
+      // No name collision (select)
       mockPoolQuery.mockResolvedValueOnce({ rows: [] });
-      // Update result
-      mockPoolQuery.mockResolvedValueOnce({
-        rows: [{
-          id: '550e8400-e29b-41d4-a716-446655440001', name: 'Pastel Atualizado', price_cents: 900, status: 'ativo',
-          created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-02T00:00:00Z',
-          category_id: 'cat-1',
-        }],
-      });
-      // Category name lookup
+      // UPDATE (rowCount)
+      mockPoolQuery.mockResolvedValueOnce({ rows: [updatedRow], rowCount: 1 });
+      // Re-read updated row (findOne)
+      mockPoolQuery.mockResolvedValueOnce({ rows: [updatedRow] });
+      // Category name lookup (findOne)
       mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Pastéis Salgados' }] });
 
       const req = mockRequest({ name: 'Pastel Atualizado', price: 900 }, { id: '550e8400-e29b-41d4-a716-446655440001' });
@@ -296,17 +299,18 @@ describe('Menu Controller', () => {
     });
 
     it('should preserve ID on update (ID not in response body as different from param)', async () => {
-      // Item exists
+      const updatedRow = {
+        id: '550e8400-e29b-41d4-a716-446655440001', name: 'Updated', price_cents: 500, status: 'ativo',
+        created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-02T00:00:00Z',
+        category_id: 'cat-1',
+      };
+      // Item exists (findOne)
       mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: '550e8400-e29b-41d4-a716-446655440001', status: 'ativo' }] });
-      // Update result (only price changed, no name collision check needed)
-      mockPoolQuery.mockResolvedValueOnce({
-        rows: [{
-          id: '550e8400-e29b-41d4-a716-446655440001', name: 'Updated', price_cents: 500, status: 'ativo',
-          created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-02T00:00:00Z',
-          category_id: 'cat-1',
-        }],
-      });
-      // Category name lookup
+      // UPDATE (rowCount) — only price changed, no name collision check needed
+      mockPoolQuery.mockResolvedValueOnce({ rows: [updatedRow], rowCount: 1 });
+      // Re-read updated row (findOne)
+      mockPoolQuery.mockResolvedValueOnce({ rows: [updatedRow] });
+      // Category name lookup (findOne)
       mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Bebidas' }] });
 
       const req = mockRequest({ price: 500 }, { id: '550e8400-e29b-41d4-a716-446655440001' });
@@ -330,7 +334,9 @@ describe('Menu Controller', () => {
         }],
       });
 
-      // Update status - pool.query for UPDATE
+      // Update status - pool.query for UPDATE (rowCount)
+      mockPoolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+      // Re-read updated row (findOne)
       mockPoolQuery.mockResolvedValueOnce({
         rows: [{
           id: '550e8400-e29b-41d4-a716-446655440001', name: 'Pastel', price_cents: 750, status: 'inativo',
@@ -360,7 +366,9 @@ describe('Menu Controller', () => {
       // Collision check - no collisions
       mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
-      // Update status
+      // Update status (rowCount)
+      mockPoolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+      // Re-read updated row (findOne)
       mockPoolQuery.mockResolvedValueOnce({
         rows: [{
           id: '550e8400-e29b-41d4-a716-446655440001', name: 'Pastel', price_cents: 750, status: 'ativo',
@@ -531,6 +539,9 @@ describe('Menu Controller', () => {
       });
 
       // Since 'deleted' is not in valid list, it toggles from ativo -> inativo
+      // UPDATE (rowCount)
+      mockPoolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+      // Re-read updated row (findOne)
       mockPoolQuery.mockResolvedValueOnce({
         rows: [{
           id: '550e8400-e29b-41d4-a716-446655440001', name: 'Pastel', price_cents: 750, status: 'inativo',
@@ -558,6 +569,9 @@ describe('Menu Controller', () => {
         }],
       });
 
+      // UPDATE (rowCount)
+      mockPoolQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+      // Re-read updated row (findOne)
       mockPoolQuery.mockResolvedValueOnce({
         rows: [{
           id: '550e8400-e29b-41d4-a716-446655440001', name: 'Pastel', price_cents: 750, status: 'inativo',

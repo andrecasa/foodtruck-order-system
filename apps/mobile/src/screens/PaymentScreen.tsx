@@ -163,7 +163,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     borderRadius: 22,
     backgroundColor: selected ? theme.colors.success : theme.colors.surface,
     borderWidth: selected ? 0 : 1,
-    borderColor: selected ? 'transparent' : theme.colors.divider,
+    borderColor: selected ? 'transparent' : theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   });
@@ -271,7 +271,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               borderRadius: 22,
               backgroundColor: theme.colors.surface,
               borderWidth: 1,
-              borderColor: theme.colors.divider,
+              borderColor: theme.colors.border,
               flexDirection: 'row',
               gap: 6,
               alignItems: 'center',
@@ -393,7 +393,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               style={{
                 height: 44,
                 borderRadius: 22,
-                backgroundColor: !selectedMethod ? theme.colors.divider : theme.colors.primary,
+                backgroundColor: !selectedMethod ? theme.colors.surfaceDisabled : theme.colors.primary,
                 alignItems: 'center',
                 justifyContent: 'center',
                 alignSelf: 'stretch',

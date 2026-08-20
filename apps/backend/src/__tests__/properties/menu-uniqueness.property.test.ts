@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 /**
  * Property 3: Unicidade case-insensitive rejeita com 409
@@ -36,7 +36,9 @@ function mockRequest(body: any): Partial<AuthenticatedRequest> {
     body,
     params: {},
     user: { id: 'user-1', email: 'test@test.com' },
-  };
+    // Tenant resolved by tenantMiddleware; required by the tenant-scoped services.
+    tenantId: 'tenant-1',
+  } as Partial<AuthenticatedRequest>;
 }
 
 function mockResponse(): { statusCode: number; body: any; status: (code: number) => any; json: (data: any) => any } {
@@ -175,9 +177,12 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
 
           await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
 
-          // Verify the uniqueness check query uses LOWER for case-insensitive match
+          // Verify the uniqueness check query uses LOWER for case-insensitive
+          // match. Via the TenantRepository, tenant_id is $1 and the caller
+          // fragment placeholders are shifted by one, so LOWER(name) = LOWER($2).
           const uniquenessCall = mockPoolQuery.mock.calls[1];
-          expect(uniquenessCall[0]).toContain('LOWER(name) = LOWER($1)');
+          expect(uniquenessCall[0]).toContain('LOWER(name) = LOWER($2)');
+          // params are [tenantId, name] — the name is still present.
           expect(uniquenessCall[1]).toContain(name);
         }
       ),

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 vi.mock('../../config/supabase.js', () => ({
@@ -14,16 +14,21 @@ const mockBroadcast = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../config/realtime.js', () => ({
   broadcast: (...args: any[]) => mockBroadcast(...args),
+  tenantChannel: (base: string, tenantId: string) => `${base}:${tenantId}`,
+  REALTIME_CHANNEL_QUEUE: 'orders:queue',
+  REALTIME_CHANNEL_PAYMENT: 'orders:payment',
 }));
 
-// Mock pg Pool
+// Mock pg Pool. The tenant-scoped registerPayment reads/updates through the
+// TenantRepository, which issues plain pool.query() calls (no transaction):
+//   1) findOne  → SELECT * FROM orders WHERE tenant_id = $1 AND (id = $2)
+//   2) update   → UPDATE orders SET ... WHERE tenant_id = $n AND (id = $m)
+//   3) findOne  → SELECT * FROM orders (re-fetch the updated row)
 const mockQuery = vi.fn();
-const mockRelease = vi.fn();
-const mockConnect = vi.fn();
 
 vi.mock('../../config/database.js', () => ({
   pool: {
-    connect: () => mockConnect(),
+    query: (...args: any[]) => mockQuery(...args),
   },
 }));
 
@@ -40,6 +45,7 @@ function mockRequest(params?: any, body?: any): Partial<AuthenticatedRequest> {
     body: body || {},
     params: params || {},
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   };
 }
 
@@ -79,16 +85,13 @@ const baseOrder = {
 describe('Order Controller - registerPayment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    mockConnect.mockResolvedValue({
-      query: mockQuery,
-      release: mockRelease,
-    });
   });
 
   describe('Successful payment registration', () => {
     it('should register payment with dinheiro and return 200', async () => {
+      // findOne (pendente) → update → findOne (paid)
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -111,6 +114,7 @@ describe('Order Controller - registerPayment', () => {
 
     it('should register payment with pix and return 200', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -132,6 +136,7 @@ describe('Order Controller - registerPayment', () => {
 
     it('should register payment with cartão and return 200', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -153,6 +158,7 @@ describe('Order Controller - registerPayment', () => {
 
     it('should update payment_status, payment_method and paid_at in the database', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -167,13 +173,18 @@ describe('Order Controller - registerPayment', () => {
 
       await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
 
-      // Verify the UPDATE query
+      // Verify the UPDATE query (call index 1: findOne, update, findOne).
+      // The TenantRepository composes: SET payment_status, payment_method, paid_at
+      // then tenant_id, then the where-fragment (id). So params are
+      // ['pago', 'pix', <paidAt>, <tenantId>, 'order-uuid-1'].
       const updateCall = mockQuery.mock.calls[1];
       expect(updateCall![0]).toContain('payment_status');
       expect(updateCall![0]).toContain('payment_method');
       expect(updateCall![0]).toContain('paid_at');
-      expect(updateCall![1][0]).toBe('pix');
-      expect(updateCall![1][2]).toBe('order-uuid-1');
+      expect(updateCall![0]).toContain('tenant_id');
+      expect(updateCall![1]).toContain('pix');
+      expect(updateCall![1]).toContain('order-uuid-1');
+      expect(updateCall![1]).toContain('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     });
   });
 
@@ -245,8 +256,9 @@ describe('Order Controller - registerPayment', () => {
   });
 
   describe('Realtime event publishing', () => {
-    it('should publish payment_registered event to orders:payment on success', async () => {
+    it('should publish payment_registered event to the tenant-namespaced orders:payment channel on success', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -262,7 +274,7 @@ describe('Order Controller - registerPayment', () => {
       await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(mockBroadcast).toHaveBeenCalledWith('orders:payment', 'payment_registered', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:payment:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'payment_registered', expect.objectContaining({
         id: 'order-uuid-1',
         paymentStatus: 'pago',
         paymentMethod: 'dinheiro',
@@ -271,6 +283,7 @@ describe('Order Controller - registerPayment', () => {
 
     it('should still return 200 even if Realtime publish fails', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -293,7 +306,7 @@ describe('Order Controller - registerPayment', () => {
 
   describe('Internal server error', () => {
     it('should return 500 when database connection fails', async () => {
-      mockConnect.mockRejectedValueOnce(new Error('Connection failed'));
+      mockQuery.mockRejectedValueOnce(new Error('Connection failed'));
 
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'dinheiro' });
       const res = mockResponse();

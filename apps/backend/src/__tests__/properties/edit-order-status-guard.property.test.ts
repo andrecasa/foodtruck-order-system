@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
 import * as fc from 'fast-check';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 const mockChannel = vi.fn();
@@ -88,6 +88,7 @@ describe('Property 2: Payment Guard', () => {
       body,
       params,
       user: { id: 'user-1', email: 'test@test.com' },
+      tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     };
   }
 

@@ -148,7 +148,7 @@ export function UsersListScreen() {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     height: 90,
     flexDirection: 'row',
     alignItems: 'center',
@@ -204,7 +204,7 @@ export function UsersListScreen() {
   const novoUsuarioBtnStyle: ViewStyle = {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     borderRadius: 22,
     height: 44,
     flexDirection: 'row',

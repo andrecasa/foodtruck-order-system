@@ -106,11 +106,24 @@ describe('Bug Condition: adminMiddleware returns 401 for valid Auth UID not in u
 
 
 /**
- * Regression Property Tests for syncUserMiddleware
+ * Property Tests for the multi-tenant syncUserMiddleware.
  *
- * Validates that the fix works correctly and doesn't regress existing behavior.
+ * In the multi-tenant model, `users.tenant_id` is NOT NULL and every user's
+ * tenant is established by onboarding (spec task 19). Since this middleware runs
+ * BEFORE the tenant is resolved and the request carries no tenant hint, it can
+ * no longer synthesize a `tenant_id` for a brand-new user, nor apply a global
+ * "first user becomes admin" rule. The first-admin-per-tenant decision now
+ * belongs to onboarding.
+ *
+ * The middleware therefore:
+ *   - never writes to the users table (no INSERT/UPDATE);
+ *   - performs at most a single existence check;
+ *   - always calls next(), deferring rejection of unprovisioned users to
+ *     tenantMiddleware (which returns 401 — Requirement 4.7).
+ *
+ * **Validates: Requirements 2.1, 4.1**
  */
-describe('Regression: syncUserMiddleware property tests', () => {
+describe('Multi-tenant: syncUserMiddleware property tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -133,29 +146,28 @@ describe('Regression: syncUserMiddleware property tests', () => {
     )
     .map(([local, domain, tld]) => `${local.join('')}@${domain.join('')}.${tld}`);
 
+  // Generator: an already-provisioned user row (carries a tenant_id)
+  const provisionedRowArb = fc.record({ id: fc.uuid(), tenant_id: fc.uuid() });
+
   /**
-   * 4.1 - After syncUserMiddleware runs for a new user, an INSERT is issued
-   * **Validates: Requirements 2.1**
+   * For a NEW (unprovisioned) user, the middleware must NOT create a row — it
+   * cannot know the tenant — and must still call next() so tenantMiddleware can
+   * reject it. Creating a row here would violate the NOT NULL tenant_id
+   * invariant (R4.1).
    */
-  it('creates a new user record when user does not exist in users table', async () => {
+  it('does not INSERT a row for an unprovisioned user and still calls next()', async () => {
     await fc.assert(
       fc.asyncProperty(validUuid, validEmail, async (uuid, email) => {
-        // Clear mocks between iterations
         mockedPool.query.mockReset();
 
-        // Mock: first SELECT returns empty (user not found), second SELECT returns empty (no admin), INSERT succeeds
-        mockedPool.query.mockImplementation(async (sql: string) => {
-          if (typeof sql === 'string' && sql.includes('SELECT id FROM users WHERE id')) {
-            return { rows: [], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
-          }
-          if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
-            return { rows: [], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
-          }
-          if (typeof sql === 'string' && sql.includes('INSERT INTO users')) {
-            return { rows: [], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
-          }
-          return { rows: [], rowCount: 0, command: '', oid: 0, fields: [] };
-        });
+        // User existence check returns empty (unprovisioned user).
+        mockedPool.query.mockResolvedValue({
+          rows: [],
+          rowCount: 0,
+          command: 'SELECT',
+          oid: 0,
+          fields: [],
+        } as any);
 
         const req = { user: { id: uuid, email } } as AuthenticatedRequest;
         const res = {} as Response;
@@ -163,14 +175,14 @@ describe('Regression: syncUserMiddleware property tests', () => {
 
         await syncUserMiddleware(req, res, next);
 
-        // Verify INSERT was called with user's id and email as first two params
-        const insertCall = mockedPool.query.mock.calls.find(
-          (call) => typeof call[0] === 'string' && call[0].includes('INSERT INTO users'),
+        // No INSERT/UPDATE is ever issued by the middleware.
+        const writeCalls = mockedPool.query.mock.calls.filter(
+          (call) =>
+            typeof call[0] === 'string' &&
+            (call[0].includes('INSERT') || call[0].includes('UPDATE')),
         );
-        expect(insertCall).toBeDefined();
-        const params = insertCall![1] as string[];
-        expect(params[0]).toBe(uuid);
-        expect(params[1]).toBe(email);
+        expect(writeCalls).toHaveLength(0);
+        // The chain continues; tenantMiddleware will handle the rejection.
         expect(next).toHaveBeenCalled();
       }),
       { numRuns: 100 },
@@ -178,19 +190,23 @@ describe('Regression: syncUserMiddleware property tests', () => {
   });
 
   /**
-   * 4.2 - Existing users are NOT overwritten when syncUserMiddleware runs
-   * **Validates: Requirements 3.1**
+   * For an EXISTING (provisioned) user, the middleware is a pure no-op: it makes
+   * a single existence check and never writes, leaving the tenant-consistent row
+   * untouched.
    */
-  it('does not overwrite existing users — no INSERT or UPDATE is issued', async () => {
+  it('is a no-op for an existing provisioned user — single read, no writes', async () => {
     await fc.assert(
-      fc.asyncProperty(validUuid, validEmail, async (uuid, email) => {
-        // Mock: SELECT returns a row (user already exists)
-        mockedPool.query.mockImplementation(async (sql: string) => {
-          if (typeof sql === 'string' && sql.includes('SELECT id FROM users WHERE id')) {
-            return { rows: [{ id: uuid }], rowCount: 1, command: 'SELECT', oid: 0, fields: [] };
-          }
-          return { rows: [], rowCount: 0, command: '', oid: 0, fields: [] };
-        });
+      fc.asyncProperty(validUuid, validEmail, provisionedRowArb, async (uuid, email, row) => {
+        mockedPool.query.mockReset();
+
+        // Existence check returns a provisioned row (with tenant_id).
+        mockedPool.query.mockResolvedValue({
+          rows: [{ id: uuid, tenant_id: row.tenant_id }],
+          rowCount: 1,
+          command: 'SELECT',
+          oid: 0,
+          fields: [],
+        } as any);
 
         const req = { user: { id: uuid, email } } as AuthenticatedRequest;
         const res = {} as Response;
@@ -198,7 +214,8 @@ describe('Regression: syncUserMiddleware property tests', () => {
 
         await syncUserMiddleware(req, res, next);
 
-        // Verify no INSERT or UPDATE was attempted
+        // Exactly one query (the existence check), and no writes.
+        expect(mockedPool.query).toHaveBeenCalledTimes(1);
         const writeCalls = mockedPool.query.mock.calls.filter(
           (call) =>
             typeof call[0] === 'string' &&
@@ -212,113 +229,14 @@ describe('Regression: syncUserMiddleware property tests', () => {
   });
 
   /**
-   * 4.3 - First user gets role 'admin' when no admins exist
-   * **Validates: Requirements 2.2**
+   * The middleware never blocks the request itself: even if the existence check
+   * throws, it must call next() and let downstream middlewares resolve/reject.
    */
-  it('assigns admin role to first user when no admins exist in the table', async () => {
+  it('always calls next(), even when the existence check fails', async () => {
     await fc.assert(
       fc.asyncProperty(validUuid, validEmail, async (uuid, email) => {
-        // Mock: user doesn't exist, no admin exists
-        mockedPool.query.mockImplementation(async (sql: string) => {
-          if (typeof sql === 'string' && sql.includes('SELECT id FROM users WHERE id')) {
-            return { rows: [], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
-          }
-          if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
-            return { rows: [], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
-          }
-          if (typeof sql === 'string' && sql.includes('INSERT INTO users')) {
-            return { rows: [], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
-          }
-          return { rows: [], rowCount: 0, command: '', oid: 0, fields: [] };
-        });
-
-        const req = { user: { id: uuid, email } } as AuthenticatedRequest;
-        const res = {} as Response;
-        const next: NextFunction = vi.fn();
-
-        await syncUserMiddleware(req, res, next);
-
-        // Verify INSERT was called with role='admin' (4th param)
-        const insertCall = mockedPool.query.mock.calls.find(
-          (call) => typeof call[0] === 'string' && call[0].includes('INSERT INTO users'),
-        );
-        expect(insertCall).toBeDefined();
-        expect(insertCall![1]![3]).toBe('admin');
-        expect(next).toHaveBeenCalled();
-      }),
-      { numRuns: 100 },
-    );
-  });
-
-  /**
-   * 4.4 - Subsequent users get role 'atendente' when an admin already exists
-   * **Validates: Requirements 2.2**
-   */
-  it('assigns atendente role to subsequent users when an admin already exists', async () => {
-    await fc.assert(
-      fc.asyncProperty(validUuid, validEmail, async (uuid, email) => {
-        // Mock: user doesn't exist, but an admin already exists
-        mockedPool.query.mockImplementation(async (sql: string) => {
-          if (typeof sql === 'string' && sql.includes('SELECT id FROM users WHERE id')) {
-            return { rows: [], rowCount: 0, command: 'SELECT', oid: 0, fields: [] };
-          }
-          if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
-            return {
-              rows: [{ id: 'existing-admin-id' }],
-              rowCount: 1,
-              command: 'SELECT',
-              oid: 0,
-              fields: [],
-            };
-          }
-          if (typeof sql === 'string' && sql.includes('INSERT INTO users')) {
-            return { rows: [], rowCount: 1, command: 'INSERT', oid: 0, fields: [] };
-          }
-          return { rows: [], rowCount: 0, command: '', oid: 0, fields: [] };
-        });
-
-        const req = { user: { id: uuid, email } } as AuthenticatedRequest;
-        const res = {} as Response;
-        const next: NextFunction = vi.fn();
-
-        await syncUserMiddleware(req, res, next);
-
-        // Verify INSERT was called with role='atendente' (4th param)
-        const insertCall = mockedPool.query.mock.calls.find(
-          (call) => typeof call[0] === 'string' && call[0].includes('INSERT INTO users'),
-        );
-        expect(insertCall).toBeDefined();
-        expect(insertCall![1]![3]).toBe('atendente');
-        expect(next).toHaveBeenCalled();
-      }),
-      { numRuns: 100 },
-    );
-  });
-
-  /**
-   * 4.5 - Inactive users remain unchanged (sync doesn't reactivate them)
-   * **Validates: Requirements 3.3**
-   */
-  it('does not modify inactive users — sync is a no-op for existing users regardless of status', async () => {
-    await fc.assert(
-      fc.asyncProperty(validUuid, validEmail, async (uuid, email) => {
-        // Clear mocks between iterations
         mockedPool.query.mockReset();
-
-        // Mock: user already exists (with status='inativo' implied)
-        // The middleware only checks SELECT id — if row exists, it skips INSERT entirely
-        mockedPool.query.mockImplementation(async (sql: string) => {
-          if (typeof sql === 'string' && sql.includes('SELECT id FROM users WHERE id')) {
-            return {
-              rows: [{ id: uuid }],
-              rowCount: 1,
-              command: 'SELECT',
-              oid: 0,
-              fields: [],
-            };
-          }
-          return { rows: [], rowCount: 0, command: '', oid: 0, fields: [] };
-        });
+        mockedPool.query.mockRejectedValue(new Error('db down'));
 
         const req = { user: { id: uuid, email } } as AuthenticatedRequest;
         const res = {} as Response;
@@ -326,20 +244,9 @@ describe('Regression: syncUserMiddleware property tests', () => {
 
         await syncUserMiddleware(req, res, next);
 
-        // Verify: only one query was made (the existence check)
-        expect(mockedPool.query).toHaveBeenCalledTimes(1);
-        // No INSERT, UPDATE, or any status modification
-        const writeCalls = mockedPool.query.mock.calls.filter(
-          (call) =>
-            typeof call[0] === 'string' &&
-            (call[0].includes('INSERT') ||
-              call[0].includes('UPDATE') ||
-              call[0].includes('status')),
-        );
-        expect(writeCalls).toHaveLength(0);
         expect(next).toHaveBeenCalled();
       }),
-      { numRuns: 100 },
+      { numRuns: 50 },
     );
   });
 });

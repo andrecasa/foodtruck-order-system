@@ -33,21 +33,6 @@ export interface DrawerMenuProps {
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.82; // ~82% screen width (Material Design standard)
 
-/**
- * Drawer Menu — pixel-perfect match to Penpot "Drawer Menu" design.
- * Animates from left to right (Material Design standard).
- *
- * Penpot specs:
- * - Background: #F5F0EB
- * - Header: 56px, bg #FFFFFF, shadow 0 1px 3px rgba(0,0,0,0.06)
- *   - Close icon: Material Symbols "close" 24px, color #8B6B5A
- *   - Title: "Menu" Inter 18px weight 500, color #3D2020, centered
- * - Menu items: height 52px, padding horizontal 24px, gap 16px
- *   - Icon: Material Symbols 22px, color #7B2D2D (primary)
- *   - Label: Inter 16px weight 400, color #3D2020
- * - Divider: 1px #E0D6CC, margin horizontal 24px, vertical 16px
- * - Sair: icon + label color #D32F2F
- */
 export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -174,13 +159,6 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     textAlign: 'center',
   };
 
-  const spacerStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 24,
-    fontWeight: '400',
-    color: 'transparent',
-  };
-
   const menuListStyle: ViewStyle = {
     flex: 1,
     paddingTop: 16,
@@ -217,12 +195,10 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
 
   const logoutIconStyle: TextStyle = {
     ...menuIconStyle,
-    color: theme.colors.error,
   };
 
   const logoutLabelStyle: TextStyle = {
     ...menuLabelStyle,
-    color: theme.colors.error,
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -262,7 +238,12 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
         >
           {/* Header */}
           <View style={headerStyle}>
-            <Pressable onPress={handleClose} accessibilityRole="button" accessibilityLabel="Fechar menu">
+            <Pressable
+              onPress={handleClose}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar menu"
+              style={{ width: 24, alignItems: 'flex-start' }}
+            >
               <RNText style={closeIconStyle}>close</RNText>
             </Pressable>
             <RNText style={headerTitleStyle}>Menu</RNText>

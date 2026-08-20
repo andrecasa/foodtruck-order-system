@@ -67,6 +67,12 @@ update_env() {
 update_env ".env"
 update_env "apps/mobile/.env"
 
+# kong.yml não é versionado (contém as chaves). Gera a partir do template.
+if [ ! -f kong.yml ] && [ -f kong.yml.example ]; then
+  cp kong.yml.example kong.yml
+  echo "  ℹ️  kong.yml criado a partir de kong.yml.example"
+fi
+
 if [ -f kong.yml ]; then
   awk -v anon="$ANON_KEY" -v sr="$SERVICE_ROLE_KEY" '
     /username: anon/{fa=1} /username: service_role/{fs=1}
@@ -81,4 +87,4 @@ echo ""
 echo "Done! Next steps:"
 echo "  docker compose down -v"
 echo "  docker compose up -d --build"
-echo "  sleep 5 && ./scripts/seed-admin.sh"
+echo "  sleep 15 && ./scripts/seed-first-tenant.sh"

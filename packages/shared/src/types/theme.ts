@@ -18,8 +18,14 @@ export interface ThemeConfig {
     textSecondary: string;
     /** Card/surface background */
     surface: string;
-    /** Border/separator color */
+    /** Thin separator/divider line (e.g. list separators, drawer divider) */
     divider: string;
+    /** Default outline/border for inputs, cards, chips and other bordered controls */
+    border: string;
+    /** Background of disabled controls (buttons, toggles, inputs) */
+    surfaceDisabled: string;
+    /** Text/icon color for disabled or inactive content */
+    textDisabled: string;
     /** Financial: received amount — dark green */
     received: string;
     /** Financial: pending amount — dark red */

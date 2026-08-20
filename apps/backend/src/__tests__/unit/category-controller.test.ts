@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 vi.mock('../../config/database.js', () => ({
   pool: { query: vi.fn(), connect: vi.fn() },
@@ -21,7 +21,9 @@ function mockRequest(body?: any, params?: any): Partial<AuthenticatedRequest> {
     body: body || {},
     params: params || {},
     user: { id: 'user-1', email: 'admin@test.com' },
-  };
+    // Tenant resolved by tenantMiddleware; required by tenant-scoped services.
+    tenantId: 'tenant-1',
+  } as Partial<AuthenticatedRequest>;
 }
 
 function mockResponse(): Partial<Response> & { statusCode: number; body: any } {

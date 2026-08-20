@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { createOrderRequestSchema, updateOrderStatusRequestSchema, registerPaymentRequestSchema, updateOrderItemsRequestSchema } from '@order-system/shared';
 import type { OrderStatus } from '@order-system/shared';
-import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as orderService from '../services/order.service.js';
 
 // --- Error helpers ---
@@ -41,7 +41,7 @@ export async function getOrders(req: AuthenticatedRequest, res: Response): Promi
 
     const date = typeof req.query.date === 'string' ? req.query.date : undefined;
 
-    const orders = await orderService.getOrders(statuses, date);
+    const orders = await orderService.getOrders(req.tenantId as string, statuses, date);
     res.status(200).json(orders);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao buscar pedidos.');
@@ -55,7 +55,7 @@ export async function getOrders(req: AuthenticatedRequest, res: Response): Promi
 export async function getOrderById(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const orderId = req.params.id as string;
-    const order = await orderService.getOrderById(orderId);
+    const order = await orderService.getOrderById(req.tenantId as string, orderId);
     res.status(200).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao buscar pedido.');
@@ -88,7 +88,7 @@ export async function createOrder(req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    const order = await orderService.createOrder({ ...parsed.data, createdBy: req.user!.id });
+    const order = await orderService.createOrder(req.tenantId as string, { ...parsed.data, createdBy: req.user!.id });
     res.status(201).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao criar pedido.');
@@ -115,7 +115,7 @@ export async function updateOrderStatus(req: AuthenticatedRequest, res: Response
     const newStatus = parsed.data.status as OrderStatus;
     const orderId = req.params.id as string;
 
-    const order = await orderService.updateOrderStatus(orderId, newStatus);
+    const order = await orderService.updateOrderStatus(req.tenantId as string, orderId, newStatus);
     res.status(200).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao atualizar status do pedido.');
@@ -140,7 +140,7 @@ export async function registerPayment(req: AuthenticatedRequest, res: Response):
     }
 
     const orderId = req.params.id as string;
-    const order = await orderService.registerPayment(orderId, parsed.data.paymentMethod);
+    const order = await orderService.registerPayment(req.tenantId as string, orderId, parsed.data.paymentMethod);
     res.status(200).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao registrar pagamento.');
@@ -182,7 +182,7 @@ export async function updateOrderItems(req: AuthenticatedRequest, res: Response)
     }
 
     const orderId = req.params.id as string;
-    const order = await orderService.updateOrderItems(orderId, parsed.data.items, parsed.data.customerName, parsed.data.origin);
+    const order = await orderService.updateOrderItems(req.tenantId as string, orderId, parsed.data.items, parsed.data.customerName, parsed.data.origin);
     res.status(200).json(order);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao atualizar itens do pedido.');
@@ -196,7 +196,7 @@ export async function updateOrderItems(req: AuthenticatedRequest, res: Response)
 export async function deleteOrder(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const orderId = req.params.id as string;
-    await orderService.deleteOrder(orderId);
+    await orderService.deleteOrder(req.tenantId as string, orderId);
     res.status(204).send();
   } catch (err) {
     handleServiceError(err, res, 'Erro ao excluir pedido.');

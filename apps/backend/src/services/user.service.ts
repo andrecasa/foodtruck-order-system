@@ -1,5 +1,5 @@
-import { pool } from '../config/database.js';
 import { supabaseAdmin } from '../config/supabase.js';
+import { tenantRepository } from '../db/tenant-repository.js';
 
 // --- Interfaces ---
 
@@ -61,19 +61,27 @@ function mapToUserRecord(row: Record<string, unknown>): UserRecord {
 // --- Service functions ---
 
 /**
- * Creates a new user in Supabase Auth and persists to the local database.
- * Rolls back Supabase Auth creation if local DB insert fails.
+ * Creates a new user in Supabase Auth and persists to the local database,
+ * scoped to the resolved tenant. Rolls back Supabase Auth creation if the
+ * local DB insert fails.
  *
- * Requirements: 1.1, 1.2, 1.7
+ * Tenant scope: email uniqueness is enforced within the tenant only
+ * (Requirements 2.1, 2.5, 2.6); the same email may exist in another tenant.
+ * The persisted row carries `tenant_id` via the TenantRepository.
+ *
+ * Requirements: 2.1, 2.5, 2.6, 4.1, 6.1, 12.4
  */
-export async function createUser(input: CreateUserInput): Promise<UserRecord> {
-  // 1. Check email uniqueness (case-insensitive) before creating in Supabase Auth
-  const existingUser = await pool.query(
-    'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
-    [input.email],
-  );
+export async function createUser(tenantId: string, input: CreateUserInput): Promise<UserRecord> {
+  const repo = tenantRepository(tenantId);
 
-  if (existingUser.rows.length > 0) {
+  // 1. Check email uniqueness (case-insensitive) WITHIN THIS TENANT before
+  //    creating in Supabase Auth. The repo already scopes to tenant_id, so the
+  //    fragment only needs the case-insensitive email predicate (R2.1/R2.5).
+  const existing = await repo.findOne('users', {
+    where: { text: 'LOWER(email) = LOWER($1)', params: [input.email] },
+  });
+
+  if (existing) {
     throw new ServiceError(
       'Já existe um usuário com este e-mail',
       409,
@@ -81,7 +89,8 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
     );
   }
 
-  // 2. Create in Supabase Auth first
+  // 2. Create in Supabase Auth first (auth is a platform-level operation, not
+  //    tenant-scoped DB access — stays on supabaseAdmin).
   const { data: authData, error: authError } =
     await supabaseAdmin.auth.admin.createUser({
       email: input.email,
@@ -99,18 +108,23 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
 
   const authUserId = authData.user.id;
 
-  // 3. Persist in local database
+  // 3. Persist in local database scoped to the tenant. `tenant_id` is injected
+  //    by the repository; `email` is stored lowercased for the composite
+  //    (tenant_id, LOWER(email)) uniqueness index.
   try {
-    const result = await pool.query(
-      `INSERT INTO users (id, name, email, role, status, created_at, updated_at)
-       VALUES ($1, $2, LOWER($3), $4, 'ativo', NOW(), NOW())
-       RETURNING *`,
-      [authUserId, input.name, input.email, input.role],
-    );
+    const row = await repo.insert<Record<string, unknown>>('users', {
+      id: authUserId,
+      name: input.name,
+      email: input.email.toLowerCase(),
+      role: input.role,
+      status: 'ativo',
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
 
-    return mapToUserRecord(result.rows[0]);
+    return mapToUserRecord(row);
   } catch (dbError) {
-    // 4. Rollback: remove from Supabase Auth if local DB insert fails
+    // 4. Rollback: remove from Supabase Auth if local DB insert fails.
     await supabaseAdmin.auth.admin.deleteUser(authUserId);
     throw new ServiceError(
       'Erro ao criar usuário',
@@ -121,12 +135,18 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
 }
 
 /**
- * Lists users with optional filters by role and status.
- * Results are sorted alphabetically by name (case-insensitive).
+ * Lists users of the resolved tenant with optional filters by role and status.
+ * Results are sorted alphabetically by name (case-insensitive). Only rows whose
+ * `tenant_id` matches the tenant are returned (Requirement 6.1).
  *
- * Requirements: 2.1, 2.2, 2.4, 2.5
+ * Requirements: 2.5, 6.1, 12.4
  */
-export async function listUsers(filters: ListUsersFilters = {}): Promise<UserRecord[]> {
+export async function listUsers(
+  tenantId: string,
+  filters: ListUsersFilters = {},
+): Promise<UserRecord[]> {
+  const repo = tenantRepository(tenantId);
+
   const conditions: string[] = [];
   const params: unknown[] = [];
   let paramIndex = 1;
@@ -143,71 +163,65 @@ export async function listUsers(filters: ListUsersFilters = {}): Promise<UserRec
     paramIndex++;
   }
 
-  const whereClause = conditions.length > 0
-    ? `WHERE ${conditions.join(' AND ')}`
-    : '';
+  const rows = await repo.select<Record<string, unknown>>('users', {
+    where: conditions.length > 0 ? { text: conditions.join(' AND '), params } : undefined,
+    orderBy: 'LOWER(name) ASC',
+  });
 
-  const result = await pool.query(
-    `SELECT * FROM users ${whereClause} ORDER BY LOWER(name) ASC`,
-    params,
-  );
-
-  return result.rows.map(mapToUserRecord);
+  return rows.map(mapToUserRecord);
 }
 
 /**
- * Retrieves a user by their UUID.
- * Returns null if user is not found.
+ * Retrieves a user by their UUID within the resolved tenant.
+ * Returns null if the user is not found in this tenant — a user belonging to
+ * another tenant is treated as non-existent (Requirement 6.3 → 404 upstream).
  *
- * Requirements: 3.4
+ * Requirements: 6.1, 6.3
  */
-export async function getUserById(id: string): Promise<UserRecord | null> {
-  const result = await pool.query(
-    'SELECT * FROM users WHERE id = $1',
-    [id],
-  );
+export async function getUserById(tenantId: string, id: string): Promise<UserRecord | null> {
+  const repo = tenantRepository(tenantId);
 
-  if (result.rows.length === 0) {
-    return null;
-  }
+  const row = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
 
-  return mapToUserRecord(result.rows[0]);
+  return row ? mapToUserRecord(row) : null;
 }
 
 /**
- * Updates an existing user's name, email, and/or role.
- * - Validates email uniqueness (case-insensitive) if email is being changed.
- * - Protects against removing the last active admin.
+ * Updates an existing user's name, email, and/or role within the tenant.
+ * - Validates email uniqueness (case-insensitive) within the tenant if changed.
+ * - Protects against removing the last active admin OF THIS TENANT.
  * - Syncs email change to Supabase Auth with rollback on failure.
  * - Invalidates sessions when role is changed.
+ * A record of another tenant is treated as non-existent → 404 (R6.4).
  *
- * Requirements: 3.1, 3.2, 3.5, 3.6, 3.7
+ * Requirements: 2.1, 2.5, 2.6, 6.1, 6.3, 6.4, 12.4
  */
 export async function updateUser(
+  tenantId: string,
   id: string,
   input: UpdateUserInput,
   requesterId: string,
 ): Promise<UserRecord> {
-  // 1. Fetch current user
-  const currentResult = await pool.query(
-    'SELECT * FROM users WHERE id = $1',
-    [id],
-  );
+  const repo = tenantRepository(tenantId);
 
-  if (currentResult.rows.length === 0) {
+  // 1. Fetch current user (scoped to tenant)
+  const currentUser = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
+
+  if (!currentUser) {
     throw new ServiceError('Usuário não encontrado', 404, 'NOT_FOUND');
   }
 
-  const currentUser = currentResult.rows[0];
-
-  // 2. Validate email uniqueness if email is being changed
+  // 2. Validate email uniqueness within the tenant if email is being changed
   if (input.email && input.email.toLowerCase() !== (currentUser.email as string).toLowerCase()) {
-    const emailCheck = await pool.query(
-      'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2',
-      [input.email, id],
-    );
+    const emailConflict = await repo.findOne('users', {
+      where: { text: 'LOWER(email) = LOWER($1) AND id != $2', params: [input.email, id] },
+    });
 
-    if (emailCheck.rows.length > 0) {
+    if (emailConflict) {
       throw new ServiceError(
         'Já existe um usuário com este e-mail',
         409,
@@ -216,13 +230,13 @@ export async function updateUser(
     }
   }
 
-  // 3. Protect last active admin
+  // 3. Protect last active admin of the tenant
   if (input.role && input.role !== currentUser.role && currentUser.role === 'admin') {
-    const adminCount = await pool.query(
-      "SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND status = 'ativo'",
-    );
+    const admins = await repo.select<Record<string, unknown>>('users', {
+      where: { text: "role = 'admin' AND status = 'ativo'", params: [] },
+    });
 
-    if (parseInt(adminCount.rows[0].count as string, 10) <= 1) {
+    if (admins.length <= 1) {
       throw new ServiceError(
         'O sistema deve ter ao menos um administrador',
         422,
@@ -231,40 +245,33 @@ export async function updateUser(
     }
   }
 
-  // 4. Build dynamic UPDATE query
-  const setClauses: string[] = [];
-  const params: unknown[] = [];
-  let paramIndex = 1;
+  // 4. Build dynamic SET map
+  const setValues: Record<string, unknown> = {};
 
   if (input.name !== undefined) {
-    setClauses.push(`name = $${paramIndex}`);
-    params.push(input.name);
-    paramIndex++;
+    setValues.name = input.name;
   }
 
   if (input.email !== undefined) {
-    setClauses.push(`email = LOWER($${paramIndex})`);
-    params.push(input.email);
-    paramIndex++;
+    setValues.email = input.email.toLowerCase();
   }
 
   if (input.role !== undefined) {
-    setClauses.push(`role = $${paramIndex}`);
-    params.push(input.role);
-    paramIndex++;
+    setValues.role = input.role;
   }
 
-  setClauses.push(`updated_at = NOW()`);
+  setValues.updated_at = new Date();
 
-  params.push(id);
-  const idParam = paramIndex;
+  const affected = await repo.update('users', setValues, { text: 'id = $1', params: [id] });
 
-  const updateResult = await pool.query(
-    `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${idParam} RETURNING *`,
-    params,
-  );
+  if (affected === 0) {
+    // Row disappeared or belongs to another tenant → treat as not found.
+    throw new ServiceError('Usuário não encontrado', 404, 'NOT_FOUND');
+  }
 
-  const updatedUser = updateResult.rows[0];
+  const updatedUser = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
 
   // 5. If email changed, update in Supabase Auth (with rollback on failure)
   if (input.email && input.email.toLowerCase() !== (currentUser.email as string).toLowerCase()) {
@@ -273,16 +280,16 @@ export async function updateUser(
     });
 
     if (authError) {
-      // Rollback local DB change
-      await pool.query(
-        `UPDATE users SET name = $1, email = $2, role = $3, updated_at = $4 WHERE id = $5`,
-        [
-          currentUser.name,
-          currentUser.email,
-          currentUser.role,
-          currentUser.updated_at,
-          id,
-        ],
+      // Rollback local DB change (scoped to tenant)
+      await repo.update(
+        'users',
+        {
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role,
+          updated_at: currentUser.updated_at,
+        },
+        { text: 'id = $1', params: [id] },
       );
       throw new ServiceError(
         'Erro ao atualizar usuário',
@@ -297,22 +304,28 @@ export async function updateUser(
     await supabaseAdmin.auth.admin.signOut(id, 'global');
   }
 
-  return mapToUserRecord(updatedUser);
+  return mapToUserRecord(updatedUser as Record<string, unknown>);
 }
 
 /**
  * Resets a user's password via Supabase Admin API and invalidates all sessions.
+ * The user must belong to the resolved tenant (R6.4).
  *
- * Requirements: 7.1, 7.4
+ * Requirements: 6.1, 6.4, 12.4
  */
-export async function resetPassword(id: string, newPassword: string): Promise<void> {
-  // 1. Check user exists
-  const userResult = await pool.query(
-    'SELECT id FROM users WHERE id = $1',
-    [id],
-  );
+export async function resetPassword(
+  tenantId: string,
+  id: string,
+  newPassword: string,
+): Promise<void> {
+  const repo = tenantRepository(tenantId);
 
-  if (userResult.rows.length === 0) {
+  // 1. Check user exists within the tenant
+  const user = await repo.findOne('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
+
+  if (!user) {
     throw new ServiceError('Usuário não encontrado', 404, 'NOT_FOUND');
   }
 
@@ -334,19 +347,26 @@ export async function resetPassword(id: string, newPassword: string): Promise<vo
 }
 
 /**
- * Deactivates a user by setting their status to 'inativo' and invalidating sessions.
+ * Deactivates a user (status → 'inativo') within the tenant and invalidates
+ * sessions. Protects the last active admin OF THIS TENANT.
  *
- * Requirements: 4.1, 4.4, 4.5, 4.8
+ * Requirements: 6.1, 6.4, 12.4
  */
-export async function deactivateUser(id: string, requesterId: string): Promise<UserRecord> {
-  // 1. Find user
-  const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+export async function deactivateUser(
+  tenantId: string,
+  id: string,
+  requesterId: string,
+): Promise<UserRecord> {
+  const repo = tenantRepository(tenantId);
 
-  if (userResult.rows.length === 0) {
+  // 1. Find user (scoped to tenant)
+  const user = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
+
+  if (!user) {
     throw new ServiceError('Usuário não encontrado', 404, 'NOT_FOUND');
   }
-
-  const user = userResult.rows[0];
 
   // 2. Check if already inactive
   if (user.status === 'inativo') {
@@ -358,14 +378,13 @@ export async function deactivateUser(id: string, requesterId: string): Promise<U
     throw new ServiceError('Não é possível desativar o próprio usuário', 422, 'VALIDATION_ERROR');
   }
 
-  // 4. If admin, check if last active admin
+  // 4. If admin, check if last active admin of the tenant
   if (user.role === 'admin') {
-    const adminCountResult = await pool.query(
-      "SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'ativo'",
-    );
-    const activeAdminCount = parseInt(adminCountResult.rows[0].count, 10);
+    const admins = await repo.select<Record<string, unknown>>('users', {
+      where: { text: "role = 'admin' AND status = 'ativo'", params: [] },
+    });
 
-    if (activeAdminCount <= 1) {
+    if (admins.length <= 1) {
       throw new ServiceError(
         'O sistema deve ter ao menos um administrador ativo',
         422,
@@ -375,31 +394,37 @@ export async function deactivateUser(id: string, requesterId: string): Promise<U
   }
 
   // 5. Update status to inativo
-  const updateResult = await pool.query(
-    `UPDATE users SET status = 'inativo', updated_at = NOW() WHERE id = $1 RETURNING *`,
-    [id],
-  );
+  await repo.update('users', { status: 'inativo', updated_at: new Date() }, {
+    text: 'id = $1',
+    params: [id],
+  });
+
+  const updated = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
 
   // 6. Invalidate sessions in Supabase Auth
   await supabaseAdmin.auth.admin.signOut(id, 'global');
 
-  return mapToUserRecord(updateResult.rows[0]);
+  return mapToUserRecord(updated as Record<string, unknown>);
 }
 
 /**
- * Activates a user by setting their status to 'ativo'.
+ * Activates a user (status → 'ativo') within the tenant.
  *
- * Requirements: 4.2, 4.6
+ * Requirements: 6.1, 6.4, 12.4
  */
-export async function activateUser(id: string): Promise<UserRecord> {
-  // 1. Find user
-  const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+export async function activateUser(tenantId: string, id: string): Promise<UserRecord> {
+  const repo = tenantRepository(tenantId);
 
-  if (userResult.rows.length === 0) {
+  // 1. Find user (scoped to tenant)
+  const user = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
+
+  if (!user) {
     throw new ServiceError('Usuário não encontrado', 404, 'NOT_FOUND');
   }
-
-  const user = userResult.rows[0];
 
   // 2. Check if already active
   if (user.status === 'ativo') {
@@ -407,43 +432,53 @@ export async function activateUser(id: string): Promise<UserRecord> {
   }
 
   // 3. Update status to ativo
-  const updateResult = await pool.query(
-    `UPDATE users SET status = 'ativo', updated_at = NOW() WHERE id = $1 RETURNING *`,
-    [id],
-  );
+  await repo.update('users', { status: 'ativo', updated_at: new Date() }, {
+    text: 'id = $1',
+    params: [id],
+  });
 
-  return mapToUserRecord(updateResult.rows[0]);
+  const updated = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
+
+  return mapToUserRecord(updated as Record<string, unknown>);
 }
 
 /**
- * Permanently deletes a user from both the local database and Supabase Auth.
- * Implements rollback if partial deletion occurs.
+ * Permanently deletes a user from both the local database and Supabase Auth,
+ * scoped to the resolved tenant. Implements best-effort rollback on partial
+ * deletion. A record of another tenant is treated as non-existent → 404.
  *
- * Requirements: 5.1, 5.2, 5.5, 5.6, 5.7
+ * Requirements: 6.1, 6.4, 12.4
  */
-export async function deleteUser(id: string, requesterId: string): Promise<void> {
-  // 1. Find user
-  const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+export async function deleteUser(
+  tenantId: string,
+  id: string,
+  requesterId: string,
+): Promise<void> {
+  const repo = tenantRepository(tenantId);
 
-  if (userResult.rows.length === 0) {
+  // 1. Find user (scoped to tenant)
+  const user = await repo.findOne<Record<string, unknown>>('users', {
+    where: { text: 'id = $1', params: [id] },
+  });
+
+  if (!user) {
     throw new ServiceError('Usuário não encontrado', 404, 'NOT_FOUND');
   }
-
-  const user = userResult.rows[0];
 
   // 2. Prevent self-deletion
   if (id === requesterId) {
     throw new ServiceError('Não é permitido excluir o próprio usuário', 422, 'VALIDATION_ERROR');
   }
 
-  // 3. If active admin, check if last active admin
+  // 3. If active admin, check if last active admin of the tenant
   if (user.role === 'admin' && user.status === 'ativo') {
-    const adminCountResult = await pool.query(
-      "SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'ativo'",
-    );
-    const activeAdminCount = parseInt(adminCountResult.rows[0].count, 10);
+    const admins = await repo.select<Record<string, unknown>>('users', {
+      where: { text: "role = 'admin' AND status = 'ativo'", params: [] },
+    });
 
-    if (activeAdminCount <= 1) {
+    if (admins.length <= 1) {
       throw new ServiceError(
         'O sistema deve ter ao menos um administrador ativo',
         422,
@@ -452,14 +487,12 @@ export async function deleteUser(id: string, requesterId: string): Promise<void>
     }
   }
 
-  // 4. Check for associated orders
-  const ordersResult = await pool.query(
-    'SELECT COUNT(*) FROM orders WHERE created_by = $1',
-    [id],
-  );
-  const orderCount = parseInt(ordersResult.rows[0].count, 10);
+  // 4. Check for associated orders within the tenant
+  const orders = await repo.select<Record<string, unknown>>('orders', {
+    where: { text: 'created_by = $1', params: [id] },
+  });
 
-  if (orderCount > 0) {
+  if (orders.length > 0) {
     throw new ServiceError(
       'Usuário possui pedidos associados. Desative o usuário em vez de excluí-lo',
       422,
@@ -474,14 +507,14 @@ export async function deleteUser(id: string, requesterId: string): Promise<void>
     throw new ServiceError('Erro na exclusão', 500, 'INTERNAL_ERROR');
   }
 
-  // 6. Delete from local database
+  // 6. Delete from local database (scoped to tenant)
   try {
-    await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    await repo.delete('users', { text: 'id = $1', params: [id] });
   } catch {
     // 7. Rollback: attempt to recreate in Supabase Auth (best effort)
     try {
       await supabaseAdmin.auth.admin.createUser({
-        email: user.email,
+        email: user.email as string,
         email_confirm: true,
       });
     } catch {

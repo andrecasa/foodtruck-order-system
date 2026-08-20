@@ -11,28 +11,29 @@ import {
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { syncUserMiddleware } from '../middleware/sync-user.middleware.js';
 import { adminMiddleware } from '../middleware/role.middleware.js';
+import { tenantMiddleware } from '../middleware/tenant.middleware.js';
 
 const router = Router();
 
 // POST /api/users - Create a new user
-router.post('/', authMiddleware, syncUserMiddleware, adminMiddleware, createUser);
+router.post('/', authMiddleware, syncUserMiddleware, tenantMiddleware, adminMiddleware, createUser);
 
 // GET /api/users - List all users
-router.get('/', authMiddleware, syncUserMiddleware, adminMiddleware, listUsers);
+router.get('/', authMiddleware, syncUserMiddleware, tenantMiddleware, adminMiddleware, listUsers);
 
 // GET /api/users/:id - Get user by ID
-router.get('/:id', authMiddleware, syncUserMiddleware, adminMiddleware, getUserById);
+router.get('/:id', authMiddleware, syncUserMiddleware, tenantMiddleware, adminMiddleware, getUserById);
 
 // PUT /api/users/:id - Update user
-router.put('/:id', authMiddleware, syncUserMiddleware, adminMiddleware, updateUser);
+router.put('/:id', authMiddleware, syncUserMiddleware, tenantMiddleware, adminMiddleware, updateUser);
 
 // PATCH /api/users/:id/status - Toggle user status
-router.patch('/:id/status', authMiddleware, syncUserMiddleware, adminMiddleware, toggleUserStatus);
+router.patch('/:id/status', authMiddleware, syncUserMiddleware, tenantMiddleware, adminMiddleware, toggleUserStatus);
 
 // DELETE /api/users/:id - Delete user
-router.delete('/:id', authMiddleware, syncUserMiddleware, adminMiddleware, deleteUser);
+router.delete('/:id', authMiddleware, syncUserMiddleware, tenantMiddleware, adminMiddleware, deleteUser);
 
 // PATCH /api/users/:id/password - Reset user password
-router.patch('/:id/password', authMiddleware, syncUserMiddleware, adminMiddleware, resetPassword);
+router.patch('/:id/password', authMiddleware, syncUserMiddleware, tenantMiddleware, adminMiddleware, resetPassword);
 
 export default router;

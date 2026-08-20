@@ -262,7 +262,7 @@ export function UserDetailScreen() {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     height: 90,
     flexDirection: 'row',
     alignItems: 'center',
@@ -333,7 +333,7 @@ export function UserDetailScreen() {
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
   };
 
   const inputStyle: TextStyle = {
@@ -413,7 +413,7 @@ export function UserDetailScreen() {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     marginTop: 4,
     overflow: 'hidden',
   };

@@ -89,9 +89,10 @@ describe('Feature: categories-crud, Property 4: Creation assigns correct default
             }
           });
 
-          // Create mock Express req/res
+          // Create mock Express req/res (tenantId resolved by tenantMiddleware)
           const req = {
             body: { name },
+            tenantId: 'tenant-1',
           } as never;
 
           const statusFn = vi.fn().mockReturnThis();
@@ -170,6 +171,7 @@ describe('Feature: categories-crud, Property 4: Creation assigns correct default
 
           const req = {
             body: { name },
+            tenantId: 'tenant-1',
           } as never;
 
           const statusFn = vi.fn().mockReturnThis();

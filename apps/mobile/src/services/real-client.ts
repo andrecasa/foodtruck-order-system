@@ -241,18 +241,31 @@ function mapCategory(raw: any): Category {
 
 export const realClient: ApiClient = {
   async login(email: string, password: string): Promise<{ token: string }> {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      // fetch só lança quando a requisição não chega ao servidor (offline,
+      // host/porta inacessível, DNS, etc.). Aqui NÃO é erro de credenciais —
+      // status 0 sinaliza falha de conexão para a UI diferenciar a mensagem.
+      throw new NetworkError(
+        'Não foi possível conectar ao servidor. Verifique sua conexão e o endereço da API.',
+        0,
+      );
+    }
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new NetworkError(
-        body.message || 'E-mail ou senha incorretos',
-        response.status,
-      );
+      // 401 → credenciais inválidas; demais status → mensagem do backend ou genérica.
+      const fallback =
+        response.status === 401
+          ? 'E-mail ou senha incorretos'
+          : `Erro ao entrar (${response.status}). Tente novamente.`;
+      throw new NetworkError(body.message || fallback, response.status);
     }
 
     const data = await response.json();

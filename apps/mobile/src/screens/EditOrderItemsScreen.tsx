@@ -211,7 +211,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
     overflow: 'hidden',
     alignItems: 'center',
@@ -291,7 +291,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     borderRadius: 14,
     backgroundColor: theme.colors.background,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   };
@@ -300,7 +300,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     fontFamily: theme.typography.fontFamily,
     fontSize: 16,
     fontWeight: '400',
-    color: qty <= 0 ? theme.colors.divider : theme.colors.text,
+    color: qty <= 0 ? theme.colors.textDisabled : theme.colors.text,
   });
 
   const stepperPlusStyle: ViewStyle = {
@@ -423,7 +423,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
             onChange={setOrigin}
             primaryColor={theme.colors.primary}
             surfaceColor={theme.colors.surface}
-            dividerColor={theme.colors.divider}
+            borderColor={theme.colors.border}
             backgroundColor={theme.colors.surface}
             inactiveTextColor={theme.colors.textSecondary}
             fontFamily={theme.typography.fontFamily}

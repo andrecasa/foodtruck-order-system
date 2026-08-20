@@ -3,6 +3,8 @@ import { useRouter, useSegments } from 'expo-router';
 import { tokenStorage } from '../services/token-storage';
 import { apiClient } from '../services/api-client';
 import { authEvents } from '../services/auth-events';
+import { themeCache } from '../services/theme-cache';
+import { fetchTenantId } from '../theme/theme.config';
 
 interface AuthUser {
   email: string;
@@ -11,6 +13,12 @@ interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
+  /**
+   * Resolved tenant id of the authenticated user, used to scope realtime
+   * channels to this tenant (R12.7, R12.9). Null while unauthenticated or when
+   * the tenant id could not be resolved.
+   */
+  tenantId: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -28,6 +36,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const segments = useSegments();
@@ -50,10 +59,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (res.ok) {
               const data = await res.json();
               setUser({ email: data?.user?.email || '', role: 'admin' });
+              // Resolve the tenant id so realtime channels can be scoped to
+              // this tenant (R12.7, R12.9).
+              const resolvedTenantId = await fetchTenantId(() => tokenStorage.getAccessToken());
+              if (!cancelled) setTenantId(resolvedTenantId);
             } else {
               // Token invalid — clear session
               await tokenStorage.clear();
               setUser(null);
+              setTenantId(null);
             }
           }
         }
@@ -75,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = authEvents.onSessionExpired(() => {
       setUser(null);
+      setTenantId(null);
     });
     return unsubscribe;
   }, []);
@@ -97,6 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     await apiClient.login(email, password);
     setUser({ email, role: 'admin' }); // Default to admin for prototype mode
+    // Resolve the tenant id so realtime channels can be scoped to this tenant
+    // (R12.7, R12.9).
+    const resolvedTenantId = await fetchTenantId(() => tokenStorage.getAccessToken());
+    setTenantId(resolvedTenantId);
   }, []);
 
   const logout = useCallback(async () => {
@@ -106,11 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Even if logout API fails, clear local state
     }
     await tokenStorage.clear();
+    await themeCache.clear();
     setUser(null);
+    setTenantId(null);
   }, []);
 
   const value: AuthContextValue = {
     user,
+    tenantId,
     isLoading,
     isAuthenticated: user !== null,
     login,

@@ -29,3 +29,9 @@ export type {
   UpdateCategoryRequest,
   ReorderCategoriesRequest,
 } from './category';
+
+export type {
+  TenantStatus,
+  Tenant,
+  TenantBrandingResponse,
+} from './tenant';

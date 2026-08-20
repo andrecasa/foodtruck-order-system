@@ -140,7 +140,7 @@ export function CategoriesListScreen() {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -199,7 +199,7 @@ export function CategoriesListScreen() {
   const novaCategoriaButtonStyle: ViewStyle = {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     borderRadius: 22,
     height: 44,
     flexDirection: 'row',

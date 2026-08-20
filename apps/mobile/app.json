@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Pastel das Meninas",
-    "slug": "order-system-mobile",
+    "name": "Food Truck App",
+    "slug": "food-trck-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ordersystem.mobile"
+      "bundleIdentifier": "app.foodtruck.mobile"
     },
     "android": {
       "adaptiveIcon": {

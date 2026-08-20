@@ -1,0 +1,70 @@
+name: Migrations Schema Validation
+
+# Validates that the multi-tenant migration set (001–010) applies cleanly against
+# an EMPTY database and produces the final, valid schema without manual
+# intervention (Requirements 1.9, 1.10, 1.14).
+
+on:
+  push:
+    paths:
+      - 'apps/backend/migrations/**'
+      - 'apps/backend/src/db/**'
+      - '.github/workflows/migrations.yml'
+  pull_request:
+    paths:
+      - 'apps/backend/migrations/**'
+      - 'apps/backend/src/db/**'
+      - '.github/workflows/migrations.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-schema:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: order_system
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: '5432'
+      POSTGRES_DB: order_system
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Applies the migration set from an empty DB and asserts the final schema
+      # (tenant_id NOT NULL, FKs -> tenants, composite uniques/PKs, function).
+      # Env vars come from the job `env` block, so tsx is invoked without
+      # --env-file (unlike the local `migrate:validate` script).
+      - name: Validate schema from empty database
+        working-directory: apps/backend
+        run: pnpm exec tsx src/db/validate-schema.ts

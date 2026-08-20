@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { runMigrations } from './db/run-migrations.js';
-import { initRealtimeChannels } from './config/realtime.js';
 import authRoutes from './routes/auth.routes.js';
 import menuRoutes from './routes/menu.routes.js';
 import orderRoutes from './routes/order.routes.js';
@@ -9,6 +8,8 @@ import summaryRoutes from './routes/summary.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import userRoutes from './routes/user.routes.js';
 import categoryRoutes from './routes/category.routes.js';
+import tenantRoutes from './routes/tenant.routes.js';
+import platformRoutes from './routes/platform.routes.js';
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 4000;
@@ -27,6 +28,9 @@ app.use('/api/summary', summaryRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/tenant', tenantRoutes);
+// Platform routes: authMiddleware + platformAdminMiddleware, WITHOUT tenantMiddleware (R10.2).
+app.use('/api/platform', platformRoutes);
 
 async function start() {
   try {
@@ -38,10 +42,9 @@ async function start() {
 
   app.listen(PORT, () => {
     console.log(`Backend running on port ${PORT}`);
-    // Pre-subscribe to realtime channels after a delay to allow seed-realtime to fix the tenant
-    setTimeout(() => {
-      initRealtimeChannels();
-    }, 10000);
+    // Realtime channels are subscribed lazily on first broadcast per tenant
+    // (see config/realtime.ts). No global pre-warm: it cannot scale to N
+    // tenants (R12.7).
   });
 }
 

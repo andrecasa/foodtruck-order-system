@@ -16,7 +16,7 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
-const mockGetMenu = jest.fn<Promise<MenuItem[]>, []>();
+const mockGetMenu = jest.fn<Promise<MenuItem[]>, any[]>();
 const mockUpdateOrderItems = jest.fn();
 
 jest.mock('../../services/api-client', () => ({
@@ -43,8 +43,8 @@ function createMenuItems(): MenuItem[] {
       category: 'Pastéis',
       price: 800,
       status: 'ativo',
-      description: 'Pastel frito com recheio de carne',
-      displayOrder: 1,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     },
     {
       id: 'menu-item-2',
@@ -52,10 +52,10 @@ function createMenuItems(): MenuItem[] {
       category: 'Bebidas',
       price: 900,
       status: 'ativo',
-      description: 'Caldo de cana gelado',
-      displayOrder: 2,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     },
-  ] as MenuItem[];
+  ];
 }
 
 function createOrder(overrides: Partial<Order> = {}): Order {

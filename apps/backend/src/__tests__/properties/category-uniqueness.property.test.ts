@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import type { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 /**
  * Feature: categories-crud, Property 3: Name uniqueness
@@ -29,7 +29,9 @@ function mockRequest(body: any, params: Record<string, string> = {}): Partial<Au
     body,
     params,
     user: { id: 'user-1', email: 'admin@test.com' },
-  };
+    // Tenant resolved by tenantMiddleware; required by the tenant-scoped services.
+    tenantId: 'tenant-1',
+  } as Partial<AuthenticatedRequest>;
 }
 
 function mockResponse(): { statusCode: number; body: any; status: (code: number) => any; json: (data: any) => any } {
@@ -174,10 +176,10 @@ describe('Feature: categories-crud, Property 3: Name uniqueness', () => {
           .map((ch, i) => (i % 2 === 0 ? ch.toUpperCase() : ch.toLowerCase()))
           .join('');
 
-        // Mock pool.query calls in sequence:
-        // 1st call: check category exists - found with the base name
+        // Mock pool.query calls in sequence (tenant-scoped repository flow):
+        // 1st call: findOne — category exists within tenant
         vi.mocked(pool.query).mockResolvedValueOnce({
-          rows: [{ id: categoryId, name: trimmedName, sort_order: 0, created_at: '2024-01-01T00:00:00.000Z' }],
+          rows: [{ id: categoryId, name: trimmedName, sort_order: 0, status: 'ativo', created_at: '2024-01-01T00:00:00.000Z' }],
           command: 'SELECT',
           rowCount: 1,
           oid: 0,
@@ -193,10 +195,19 @@ describe('Feature: categories-crud, Property 3: Name uniqueness', () => {
           fields: [],
         } as never);
 
-        // 3rd call: UPDATE returning updated row
+        // 3rd call: UPDATE (returns row count)
         vi.mocked(pool.query).mockResolvedValueOnce({
-          rows: [{ id: categoryId, name: variant.trim(), sort_order: 0, created_at: '2024-01-01T00:00:00.000Z' }],
+          rows: [{ id: categoryId, name: variant.trim(), sort_order: 0, status: 'ativo', created_at: '2024-01-01T00:00:00.000Z' }],
           command: 'UPDATE',
+          rowCount: 1,
+          oid: 0,
+          fields: [],
+        } as never);
+
+        // 4th call: re-read findOne — returns the updated row
+        vi.mocked(pool.query).mockResolvedValueOnce({
+          rows: [{ id: categoryId, name: variant.trim(), sort_order: 0, status: 'ativo', created_at: '2024-01-01T00:00:00.000Z' }],
+          command: 'SELECT',
           rowCount: 1,
           oid: 0,
           fields: [],

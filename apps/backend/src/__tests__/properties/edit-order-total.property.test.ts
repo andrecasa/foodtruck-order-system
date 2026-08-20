@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 /**
  * Feature: edit-order, Property 1: Total Calculation Invariant
@@ -50,6 +50,7 @@ function mockRequest(body: any, params: any): Partial<AuthenticatedRequest> {
     body,
     params,
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   };
 }
 
@@ -183,8 +184,8 @@ describe('Property 1: Total Calculation Invariant', () => {
           clientQueryCallCount++;
           // 1: BEGIN
           if (clientQueryCallCount === 1) return undefined;
-          // 2: DELETE old order_items
-          if (clientQueryCallCount === 2) return undefined;
+          // 2: DELETE old order_items (repo.delete reads rowCount)
+          if (clientQueryCallCount === 2) return { rows: [], rowCount: 1 };
           // 3..N: INSERT each new order_item
           const insertIndex = clientQueryCallCount - 3;
           if (insertIndex < requestItems.length) {
@@ -201,9 +202,9 @@ describe('Property 1: Total Calculation Invariant', () => {
               }],
             };
           }
-          // N+1: UPDATE orders.total_amount_cents
+          // N+1: UPDATE orders.total_amount_cents (repo.update reads rowCount)
           // N+2: COMMIT
-          return undefined;
+          return { rows: [], rowCount: 1 };
         });
 
         const req = mockRequest({ items: requestItems }, { id: orderId });

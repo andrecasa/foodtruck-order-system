@@ -12,6 +12,9 @@ build/
 .env.local
 .env.*.local
 
+# Kong config with generated Supabase keys (use kong.yml.example as template)
+kong.yml
+
 # IDE
 .vscode/
 .idea/

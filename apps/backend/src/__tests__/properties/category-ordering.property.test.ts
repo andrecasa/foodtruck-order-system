@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import type { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 /**
  * Feature: categories-crud, Property 1: Ordering invariant
@@ -28,7 +28,8 @@ function mockRequest(): Partial<AuthenticatedRequest> {
     body: {},
     params: {},
     user: { id: 'user-1', email: 'admin@test.com' },
-  };
+    tenantId: 'tenant-1',
+  } as Partial<AuthenticatedRequest>;
 }
 
 function mockResponse(): { statusCode: number; body: any; status: (code: number) => any; json: (data: any) => any } {

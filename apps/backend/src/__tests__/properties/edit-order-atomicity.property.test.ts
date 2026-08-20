@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 const mockChannel = vi.fn();
@@ -59,6 +59,7 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
       body,
       params,
       user: { id: 'user-1', email: 'test@test.com' },
+      tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     };
   }
 
@@ -182,7 +183,7 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
           if (stepIndex === failAt) {
             mockClientQuery.mockRejectedValueOnce(new Error('DB error at DELETE'));
           } else {
-            mockClientQuery.mockResolvedValueOnce(undefined);
+            mockClientQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
           }
           stepIndex++;
 
@@ -209,7 +210,7 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
           if (stepIndex === failAt) {
             mockClientQuery.mockRejectedValueOnce(new Error('DB error at UPDATE total'));
           } else {
-            mockClientQuery.mockResolvedValueOnce(undefined);
+            mockClientQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
           }
 
           // ROLLBACK succeeds (always set up after the error)

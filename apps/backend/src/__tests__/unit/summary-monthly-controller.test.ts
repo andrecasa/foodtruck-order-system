@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
+
+const TENANT = '22222222-2222-2222-2222-222222222222';
 
 // Mock pg Pool
 const mockQuery = vi.fn();
@@ -11,17 +13,21 @@ vi.mock('../../config/database.js', () => ({
   },
 }));
 
-// Mock date-fns-tz (used by getDailySummary but we need it mocked for the module to load)
+// Mock date-fns-tz (used by getDailySummary but we need it mocked for the module to load).
+// isCurrentMonth relies on toZonedTime; returning a fixed far-future date keeps the
+// requested (past) months from being treated as the current month.
 vi.mock('date-fns-tz', () => ({
-  toZonedTime: vi.fn(),
+  toZonedTime: vi.fn(() => new Date('2099-01-01T00:00:00')),
   format: vi.fn(),
 }));
 
 import { getMonthlySummary } from '../../controllers/summary.controller.js';
+import { invalidateMonthlySummaryCache } from '../../services/summary.service.js';
 
 function mockRequest(query: Record<string, string> = {}): Partial<AuthenticatedRequest> {
   return {
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: TENANT,
     query,
   };
 }
@@ -45,6 +51,9 @@ function mockResponse(): Partial<Response> & { statusCode: number; body: any } {
 describe('Summary Controller - getMonthlySummary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The monthly summary is cached per tenant/month; clear it between tests so
+    // each test observes its own mocked query results rather than a cached one.
+    invalidateMonthlySummaryCache(TENANT);
   });
 
   describe('Parameter validation', () => {
@@ -143,7 +152,9 @@ describe('Summary Controller - getMonthlySummary', () => {
       // attempt to process (and either succeed or fail on DB), not return 401 itself.
       const req: Partial<AuthenticatedRequest> = {
         query: { year: '2026', month: '8' },
-        // No user set - simulating what would happen if middleware was bypassed
+        tenantId: TENANT,
+        // No user set - simulating what would happen if auth middleware was bypassed
+        // (tenantMiddleware still resolved the tenant).
       };
       const res = mockResponse();
 
@@ -227,8 +238,8 @@ describe('Summary Controller - getMonthlySummary', () => {
 
       // February 2026 has 28 days
       expect(mockQuery).toHaveBeenCalledTimes(2);
-      expect(mockQuery.mock.calls[0][1]).toEqual(['2026-02-01', '2026-02-28']);
-      expect(mockQuery.mock.calls[1][1]).toEqual(['2026-02-01', '2026-02-28']);
+      expect(mockQuery.mock.calls[0][1]).toEqual([TENANT, '2026-02-01', '2026-02-28']);
+      expect(mockQuery.mock.calls[1][1]).toEqual([TENANT, '2026-02-01', '2026-02-28']);
     });
 
     it('should handle leap year February correctly', async () => {
@@ -247,7 +258,7 @@ describe('Summary Controller - getMonthlySummary', () => {
 
       expect(res.statusCode).toBe(200);
       // 2024 is a leap year - February has 29 days
-      expect(mockQuery.mock.calls[0][1]).toEqual(['2024-02-01', '2024-02-29']);
+      expect(mockQuery.mock.calls[0][1]).toEqual([TENANT, '2024-02-01', '2024-02-29']);
       expect(res.body.days[0].day).toBe(29);
     });
   });

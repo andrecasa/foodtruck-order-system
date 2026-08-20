@@ -6,11 +6,11 @@ import { useAuth } from '../hooks';
 /**
  * Login page for the Preparador web app.
  *
- * Pixel-perfect match to Penpot "Login Preparador" (Web page) + App input pattern:
- * - Screen: bg #FDF8F4, centered
- * - Form card: bg #FFFFFF, borderRadius 16px, shadow 0 4px 16px rgba(0,0,0,0.08), padding 32px, gap 16px
- * - Inputs: bg #FFFFFF, border 1px solid #E8DDD5, focus border #7B2D2D, borderRadius 24px, height 52px
- * - Button: h44, borderRadius 22px, bg #7B2D2D, text 14px weight 400 white
+ * Layout espelhado da tela de login do app (mobile) — LoginScreen.tsx:
+ * - Header (logo 150, título 24px, subtítulo "Faça login para continuar") acima do card, alinhado ao topo
+ * - Card separado contendo apenas o formulário (inputs + botão)
+ * - Inputs: border 1px, focus border primary, borderRadius 24px, height 52px
+ * - Cores/tipografia sempre do tema
  */
 export function LoginPage() {
   const theme = useTheme();
@@ -41,9 +41,10 @@ export function LoginPage() {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '80vh',
-    padding: '24px',
+    justifyContent: 'flex-start',
+    minHeight: '100vh',
+    padding: '50px 24px 24px',
+    gap: '24px',
   };
 
   const formStyle: React.CSSProperties = {
@@ -53,7 +54,7 @@ export function LoginPage() {
     flexDirection: 'column',
     gap: '16px',
     backgroundColor: theme.colors.surface,
-    padding: '32px',
+    padding: '24px',
     borderRadius: '16px',
     boxShadow: 'none',
   };
@@ -63,14 +64,6 @@ export function LoginPage() {
     flexDirection: 'column',
     alignItems: 'center',
     gap: '8px',
-    marginBottom: '16px',
-  };
-
-  const iconStyle: React.CSSProperties = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: '48px',
-    fontWeight: 400,
-    color: theme.colors.primary,
   };
 
   const subtitleStyle: React.CSSProperties = {
@@ -95,7 +88,7 @@ export function LoginPage() {
     alignItems: 'center',
     gap: '10px',
     backgroundColor: theme.colors.surface,
-    border: `1px solid ${focused ? theme.colors.primary : theme.colors.divider}`,
+    border: `1px solid ${focused ? theme.colors.primary : theme.colors.border}`,
     borderRadius: '24px',
     height: '52px',
     padding: '0 16px',
@@ -140,30 +133,26 @@ export function LoginPage() {
         }
       `}</style>
       <div style={formContainerStyle}>
-        <form onSubmit={handleSubmit} style={formStyle}>
-          <div style={headerStyle}>
-            {/* Logo */}
-            {theme.logo ? (
-              <img
-                src={theme.logo}
-                alt={theme.businessName}
-                style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'contain' }}
-              />
-            ) : (
-              <span style={iconStyle}>restaurant</span>
-            )}
-            <h2 style={{
-              fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
-              fontSize: '28px',
-              fontWeight: 400,
-              color: theme.colors.text,
-              margin: 0,
-            }}>
-              {theme.businessName}
-            </h2>
-            <span style={subtitleStyle}>Tela do Preparador</span>
-          </div>
+        {/* Header (logo, título, subtítulo) — fora do card, igual ao app */}
+        <div style={headerStyle}>
+          <img
+            src={theme.logo || '/assets/icon.png'}
+            alt={theme.businessName}
+            style={{ width: '150px', height: '150px', borderRadius: '12px', objectFit: 'contain' }}
+          />
+          <h2 style={{
+            fontFamily: `"${theme.typography.fontFamily}", -apple-system, sans-serif`,
+            fontSize: '24px',
+            fontWeight: 400,
+            color: theme.colors.text,
+            margin: 0,
+          }}>
+            {theme.businessName}
+          </h2>
+          <span style={subtitleStyle}>Faça login para continuar</span>
+        </div>
 
+        <form onSubmit={handleSubmit} style={formStyle}>
           {/* Email input */}
           <div style={getInputWrapperStyle(emailFocused)}>
             <span className="material-symbols-outlined" style={inputIconStyle}>mail</span>
@@ -213,8 +202,8 @@ export function LoginPage() {
             type="submit"
             disabled={loading}
             style={{
-              backgroundColor: loading ? theme.colors.divider : theme.colors.primary,
-              color: loading ? theme.colors.textSecondary : theme.colors.surface,
+              backgroundColor: loading ? theme.colors.surfaceDisabled : theme.colors.primary,
+              color: loading ? theme.colors.textDisabled : theme.colors.surface,
               border: 'none',
               borderRadius: '22px',
               height: '44px',

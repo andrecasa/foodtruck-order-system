@@ -62,7 +62,7 @@ export function FilterChips({ options, selected, onSelectionChange, testID }: Fi
             alignItems: 'center',
             backgroundColor: isActive ? option.color + '1F' : theme.colors.surface,
             borderWidth: isActive ? 0 : 1,
-            borderColor: isActive ? undefined : theme.colors.divider,
+            borderColor: isActive ? undefined : theme.colors.border,
           };
           const textStyle: TextStyle = {
             fontFamily: theme.typography.fontFamily,

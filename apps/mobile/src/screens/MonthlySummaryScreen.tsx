@@ -17,6 +17,7 @@ import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
+import { useAuth } from '../hooks/useAuth';
 import { formatPrice, getPortugueseMonthName } from '../utils/format';
 import { SubCard } from '../components/SubCard';
 import { PaymentRow } from '../components/PaymentRow';
@@ -35,6 +36,7 @@ import { PaymentRow } from '../components/PaymentRow';
 export function MonthlySummaryScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { tenantId } = useAuth();
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -76,12 +78,16 @@ export function MonthlySummaryScreen() {
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Realtime updates
-  const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
+  // Realtime updates — subscribe only to THIS tenant's namespaced channels (R12.7, R12.9).
+  const realtimeChannels = useMemo(
+    () => (tenantId ? [`orders:queue:${tenantId}`, `orders:payment:${tenantId}`] : []),
+    [tenantId],
+  );
   useRealtime({
     channels: realtimeChannels,
     onEvent: useCallback(() => { fetchMonthlySummary(year, month); }, [fetchMonthlySummary, year, month]),
     onReconnect: useCallback(() => { fetchMonthlySummary(year, month); }, [fetchMonthlySummary, year, month]),
+    enabled: tenantId !== null,
   });
 
   // ─── Handlers ───────────────────────────────────────────────────────────────

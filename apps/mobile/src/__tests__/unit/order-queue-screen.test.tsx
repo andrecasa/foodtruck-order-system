@@ -42,6 +42,7 @@ jest.mock('../../hooks/useNetworkError', () => ({
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
     user: { email: 'admin@test.com', role: 'admin' },
+    tenantId: '11111111-1111-4111-8111-111111111111',
     isLoading: false,
     isAuthenticated: true,
     login: jest.fn(),
@@ -50,7 +51,7 @@ jest.mock('../../hooks/useAuth', () => ({
   AuthProvider: ({ children }: any) => children,
 }));
 
-const mockGetOrders = jest.fn<Promise<Order[]>, [any]>();
+const mockGetOrders = jest.fn<Promise<Order[]>, any[]>();
 const mockUpdateOrderStatus = jest.fn();
 
 jest.mock('../../services/api-client', () => ({
@@ -86,16 +87,10 @@ function createOrders(): Order[] {
       origin: 'presencial',
       status: 'aguardando',
       paymentStatus: 'pendente',
-      paymentMethod: null,
       totalAmount: 1600,
-      orderDate: '2024-01-15',
       createdAt: new Date().toISOString(),
-      startedAt: null,
-      readyAt: null,
-      deliveredAt: null,
-      paidAt: null,
       items: [
-        { id: 'i1', menuItemId: 'm1', name: 'Pastel de Carne', unitPrice: 800, quantity: 2 },
+        { menuItemId: 'm1', name: 'Pastel de Carne', unitPrice: 800, quantity: 2 },
       ],
     },
     {
@@ -107,17 +102,14 @@ function createOrders(): Order[] {
       paymentStatus: 'pago',
       paymentMethod: 'pix',
       totalAmount: 900,
-      orderDate: '2024-01-15',
       createdAt: new Date().toISOString(),
       startedAt: new Date().toISOString(),
-      readyAt: null,
-      deliveredAt: null,
       paidAt: new Date().toISOString(),
       items: [
-        { id: 'i2', menuItemId: 'm2', name: 'Caldo de Cana', unitPrice: 900, quantity: 1 },
+        { menuItemId: 'm2', name: 'Caldo de Cana', unitPrice: 900, quantity: 1 },
       ],
     },
-  ] as Order[];
+  ];
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

@@ -27,6 +27,18 @@ jest.mock('../../hooks/useRealtime', () => ({
   useRealtime: jest.fn(() => ({ status: 'connected' })),
 }));
 
+jest.mock('../../hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { email: 'admin@test.com', role: 'admin' },
+    tenantId: '11111111-1111-4111-8111-111111111111',
+    isLoading: false,
+    isAuthenticated: true,
+    login: jest.fn(),
+    logout: jest.fn(),
+  }),
+  AuthProvider: ({ children }: any) => children,
+}));
+
 const mockGetDailySummary = jest.fn();
 const mockGetMonthlySummary = jest.fn();
 

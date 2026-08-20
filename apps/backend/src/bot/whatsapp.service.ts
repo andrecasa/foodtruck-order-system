@@ -1,9 +1,28 @@
 /**
  * WhatsApp Bot Service - State machine, session management, and business logic.
+ *
+ * Multi-tenant (design section 6 "WhatsApp por Tenant", Requirements 8.7–8.11):
+ * Every operation of the bot is scoped to the `tenantId` resolved by the
+ * WebhookRouter (bot/whatsapp.controller.ts) from the Evolution instance.
+ *
+ * - Sessions are keyed by `(tenant_id, phone_number)` so the same phone number
+ *   may talk to more than one tenant simultaneously (R8.7, R8.11).
+ * - The greeting/menu uses the ACTIVE menu of the tenant (R8.10).
+ * - Orders created from a conversation are attributed to an ACTIVE admin of the
+ *   SAME tenant; if none exists the order is NOT created and a failure is
+ *   logged (R8.8, R8.9).
+ * - Outgoing messages are sent through the tenant's own Evolution instance
+ *   (`tenants.evolution_instance_name`).
+ *
+ * Tenant-scoped reads/writes go through the `TenantRepository`, which injects
+ * `tenant_id` into every query. Resolving the tenant's Evolution instance name
+ * is a platform-level lookup (it selects a `tenants` row by id, not a
+ * tenant-scoped table), so it uses the shared `pool` directly.
  */
 
 import { pool } from '../config/database.js';
-import { broadcast } from '../config/realtime.js';
+import { tenantRepository } from '../db/tenant-repository.js';
+import { broadcast, tenantChannel, REALTIME_CHANNEL_QUEUE } from '../config/realtime.js';
 import { sendTextMessage } from './evolution-api.client.js';
 import { WHATSAPP_SESSION_TIMEOUT_MS } from '@order-system/shared';
 import { toZonedTime, format } from 'date-fns-tz';
@@ -45,17 +64,38 @@ export function formatPriceBRL(cents: number): string {
   return `R$ ${reais},${centavos.toString().padStart(2, '0')}`;
 }
 
+// --- Tenant Evolution instance resolution ---
+
+/**
+ * Resolves the tenant's Evolution instance name (`tenants.evolution_instance_name`)
+ * so outgoing messages are sent through the tenant's own WhatsApp number.
+ *
+ * This is a platform-level read of the `tenants` table by primary key (not a
+ * tenant-scoped table), so it uses the shared `pool` directly. Returns
+ * `undefined` when the tenant has no instance configured, in which case the
+ * Evolution client falls back to its default instance.
+ */
+export async function resolveInstanceName(tenantId: string): Promise<string | undefined> {
+  const result = await pool.query<{ evolution_instance_name: string | null }>(
+    'SELECT evolution_instance_name FROM tenants WHERE id = $1',
+    [tenantId]
+  );
+  return result.rows[0]?.evolution_instance_name ?? undefined;
+}
+
 // --- Menu Fetching ---
 
-export async function fetchActiveMenuItems(): Promise<MenuItemRow[]> {
-  const result = await pool.query<MenuItemRow>(
+export async function fetchActiveMenuItems(tenantId: string): Promise<MenuItemRow[]> {
+  const repo = tenantRepository(tenantId);
+  const rows = await repo.raw<MenuItemRow>(
     `SELECT mi.id, mi.name, mi.price_cents, c.name AS category_name, c.sort_order AS category_sort_order
      FROM menu_items mi
-     JOIN categories c ON mi.category_id = c.id
-     WHERE mi.status = 'ativo'
-     ORDER BY c.sort_order, mi.name`
+     JOIN categories c ON mi.category_id = c.id AND c.tenant_id = mi.tenant_id
+     WHERE mi.tenant_id = $1 AND mi.status = 'ativo'
+     ORDER BY c.sort_order, mi.name`,
+    [tenantId]
   );
-  return result.rows;
+  return rows;
 }
 
 export function formatMenu(items: MenuItemRow[]): string {
@@ -87,15 +127,20 @@ export function formatMenu(items: MenuItemRow[]): string {
 
 // --- Session Management ---
 
-export async function getSession(phoneNumber: string): Promise<WhatsAppSession | null> {
-  const result = await pool.query(
-    'SELECT phone_number, state, cart, started_at, last_activity_at FROM whatsapp_sessions WHERE phone_number = $1',
-    [phoneNumber]
-  );
+export async function getSession(tenantId: string, phoneNumber: string): Promise<WhatsAppSession | null> {
+  const repo = tenantRepository(tenantId);
+  const row = await repo.findOne<{
+    phone_number: string;
+    state: SessionState;
+    cart: CartItem[];
+    started_at: string;
+    last_activity_at: string;
+  }>('whatsapp_sessions', {
+    where: { text: 'phone_number = $1', params: [phoneNumber] },
+  });
 
-  if (result.rows.length === 0) return null;
+  if (!row) return null;
 
-  const row = result.rows[0];
   return {
     phoneNumber: row.phone_number,
     state: row.state as SessionState,
@@ -105,16 +150,26 @@ export async function getSession(phoneNumber: string): Promise<WhatsAppSession |
   };
 }
 
-export async function createSession(phoneNumber: string): Promise<WhatsAppSession> {
-  const result = await pool.query(
-    `INSERT INTO whatsapp_sessions (phone_number, state, cart, started_at, last_activity_at)
-     VALUES ($1, 'saudacao', '[]'::jsonb, NOW(), NOW())
-     ON CONFLICT (phone_number) DO UPDATE SET state = 'saudacao', cart = '[]'::jsonb, started_at = NOW(), last_activity_at = NOW()
+export async function createSession(tenantId: string, phoneNumber: string): Promise<WhatsAppSession> {
+  // ON CONFLICT on the composite PK (tenant_id, phone_number) requires an
+  // explicit statement, so we use raw() with the mandatory tenant placeholder.
+  const repo = tenantRepository(tenantId);
+  const rows = await repo.raw<{
+    phone_number: string;
+    state: SessionState;
+    cart: CartItem[];
+    started_at: string;
+    last_activity_at: string;
+  }>(
+    `INSERT INTO whatsapp_sessions (tenant_id, phone_number, state, cart, started_at, last_activity_at)
+     VALUES ($1, $2, 'saudacao', '[]'::jsonb, NOW(), NOW())
+     ON CONFLICT (tenant_id, phone_number)
+     DO UPDATE SET state = 'saudacao', cart = '[]'::jsonb, started_at = NOW(), last_activity_at = NOW()
      RETURNING phone_number, state, cart, started_at, last_activity_at`,
-    [phoneNumber]
+    [tenantId, phoneNumber]
   );
 
-  const row = result.rows[0];
+  const row = rows[0]!;
   return {
     phoneNumber: row.phone_number,
     state: row.state as SessionState,
@@ -124,15 +179,18 @@ export async function createSession(phoneNumber: string): Promise<WhatsAppSessio
   };
 }
 
-export async function updateSession(phoneNumber: string, state: SessionState, cart: CartItem[]): Promise<void> {
-  await pool.query(
-    'UPDATE whatsapp_sessions SET state = $1, cart = $2, last_activity_at = NOW() WHERE phone_number = $3',
-    [state, JSON.stringify(cart), phoneNumber]
+export async function updateSession(tenantId: string, phoneNumber: string, state: SessionState, cart: CartItem[]): Promise<void> {
+  const repo = tenantRepository(tenantId);
+  await repo.raw(
+    `UPDATE whatsapp_sessions SET state = $2, cart = $3, last_activity_at = NOW()
+     WHERE tenant_id = $1 AND phone_number = $4`,
+    [tenantId, state, JSON.stringify(cart), phoneNumber]
   );
 }
 
-export async function deleteSession(phoneNumber: string): Promise<void> {
-  await pool.query('DELETE FROM whatsapp_sessions WHERE phone_number = $1', [phoneNumber]);
+export async function deleteSession(tenantId: string, phoneNumber: string): Promise<void> {
+  const repo = tenantRepository(tenantId);
+  await repo.delete('whatsapp_sessions', { text: 'phone_number = $1', params: [phoneNumber] });
 }
 
 export async function isSessionTimedOut(session: WhatsAppSession): Promise<boolean> {
@@ -141,25 +199,30 @@ export async function isSessionTimedOut(session: WhatsAppSession): Promise<boole
   return (now - lastActivity) >= WHATSAPP_SESSION_TIMEOUT_MS;
 }
 
-export async function cleanupTimedOutSessions(): Promise<void> {
-  const result = await pool.query(
+export async function cleanupTimedOutSessions(tenantId: string): Promise<void> {
+  const repo = tenantRepository(tenantId);
+  const rows = await repo.raw<{ phone_number: string }>(
     `SELECT phone_number FROM whatsapp_sessions
-     WHERE last_activity_at < NOW() - INTERVAL '10 minutes'`
+     WHERE tenant_id = $1 AND last_activity_at < NOW() - INTERVAL '10 minutes'`,
+    [tenantId]
   );
 
-  for (const row of result.rows) {
+  const instanceName = await resolveInstanceName(tenantId);
+
+  for (const row of rows) {
     await sendTextMessage({
       number: row.phone_number,
       text: '⏰ Sua sessão expirou por inatividade. Envie uma nova mensagem para fazer um pedido.',
+      instanceName,
     });
-    await deleteSession(row.phone_number);
+    await deleteSession(tenantId, row.phone_number);
   }
 }
 
 // --- Menu Items Indexed by Number ---
 
-export async function getNumberedMenuItems(): Promise<Map<number, MenuItemRow>> {
-  const items = await fetchActiveMenuItems();
+export async function getNumberedMenuItems(tenantId: string): Promise<Map<number, MenuItemRow>> {
+  const items = await fetchActiveMenuItems(tenantId);
   const map = new Map<number, MenuItemRow>();
   let index = 1;
   for (const item of items) {
@@ -266,131 +329,160 @@ export function calculateCartTotal(cart: CartItem[]): number {
 
 // --- Order Creation ---
 
-async function createWhatsAppOrder(phoneNumber: string, customerName: string, cart: CartItem[]): Promise<{ dailyNumber: number; totalAmountCents: number } | null> {
+/**
+ * Creates an order from a WhatsApp conversation, scoped to `tenantId`.
+ *
+ * The order is attributed to an ACTIVE admin of the SAME tenant
+ * (`WHERE tenant_id=$1 AND role='admin' AND status='ativo'`). If no active
+ * admin exists for the tenant, the order is NOT created and a failure is logged
+ * (R8.8, R8.9). Uses `next_daily_number($tenantId, $date)` and inserts
+ * `tenant_id` on the order and its items (R8.8, R8.11).
+ */
+async function createWhatsAppOrder(tenantId: string, phoneNumber: string, customerName: string, cart: CartItem[]): Promise<{ dailyNumber: number; totalAmountCents: number } | null> {
   const totalAmountCents = calculateCartTotal(cart);
 
   const now = new Date();
   const zonedDate = toZonedTime(now, SAO_PAULO_TZ);
   const orderDate = format(zonedDate, 'yyyy-MM-dd', { timeZone: SAO_PAULO_TZ });
 
-  // Get the first active admin as the creator for bot orders
-  const adminResult = await pool.query(
-    "SELECT id FROM users WHERE role = 'admin' AND status = 'ativo' ORDER BY created_at ASC LIMIT 1"
+  const repo = tenantRepository(tenantId);
+
+  // Get the first active admin of THIS tenant as the creator for bot orders.
+  const admins = await repo.raw<{ id: string }>(
+    "SELECT id FROM users WHERE tenant_id = $1 AND role = 'admin' AND status = 'ativo' ORDER BY created_at ASC LIMIT 1",
+    [tenantId]
   );
-  if (adminResult.rows.length === 0) {
-    console.error('[whatsapp-bot] No active admin found to attribute order');
+  if (admins.length === 0) {
+    // No active admin for the tenant: do NOT create the order, register failure
+    // (R8.9). The caller informs the customer of the error.
+    console.error(`[whatsapp-bot] No active admin found for tenant ${tenantId} to attribute order; order not created`);
     return null;
   }
-  const createdBy = adminResult.rows[0].id;
+  const createdBy = admins[0]!.id;
 
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
-    const seqResult = await client.query(
-      'SELECT next_daily_number($1::date) AS daily_number',
-      [orderDate]
-    );
-    const dailyNumber = seqResult.rows[0].daily_number;
-
-    const orderResult = await client.query(
-      `INSERT INTO orders (daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_by, created_at)
-       VALUES ($1, $2, 'whatsapp', 'aguardando', 'pendente', $3, $4, $5, $6)
-       RETURNING id, daily_number, customer_name, origin, status, payment_status, total_amount_cents, order_date, created_at`,
-      [dailyNumber, customerName, totalAmountCents, orderDate, createdBy, now.toISOString()]
-    );
-    const order = orderResult.rows[0];
-
-    for (const item of cart) {
-      await client.query(
-        `INSERT INTO order_items (order_id, menu_item_id, item_name, unit_price_cents, quantity)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [order.id, item.menuItemId, item.name, item.unitPriceCents, item.quantity]
+    const created = await repo.withTransaction(async (txRepo) => {
+      const seqRows = await txRepo.raw<{ daily_number: number }>(
+        'SELECT next_daily_number($1::uuid, $2::date) AS daily_number',
+        [tenantId, orderDate]
       );
-    }
+      const dailyNumber = seqRows[0]!.daily_number;
 
-    await client.query('COMMIT');
+      const order = await txRepo.insert<Record<string, unknown>>('orders', {
+        daily_number: dailyNumber,
+        customer_name: customerName,
+        origin: 'whatsapp',
+        status: 'aguardando',
+        payment_status: 'pendente',
+        total_amount_cents: totalAmountCents,
+        order_date: orderDate,
+        created_by: createdBy,
+        created_at: now.toISOString(),
+      });
 
-    // Publish realtime event (fire and forget)
+      for (const item of cart) {
+        await txRepo.insert('order_items', {
+          order_id: order.id,
+          menu_item_id: item.menuItemId,
+          item_name: item.name,
+          unit_price_cents: item.unitPriceCents,
+          quantity: item.quantity,
+        });
+      }
+
+      return order;
+    });
+
+    // Publish realtime event on the tenant-namespaced queue channel (R12.7, R12.8).
     try {
-      broadcast('orders:queue', 'new_order', {
-        id: order.id,
-        dailyNumber: order.daily_number,
-        customerName: order.customer_name,
-        origin: order.origin,
-        status: order.status,
-        paymentStatus: order.payment_status,
-        totalAmountCents: order.total_amount_cents,
-        orderDate: order.order_date,
-        createdAt: order.created_at,
+      broadcast(tenantChannel(REALTIME_CHANNEL_QUEUE, tenantId), 'new_order', {
+        id: created.id,
+        dailyNumber: created.daily_number,
+        customerName: created.customer_name,
+        origin: created.origin,
+        status: created.status,
+        paymentStatus: created.payment_status,
+        totalAmountCents: created.total_amount_cents,
+        orderDate: created.order_date,
+        createdAt: created.created_at,
+        tenantId,
       });
     } catch {
       console.error('[whatsapp-bot] Failed to publish realtime event');
     }
 
-    return { dailyNumber, totalAmountCents };
+    void phoneNumber;
+    return { dailyNumber: created.daily_number as number, totalAmountCents };
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('[whatsapp-bot] Error creating order:', error);
     return null;
-  } finally {
-    client.release();
   }
 }
 
 // --- State Machine Handler ---
 
-export async function handleIncomingMessage(phoneNumber: string, pushName: string | undefined, messageText: string): Promise<void> {
-  // Check for existing session
-  let session = await getSession(phoneNumber);
+/**
+ * Handle an incoming WhatsApp message under a resolved tenant scope.
+ *
+ * `tenantId` (resolved by the WebhookRouter from the Evolution instance) is
+ * threaded through every session, menu and order operation so all reads/writes
+ * are scoped to the tenant (R8.7–R8.11).
+ */
+export async function handleIncomingMessage(tenantId: string, phoneNumber: string, pushName: string | undefined, messageText: string): Promise<void> {
+  const instanceName = await resolveInstanceName(tenantId);
+
+  // Check for existing session (scoped to the tenant).
+  let session = await getSession(tenantId, phoneNumber);
 
   // Check timeout
   if (session && await isSessionTimedOut(session)) {
     await sendTextMessage({
       number: phoneNumber,
       text: '⏰ Sua sessão anterior expirou por inatividade. Vamos começar de novo!',
+      instanceName,
     });
-    await deleteSession(phoneNumber);
+    await deleteSession(tenantId, phoneNumber);
     session = null;
   }
 
   // No session: create new one and start saudacao flow
   if (!session) {
-    session = await createSession(phoneNumber);
-    await handleSaudacao(phoneNumber, pushName);
+    session = await createSession(tenantId, phoneNumber);
+    await handleSaudacao(tenantId, phoneNumber, pushName, instanceName);
     return;
   }
 
   // Update last activity
-  await updateSession(session.phoneNumber, session.state, session.cart);
+  await updateSession(tenantId, session.phoneNumber, session.state, session.cart);
 
   // Route to current state handler
   switch (session.state) {
     case 'saudacao':
       // After greeting, any message moves to selecionando
-      await handleSelecionando(phoneNumber, messageText, []);
+      await handleSelecionando(tenantId, phoneNumber, messageText, [], instanceName);
       break;
     case 'selecionando':
-      await handleSelecionando(phoneNumber, messageText, session.cart);
+      await handleSelecionando(tenantId, phoneNumber, messageText, session.cart, instanceName);
       break;
     case 'resumo':
-      await handleResumo(phoneNumber, pushName, messageText, session.cart);
+      await handleResumo(tenantId, phoneNumber, pushName, messageText, session.cart, instanceName);
       break;
   }
 }
 
 // --- State: saudacao ---
 
-async function handleSaudacao(phoneNumber: string, pushName: string | undefined): Promise<void> {
-  const items = await fetchActiveMenuItems();
+async function handleSaudacao(tenantId: string, phoneNumber: string, pushName: string | undefined, instanceName: string | undefined): Promise<void> {
+  const items = await fetchActiveMenuItems(tenantId);
 
   // Empty menu case
   if (items.length === 0) {
     await sendTextMessage({
       number: phoneNumber,
       text: '😔 Desculpe, nosso cardápio está temporariamente sem itens disponíveis. Tente novamente mais tarde!',
+      instanceName,
     });
-    await deleteSession(phoneNumber);
+    await deleteSession(tenantId, phoneNumber);
     return;
   }
 
@@ -399,13 +491,13 @@ async function handleSaudacao(phoneNumber: string, pushName: string | undefined)
 
   const greeting = `${customerGreeting}\n\nBem-vindo(a) ao nosso Food Truck! 🚚\n\nAqui está nosso cardápio:\n\n${menuText}\n\n📝 Para fazer seu pedido, envie o *número do item* e a *quantidade*.\nExemplo: "1" para 1 unidade ou "1 2" para 2 unidades do item 1.\n\nVocê pode adicionar vários itens antes de confirmar!`;
 
-  await sendTextMessage({ number: phoneNumber, text: greeting });
-  await updateSession(phoneNumber, 'selecionando', []);
+  await sendTextMessage({ number: phoneNumber, text: greeting, instanceName });
+  await updateSession(tenantId, phoneNumber, 'selecionando', []);
 }
 
 // --- State: selecionando ---
 
-async function handleSelecionando(phoneNumber: string, messageText: string, currentCart: CartItem[]): Promise<void> {
+async function handleSelecionando(tenantId: string, phoneNumber: string, messageText: string, currentCart: CartItem[], instanceName: string | undefined): Promise<void> {
   const trimmed = messageText.trim().toLowerCase();
 
   // Check if user wants to see summary/finalize
@@ -414,12 +506,13 @@ async function handleSelecionando(phoneNumber: string, messageText: string, curr
       await sendTextMessage({
         number: phoneNumber,
         text: '🛒 Seu carrinho está vazio! Envie o número de um item do cardápio para adicioná-lo.',
+        instanceName,
       });
       return;
     }
     const summary = formatCartSummary(currentCart);
-    await sendTextMessage({ number: phoneNumber, text: summary });
-    await updateSession(phoneNumber, 'resumo', currentCart);
+    await sendTextMessage({ number: phoneNumber, text: summary, instanceName });
+    await updateSession(tenantId, phoneNumber, 'resumo', currentCart);
     return;
   }
 
@@ -428,8 +521,9 @@ async function handleSelecionando(phoneNumber: string, messageText: string, curr
     await sendTextMessage({
       number: phoneNumber,
       text: '❌ Pedido cancelado. Envie uma mensagem a qualquer momento para fazer um novo pedido!',
+      instanceName,
     });
-    await deleteSession(phoneNumber);
+    await deleteSession(tenantId, phoneNumber);
     return;
   }
 
@@ -441,12 +535,13 @@ async function handleSelecionando(phoneNumber: string, messageText: string, curr
     await sendTextMessage({
       number: phoneNumber,
       text: '🤔 Não entendi. Por favor, envie o *número do item* para adicioná-lo ao carrinho.\nExemplo: "1" para 1 unidade ou "1 2" para 2 unidades.\n\nDigite *PRONTO* quando quiser finalizar o pedido.\nDigite *CANCELAR* para cancelar.',
+      instanceName,
     });
     return;
   }
 
-  // Fetch numbered menu items
-  const numberedItems = await getNumberedMenuItems();
+  // Fetch numbered menu items (scoped to the tenant).
+  const numberedItems = await getNumberedMenuItems(tenantId);
   const maxNumber = numberedItems.size;
   let cart = [...currentCart];
   const addedItems: string[] = [];
@@ -472,33 +567,35 @@ async function handleSelecionando(phoneNumber: string, messageText: string, curr
   }
   response += '📝 Continue adicionando itens ou digite *PRONTO* para finalizar.';
 
-  await sendTextMessage({ number: phoneNumber, text: response });
-  await updateSession(phoneNumber, 'selecionando', cart);
+  await sendTextMessage({ number: phoneNumber, text: response, instanceName });
+  await updateSession(tenantId, phoneNumber, 'selecionando', cart);
 }
 
 // --- State: resumo ---
 
-async function handleResumo(phoneNumber: string, pushName: string | undefined, messageText: string, cart: CartItem[]): Promise<void> {
+async function handleResumo(tenantId: string, phoneNumber: string, pushName: string | undefined, messageText: string, cart: CartItem[], instanceName: string | undefined): Promise<void> {
   const trimmed = messageText.trim().toLowerCase();
 
   if (trimmed === 'confirmar' || trimmed === 'sim' || trimmed === 'ok') {
     // Create order
     const customerName = pushName || formatPhoneForDisplay(phoneNumber);
-    const result = await createWhatsAppOrder(phoneNumber, customerName, cart);
+    const result = await createWhatsAppOrder(tenantId, phoneNumber, customerName, cart);
 
     if (result) {
       await sendTextMessage({
         number: phoneNumber,
         text: `🎉 Pedido confirmado!\n\n📋 Número do pedido: *#${result.dailyNumber}*\n💰 Total: *${formatPriceBRL(result.totalAmountCents)}*\n\nAguarde a preparação. Obrigado pela preferência! 🚚`,
+        instanceName,
       });
     } else {
       await sendTextMessage({
         number: phoneNumber,
         text: '❌ Ocorreu um erro ao criar seu pedido. Por favor, tente novamente.',
+        instanceName,
       });
     }
 
-    await deleteSession(phoneNumber);
+    await deleteSession(tenantId, phoneNumber);
     return;
   }
 
@@ -506,8 +603,9 @@ async function handleResumo(phoneNumber: string, pushName: string | undefined, m
     await sendTextMessage({
       number: phoneNumber,
       text: '❌ Pedido cancelado. Envie uma mensagem a qualquer momento para fazer um novo pedido!',
+      instanceName,
     });
-    await deleteSession(phoneNumber);
+    await deleteSession(tenantId, phoneNumber);
     return;
   }
 
@@ -516,8 +614,9 @@ async function handleResumo(phoneNumber: string, pushName: string | undefined, m
     await sendTextMessage({
       number: phoneNumber,
       text: '🛒 Ok! Continue adicionando itens. Envie o número do item.\nDigite *PRONTO* quando quiser finalizar.',
+      instanceName,
     });
-    await updateSession(phoneNumber, 'selecionando', cart);
+    await updateSession(tenantId, phoneNumber, 'selecionando', cart);
     return;
   }
 
@@ -525,8 +624,8 @@ async function handleResumo(phoneNumber: string, pushName: string | undefined, m
   const selections = parseItemSelection(messageText);
   if (selections.length > 0) {
     // Move back to selecionando and add item
-    await updateSession(phoneNumber, 'selecionando', cart);
-    await handleSelecionando(phoneNumber, messageText, cart);
+    await updateSession(tenantId, phoneNumber, 'selecionando', cart);
+    await handleSelecionando(tenantId, phoneNumber, messageText, cart, instanceName);
     return;
   }
 
@@ -534,6 +633,7 @@ async function handleResumo(phoneNumber: string, pushName: string | undefined, m
   await sendTextMessage({
     number: phoneNumber,
     text: '🤔 Não entendi. Opções disponíveis:\n\n✅ *CONFIRMAR* - Finalizar o pedido\n❌ *CANCELAR* - Cancelar o pedido\n➕ *MAIS* - Adicionar mais itens',
+    instanceName,
   });
 }
 

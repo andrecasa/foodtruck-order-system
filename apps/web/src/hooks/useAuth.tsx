@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { apiClient } from '../services/api-client';
+import { fetchTenantBranding, fetchTenantId, useThemeActions } from '../theme';
 
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
@@ -10,6 +11,12 @@ interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
+  /**
+   * Resolved tenant id of the authenticated user, used to scope realtime
+   * channels to this tenant (R12.7, R12.9). Null while unauthenticated or when
+   * the tenant id could not be resolved.
+   */
+  tenantId: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -29,7 +36,26 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { setTheme, resetTheme } = useThemeActions();
+
+  // Fetches the authenticated tenant's branding and applies it over the neutral
+  // theme. On any failure/timeout, fetchTenantBranding resolves to the neutral
+  // default, so the app stays usable (R7.2, R7.3, R7.8, R11.7). Also resolves
+  // the tenant id so realtime channels can be scoped to this tenant (R12.7,
+  // R12.9).
+  const applyTenantBranding = useCallback(
+    async (token: string) => {
+      const [theme, resolvedTenantId] = await Promise.all([
+        fetchTenantBranding(token),
+        fetchTenantId(token),
+      ]);
+      setTheme(theme);
+      setTenantId(resolvedTenantId);
+    },
+    [setTheme],
+  );
 
   // Check for existing session on mount — validate with server
   useEffect(() => {
@@ -48,6 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         .then((data) => {
           setUser({ email: data?.user?.email || '' });
+          // Apply tenant branding after restoring the session (R7.2, R7.3).
+          void applyTenantBranding(token);
         })
         .catch(async () => {
           // Token invalid — try refresh before giving up
@@ -71,6 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (sessionRes.ok) {
                   const sessionData = await sessionRes.json();
                   setUser({ email: sessionData?.user?.email || '' });
+                  // Apply tenant branding after a successful token refresh (R7.2, R7.3).
+                  void applyTenantBranding(data.accessToken);
                   return;
                 }
               }
@@ -88,12 +118,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setIsLoading(false);
     }
+    // Run once on mount; applyTenantBranding is stable via useCallback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    await apiClient.login(email, password);
-    setUser({ email });
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const { token } = await apiClient.login(email, password);
+      setUser({ email });
+      // Fetch and apply the tenant branding before authenticated screens render
+      // (R7.2). On failure/timeout the neutral theme is kept (R7.8, R11.7).
+      await applyTenantBranding(token);
+    },
+    [applyTenantBranding],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -104,10 +142,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(REFRESH_TOKEN_KEY);
     setUser(null);
-  }, []);
+    setTenantId(null);
+    // Return to the neutral platform branding once no tenant is authenticated (R11.6).
+    resetTheme();
+  }, [resetTheme]);
 
   const value: AuthContextValue = {
     user,
+    tenantId,
     isLoading,
     isAuthenticated: user !== null,
     login,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 vi.mock('../../config/supabase.js', () => ({
@@ -14,16 +14,21 @@ const mockBroadcast = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../config/realtime.js', () => ({
   broadcast: (...args: any[]) => mockBroadcast(...args),
+  tenantChannel: (base: string, tenantId: string) => `${base}:${tenantId}`,
+  REALTIME_CHANNEL_QUEUE: 'orders:queue',
+  REALTIME_CHANNEL_PAYMENT: 'orders:payment',
 }));
 
-// Mock pg Pool
+// Mock pg Pool. The tenant-scoped updateOrderStatus reads/updates through the
+// TenantRepository, which issues plain pool.query() calls (no transaction):
+//   1) findOne → SELECT * FROM orders WHERE tenant_id = $1 AND (id = $2)
+//   2) update  → UPDATE orders SET status = $1, <ts> = $2 WHERE tenant_id = $3 AND (id = $4)
+//   3) findOne → SELECT * FROM orders (re-fetch the updated row)
 const mockQuery = vi.fn();
-const mockRelease = vi.fn();
-const mockConnect = vi.fn();
 
 vi.mock('../../config/database.js', () => ({
   pool: {
-    connect: () => mockConnect(),
+    query: (...args: any[]) => mockQuery(...args),
   },
 }));
 
@@ -40,6 +45,7 @@ function mockRequest(params?: any, body?: any): Partial<AuthenticatedRequest> {
     body: body || {},
     params: params || {},
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   };
 }
 
@@ -77,18 +83,15 @@ const baseOrder = {
 describe('Order Controller - updateOrderStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    mockConnect.mockResolvedValue({
-      query: mockQuery,
-      release: mockRelease,
-    });
   });
 
   describe('Valid transitions', () => {
     it('should transition aguardando → preparando and set started_at', async () => {
-      // SELECT order
+      // findOne (current order)
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder, status: 'aguardando' }] });
-      // UPDATE order
+      // UPDATE order (repo.update reads rowCount)
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+      // findOne (re-fetch updated order)
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -116,6 +119,7 @@ describe('Order Controller - updateOrderStatus', () => {
       mockQuery.mockResolvedValueOnce({
         rows: [{ ...baseOrder, status: 'preparando', started_at: '2024-06-15T13:05:00.000Z' }],
       });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -148,6 +152,7 @@ describe('Order Controller - updateOrderStatus', () => {
           ready_at: '2024-06-15T13:15:00.000Z',
         }],
       });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -282,8 +287,9 @@ describe('Order Controller - updateOrderStatus', () => {
   });
 
   describe('Realtime event publishing', () => {
-    it('should publish status_updated event to orders:queue on success', async () => {
+    it('should publish status_updated event to the tenant-namespaced orders:queue channel on success', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder, status: 'aguardando' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -298,7 +304,7 @@ describe('Order Controller - updateOrderStatus', () => {
       await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue', 'status_updated', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'status_updated', expect.objectContaining({
         id: 'order-uuid-1',
         status: 'preparando',
       }));
@@ -306,6 +312,7 @@ describe('Order Controller - updateOrderStatus', () => {
 
     it('should still return 200 even if Realtime publish fails', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder, status: 'aguardando' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
@@ -327,7 +334,7 @@ describe('Order Controller - updateOrderStatus', () => {
 
   describe('Internal server error', () => {
     it('should return 500 when database connection fails', async () => {
-      mockConnect.mockRejectedValueOnce(new Error('Connection failed'));
+      mockQuery.mockRejectedValueOnce(new Error('Connection failed'));
 
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'preparando' });
       const res = mockResponse();

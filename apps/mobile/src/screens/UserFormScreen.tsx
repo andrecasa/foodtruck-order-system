@@ -286,7 +286,7 @@ export function UserFormScreen() {
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
   };
 
   const inputStyle: TextStyle = {
@@ -365,7 +365,7 @@ export function UserFormScreen() {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     marginTop: 4,
     overflow: 'hidden',
   };

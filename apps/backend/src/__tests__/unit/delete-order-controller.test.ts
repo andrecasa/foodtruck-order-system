@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 vi.mock('../../config/supabase.js', () => ({
@@ -12,6 +12,9 @@ const mockBroadcast = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../config/realtime.js', () => ({
   broadcast: (...args: any[]) => mockBroadcast(...args),
+  tenantChannel: (base: string, tenantId: string) => `${base}:${tenantId}`,
+  REALTIME_CHANNEL_QUEUE: 'orders:queue',
+  REALTIME_CHANNEL_PAYMENT: 'orders:payment',
 }));
 
 // Mock pg Pool
@@ -36,6 +39,7 @@ function mockRequest(params?: any): Partial<AuthenticatedRequest> {
     body: {},
     params: params || {},
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   };
 }
 
@@ -109,7 +113,10 @@ describe('Order Controller - deleteOrder', () => {
     await deleteOrder(req as AuthenticatedRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(204);
-    expect(mockBroadcast).toHaveBeenCalledWith('orders:queue', 'order_deleted', { id: orderId });
+    expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'order_deleted', {
+      id: orderId,
+      tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    });
   });
 
   it('should allow deletion regardless of order status', async () => {

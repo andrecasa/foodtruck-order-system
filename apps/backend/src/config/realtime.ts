@@ -42,7 +42,30 @@ async function getChannel(channelName: string): Promise<RealtimeChannel> {
 }
 
 /**
+ * Base names of the tenant-namespaced realtime channels.
+ * The full channel name is `{base}:{tenantId}` (see {@link tenantChannel}).
+ */
+export const REALTIME_CHANNEL_QUEUE = 'orders:queue';
+export const REALTIME_CHANNEL_PAYMENT = 'orders:payment';
+
+/**
+ * Builds a tenant-namespaced channel name, e.g. `orders:queue:{tenantId}`.
+ * Namespacing keeps each tenant's realtime traffic isolated from every other
+ * tenant's (R12.7, R12.8).
+ */
+export function tenantChannel(base: string, tenantId: string): string {
+  return `${base}:${tenantId}`;
+}
+
+/**
  * Broadcasts an event on a Supabase Realtime channel.
+ *
+ * Subscription is LAZY: the first time a channel is broadcast on, it is
+ * subscribed and cached (via {@link getChannel}); subsequent broadcasts reuse
+ * the cached subscription. This replaces the old fixed global pre-warm, which
+ * cannot scale to N tenants (R12.7). Callers pass a tenant-namespaced channel
+ * name (see {@link tenantChannel}).
+ *
  * Fire-and-forget — errors are logged but do not propagate.
  */
 export async function broadcast(channelName: string, event: string, payload: unknown): Promise<void> {
@@ -56,18 +79,4 @@ export async function broadcast(channelName: string, event: string, payload: unk
   } catch (err) {
     console.error(`[realtime] Failed to broadcast "${event}" on "${channelName}":`, err);
   }
-}
-
-/**
- * Pre-subscribes to all known broadcast channels at startup.
- * This avoids the first-broadcast delay that causes "connection lost" on the frontend.
- */
-export function initRealtimeChannels(): void {
-  const channels = ['orders:queue', 'orders:payment'];
-  for (const ch of channels) {
-    getChannel(ch).catch((err) => {
-      console.error(`[realtime] Failed to pre-subscribe to "${ch}":`, err);
-    });
-  }
-  console.log('[realtime] Pre-subscribing to channels:', channels.join(', '));
 }

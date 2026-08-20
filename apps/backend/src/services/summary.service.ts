@@ -1,4 +1,4 @@
-import { pool } from '../config/database.js';
+import { tenantRepository } from '../db/tenant-repository.js';
 import { toZonedTime, format } from 'date-fns-tz';
 import type { DailySummary, MonthlySummaryResponse, DayBreakdown } from '@order-system/shared';
 
@@ -17,8 +17,13 @@ const monthlyCache = new Map<string, CacheEntry>();
 const CACHE_TTL_CURRENT_MONTH = 60_000; // 1 minute for current month
 const CACHE_TTL_PAST_MONTH = 3600_000;  // 1 hour for past months
 
-function getCacheKey(year: number, month: number): string {
-  return `${year}-${month}`;
+/**
+ * Cache key is scoped to the tenant so one tenant's monthly summary can never
+ * be served to another (R6.1). Different tenants keep independent cache entries
+ * for the same year/month.
+ */
+function getCacheKey(tenantId: string, year: number, month: number): string {
+  return `${tenantId}:${year}-${month}`;
 }
 
 function isCurrentMonth(year: number, month: number): boolean {
@@ -27,12 +32,20 @@ function isCurrentMonth(year: number, month: number): boolean {
   return zonedNow.getFullYear() === year && zonedNow.getMonth() + 1 === month;
 }
 
-/** Invalidate cache for a specific month (called after order changes) */
-export function invalidateMonthlySummaryCache(year?: number, month?: number): void {
+/**
+ * Invalidate cache for a specific tenant/month (called after order changes).
+ * Without a year/month, clears every cached month for the tenant.
+ */
+export function invalidateMonthlySummaryCache(tenantId: string, year?: number, month?: number): void {
   if (year && month) {
-    monthlyCache.delete(getCacheKey(year, month));
+    monthlyCache.delete(getCacheKey(tenantId, year, month));
   } else {
-    monthlyCache.clear();
+    const prefix = `${tenantId}:`;
+    for (const key of monthlyCache.keys()) {
+      if (key.startsWith(prefix)) {
+        monthlyCache.delete(key);
+      }
+    }
   }
 }
 
@@ -52,10 +65,15 @@ export class ServiceError extends Error {
 // --- Service functions ---
 
 /**
- * Returns the daily summary (aggregated orders) for a given date.
- * If no date provided, defaults to today in America/Sao_Paulo timezone.
+ * Returns the daily summary (aggregated orders) for a given tenant and date.
+ * If no date provided, defaults to today in America/Sao_Paulo timezone (R12.6).
+ * The aggregation is scoped to `tenantId` via the TenantRepository (R6.1): the
+ * mandatory `$1` tenant placeholder guarantees only this tenant's orders are
+ * aggregated.
  */
-export async function getDailySummary(dateParam?: string): Promise<DailySummary> {
+export async function getDailySummary(tenantId: string, dateParam?: string): Promise<DailySummary> {
+  const repo = tenantRepository(tenantId);
+
   let targetDate: string;
 
   if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
@@ -66,7 +84,16 @@ export async function getDailySummary(dateParam?: string): Promise<DailySummary>
     targetDate = format(zonedDate, 'yyyy-MM-dd', { timeZone: SAO_PAULO_TZ });
   }
 
-  const result = await pool.query(
+  const rows = await repo.raw<{
+    total_orders: number;
+    paid_orders: number;
+    pending_orders: number;
+    paid_total: number;
+    pending_total: number;
+    by_dinheiro: number;
+    by_pix: number;
+    by_cartao: number;
+  }>(
     `SELECT
       COUNT(*)::int AS total_orders,
       COUNT(*) FILTER (WHERE payment_status = 'pago')::int AS paid_orders,
@@ -77,11 +104,12 @@ export async function getDailySummary(dateParam?: string): Promise<DailySummary>
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'pix'), 0)::int AS by_pix,
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão'), 0)::int AS by_cartao
     FROM orders
-    WHERE order_date = $1`,
-    [targetDate]
+    WHERE tenant_id = $1 AND order_date = $2`,
+    [tenantId, targetDate],
   );
 
-  const row = result.rows[0];
+  // The aggregation always yields exactly one row (COUNT/SUM over the set).
+  const row = rows[0]!;
 
   return {
     date: targetDate,
@@ -99,16 +127,39 @@ export async function getDailySummary(dateParam?: string): Promise<DailySummary>
 }
 
 /**
- * Returns monthly accumulated totals and per-day breakdown for a given year/month.
+ * Returns monthly accumulated totals and per-day breakdown for a given tenant
+ * and year/month. Results are cached per tenant/month (R6.1): the cache key
+ * includes the tenantId so no cross-tenant data can be served from cache.
  */
-export async function getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse> {
+export async function getMonthlySummary(
+  tenantId: string,
+  year: number,
+  month: number,
+): Promise<MonthlySummaryResponse> {
+  const repo = tenantRepository(tenantId);
+
+  // Serve from the tenant-scoped cache when still fresh.
+  const cacheKey = getCacheKey(tenantId, year, month);
+  const cached = monthlyCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
   // Calculate first and last day of the month
   const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
   const daysInMonth = new Date(year, month, 0).getDate();
   const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
 
-  // Query monthly totals
-  const totalsResult = await pool.query(
+  // Query monthly totals (tenant_id = $1 is mandatory for raw()).
+  const totalsRows = await repo.raw<{
+    total_orders: number;
+    total_revenue: string;
+    total_received: string;
+    total_pending: string;
+    by_dinheiro: string;
+    by_pix: string;
+    by_cartao: string;
+  }>(
     `SELECT
       COUNT(*)::int AS total_orders,
       COALESCE(SUM(total_amount_cents), 0)::bigint AS total_revenue,
@@ -118,34 +169,35 @@ export async function getMonthlySummary(year: number, month: number): Promise<Mo
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'pix'), 0)::bigint AS by_pix,
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão'), 0)::bigint AS by_cartao
     FROM orders
-    WHERE order_date >= $1 AND order_date <= $2`,
-    [firstDay, lastDay]
+    WHERE tenant_id = $1 AND order_date >= $2 AND order_date <= $3`,
+    [tenantId, firstDay, lastDay],
   );
 
-  // Query per-day breakdown
-  const daysResult = await pool.query(
+  // Query per-day breakdown (tenant_id = $1 is mandatory for raw()).
+  const daysRows = await repo.raw<{ day: number; order_count: number; revenue: string; paid_orders: number }>(
     `SELECT
       EXTRACT(DAY FROM order_date)::int AS day,
       COUNT(*)::int AS order_count,
       COALESCE(SUM(total_amount_cents), 0)::bigint AS revenue,
       COUNT(*) FILTER (WHERE payment_status = 'pago')::int AS paid_orders
     FROM orders
-    WHERE order_date >= $1 AND order_date <= $2
+    WHERE tenant_id = $1 AND order_date >= $2 AND order_date <= $3
     GROUP BY EXTRACT(DAY FROM order_date)
     ORDER BY day`,
-    [firstDay, lastDay]
+    [tenantId, firstDay, lastDay],
   );
 
-  const totalsRow = totalsResult.rows[0];
+  // The totals aggregation always yields exactly one row.
+  const totalsRow = totalsRows[0]!;
 
-  const days: DayBreakdown[] = daysResult.rows.map((row: { day: number; order_count: number; revenue: string; paid_orders: number }) => ({
+  const days: DayBreakdown[] = daysRows.map((row) => ({
     day: row.day,
     orderCount: row.order_count,
     revenue: Number(row.revenue),
     paidOrders: row.paid_orders,
   }));
 
-  return {
+  const response: MonthlySummaryResponse = {
     year,
     month,
     totals: {
@@ -161,4 +213,11 @@ export async function getMonthlySummary(year: number, month: number): Promise<Mo
     },
     days,
   };
+
+  // Store in the tenant-scoped cache with a TTL that depends on whether the
+  // requested month is the current month (shorter) or a past month (longer).
+  const ttl = isCurrentMonth(year, month) ? CACHE_TTL_CURRENT_MONTH : CACHE_TTL_PAST_MONTH;
+  monthlyCache.set(cacheKey, { data: response, expiresAt: Date.now() + ttl });
+
+  return response;
 }

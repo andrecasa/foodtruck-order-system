@@ -76,8 +76,8 @@ describe('Property 8: Filtro por role retorna apenas usuários correspondentes',
           fields: [],
         } as never);
 
-        // Call the service with role filter
-        const result = await listUsers({ role: selectedRole });
+        // Call the service with role filter (tenant-scoped)
+        const result = await listUsers('tenant-a', { role: selectedRole });
 
         // ALL returned users have exactly the filtered role
         for (const user of result) {
@@ -91,10 +91,16 @@ describe('Property 8: Filtro por role retorna apenas usuários correspondentes',
         // All users with the matching role from the original set are present
         expect(result).toHaveLength(sortedExpected.length);
 
-        // Verify pool.query was called with correct role filter
+        // Verify pool.query was called with tenant scope and the role filter.
+        // TenantRepository injects tenant_id as $1, so the role predicate is
+        // renumbered to $2.
         expect(pool.query).toHaveBeenCalledWith(
-          expect.stringContaining('role = $1'),
-          expect.arrayContaining([selectedRole]),
+          expect.stringContaining('tenant_id = $1'),
+          expect.arrayContaining(['tenant-a', selectedRole]),
+        );
+        expect(pool.query).toHaveBeenCalledWith(
+          expect.stringContaining('role = $2'),
+          expect.anything(),
         );
       }),
       { numRuns: 100 },
@@ -163,8 +169,8 @@ describe('Property 9: Filtro por status retorna apenas usuários correspondentes
           fields: [],
         } as never);
 
-        // Call listUsers with the status filter
-        const result = await listUsers({ status: selectedStatus });
+        // Call listUsers with the status filter (tenant-scoped)
+        const result = await listUsers('tenant-a', { status: selectedStatus });
 
         // ALL returned users must have exactly the filtered status
         for (const user of result) {
@@ -178,10 +184,14 @@ describe('Property 9: Filtro por status retorna apenas usuários correspondentes
         // All users with the matching status from the original set are present
         expect(result).toHaveLength(sortedExpected.length);
 
-        // Verify the query was called with proper status parameter
+        // Verify the query was called with tenant scope and the status filter.
         expect(pool.query).toHaveBeenCalledWith(
-          expect.stringContaining('status = $'),
-          expect.arrayContaining([selectedStatus]),
+          expect.stringContaining('tenant_id = $1'),
+          expect.arrayContaining(['tenant-a', selectedStatus]),
+        );
+        expect(pool.query).toHaveBeenCalledWith(
+          expect.stringContaining('status = $2'),
+          expect.anything(),
         );
       }),
       { numRuns: 100 },
@@ -259,8 +269,8 @@ describe('Property 7: Listagem ordenada alfabeticamente por nome (case-insensiti
           fields: [],
         } as never);
 
-        // Call listUsers
-        const result = await listUsers();
+        // Call listUsers (tenant-scoped)
+        const result = await listUsers('tenant-a');
 
         // Property: for any i < j, result[i].name.toLowerCase() <= result[j].name.toLowerCase()
         for (let i = 0; i < result.length - 1; i++) {
@@ -292,7 +302,7 @@ describe('Property 7: Listagem ordenada alfabeticamente por nome (case-insensiti
         } as never);
 
         // Call listUsers and verify the lowercase projection of names is in non-decreasing order
-        const result = await listUsers();
+        const result = await listUsers('tenant-a');
         const lowerNames = result.map((u) => u.name.toLowerCase());
         for (let i = 0; i < lowerNames.length - 1; i++) {
           expect(lowerNames[i]!.localeCompare(lowerNames[i + 1]!)).toBeLessThanOrEqual(0);

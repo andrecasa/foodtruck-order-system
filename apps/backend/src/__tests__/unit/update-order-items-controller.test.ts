@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
 vi.mock('../../config/supabase.js', () => ({
@@ -12,6 +12,9 @@ const mockBroadcast = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../config/realtime.js', () => ({
   broadcast: (...args: any[]) => mockBroadcast(...args),
+  tenantChannel: (base: string, tenantId: string) => `${base}:${tenantId}`,
+  REALTIME_CHANNEL_QUEUE: 'orders:queue',
+  REALTIME_CHANNEL_PAYMENT: 'orders:payment',
 }));
 
 // Mock pg Pool
@@ -40,6 +43,7 @@ function mockRequest(body?: any, params?: any): Partial<AuthenticatedRequest> {
     body: body || {},
     params: params || {},
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   };
 }
 
@@ -112,7 +116,7 @@ describe('Order Controller - updateOrderItems', () => {
     // BEGIN
     mockQuery.mockResolvedValueOnce(undefined);
     // DELETE old order_items
-    mockQuery.mockResolvedValueOnce(undefined);
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
     // INSERT order_item 1
     mockQuery.mockResolvedValueOnce({
       rows: [{
@@ -136,7 +140,7 @@ describe('Order Controller - updateOrderItems', () => {
       }],
     });
     // UPDATE orders.total_amount_cents
-    mockQuery.mockResolvedValueOnce(undefined);
+    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
     // COMMIT
     mockQuery.mockResolvedValueOnce(undefined);
   }
@@ -194,7 +198,7 @@ describe('Order Controller - updateOrderItems', () => {
       expect(res.body.items[1].unitPriceCents).toBe(300);
     });
 
-    it('should broadcast order_updated event on orders:queue channel', async () => {
+    it('should broadcast order_updated event on the tenant-namespaced orders:queue channel', async () => {
       setupOrderLookup();
       setupMenuLookup();
       setupSuccessfulTransaction();
@@ -205,7 +209,7 @@ describe('Order Controller - updateOrderItems', () => {
       await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue', 'order_updated', expect.objectContaining({
+      expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'order_updated', expect.objectContaining({
         id: orderId,
         totalAmountCents: 1800,
         items: expect.arrayContaining([

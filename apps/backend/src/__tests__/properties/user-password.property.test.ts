@@ -75,8 +75,8 @@ describe('Property 16: Reset de senha aceita qualquer senha de comprimento váli
             error: null,
           } as never);
 
-          // resetPassword must resolve without error
-          await expect(resetPassword(id, password)).resolves.toBeUndefined();
+          // resetPassword must resolve without error (tenant-scoped)
+          await expect(resetPassword('tenant-a', id, password)).resolves.toBeUndefined();
 
           // Verify updateUserById was called with correct id and password
           expect(supabaseAdmin.auth.admin.updateUserById).toHaveBeenCalledWith(id, {

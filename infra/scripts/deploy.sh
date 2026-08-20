@@ -80,11 +80,11 @@ echo ">>> Aguardando estabilizar (15s)..."
 sleep 15
 
 # ─────────────────────────────────────────────
-# 5. Executar migrations e seed
+# 5. Provisionar o primeiro tenant + admin logável (onboarding idempotente)
 # ─────────────────────────────────────────────
-echo ">>> Executando seed do admin..."
-if [ -f "./scripts/seed-admin.sh" ]; then
-  bash ./scripts/seed-admin.sh
+echo ">>> Provisionando o primeiro tenant (onboarding)..."
+if [ -f "./scripts/seed-first-tenant.sh" ]; then
+  bash ./scripts/seed-first-tenant.sh
 fi
 
 # ─────────────────────────────────────────────

@@ -11,7 +11,8 @@ import {
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
 import { ThemeProvider } from '../src/theme/ThemeProvider';
-import { AuthProvider } from '../src/hooks/useAuth';
+import { useTenantTheme } from '../src/theme/useTenantTheme';
+import { AuthProvider, useAuth } from '../src/hooks/useAuth';
 
 /**
  * Root layout — loads custom fonts (Inter + Material Symbols Outlined)
@@ -53,10 +54,27 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }}>
+      <AuthProvider>
+        <ThemedApp />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+
+/**
+ * Resolves the per-tenant theme from the authenticated user's branding (fetched from
+ * the backend after login) and applies it via ThemeProvider before the authenticated
+ * screens render. Falls back to the neutral platform theme when unauthenticated or when
+ * the branding fetch fails/times out (Requirements 7.2, 7.4, 7.5, 7.8, 11.5, 11.7).
+ */
+function ThemedApp() {
+  const { isAuthenticated } = useAuth();
+  const { theme } = useTenantTheme(isAuthenticated);
+
+  return (
+    <ThemeProvider theme={theme}>
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen
@@ -108,9 +126,7 @@ export default function RootLayout() {
                 headerShown: false,
               }}
             />
-          </Stack>
-        </AuthProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+      </Stack>
+    </ThemeProvider>
   );
 }

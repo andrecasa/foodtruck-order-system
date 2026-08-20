@@ -78,6 +78,7 @@ describe('Feature: categories-crud, Property 7: Deactivation guard', () => {
           const req = {
             params: { id },
             body: { action: 'deactivate' },
+            tenantId: 'tenant-1',
           } as never;
 
           const statusFn = vi.fn().mockReturnThis();
@@ -129,16 +130,16 @@ describe('Feature: categories-crud, Property 7: Deactivation guard', () => {
                 fields: [],
               } as never;
             } else if (queryCall === 2) {
-              // 2. Active items count = 0
+              // 2. Active items = none (tenant-scoped select returns empty rows)
               return {
-                rows: [{ count: 0 }],
+                rows: [],
                 command: 'SELECT',
-                rowCount: 1,
+                rowCount: 0,
                 oid: 0,
                 fields: [],
               } as never;
             } else {
-              // 3. Update to inativo - return updated row
+              // 3. Update to inativo (rowCount) and 4. re-read returns updated row
               return {
                 rows: [{
                   id,
@@ -158,6 +159,7 @@ describe('Feature: categories-crud, Property 7: Deactivation guard', () => {
           const req = {
             params: { id },
             body: { action: 'deactivate' },
+            tenantId: 'tenant-1',
           } as never;
 
           const statusFn = vi.fn().mockReturnThis();

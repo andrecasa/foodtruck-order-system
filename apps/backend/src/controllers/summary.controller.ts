@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as summaryService from '../services/summary.service.js';
 
 /**
@@ -10,7 +10,7 @@ import * as summaryService from '../services/summary.service.js';
 export async function getDailySummary(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const dateParam = req.query.date as string | undefined;
-    const summary = await summaryService.getDailySummary(dateParam);
+    const summary = await summaryService.getDailySummary(req.tenantId as string, dateParam);
     res.status(200).json(summary);
   } catch {
     res.status(500).json({
@@ -49,7 +49,7 @@ export async function getMonthlySummary(req: AuthenticatedRequest, res: Response
       return;
     }
 
-    const response = await summaryService.getMonthlySummary(year, month);
+    const response = await summaryService.getMonthlySummary(req.tenantId as string, year, month);
     res.status(200).json(response);
   } catch {
     res.status(500).json({

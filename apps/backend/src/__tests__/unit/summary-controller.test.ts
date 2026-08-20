@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
+
+const TENANT = '11111111-1111-1111-1111-111111111111';
 
 // Mock pg Pool
 const mockQuery = vi.fn();
@@ -25,6 +27,7 @@ import { getDailySummary } from '../../controllers/summary.controller.js';
 function mockRequest(): Partial<AuthenticatedRequest> {
   return {
     user: { id: 'user-1', email: 'test@test.com' },
+    tenantId: TENANT,
     query: {},
   };
 }
@@ -231,10 +234,10 @@ describe('Summary Controller - getDailySummary', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.date).toBe('2024-06-15');
-      // Verify query used the SP date
+      // Verify query used the SP date and is scoped to the tenant
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE order_date = $1'),
-        ['2024-06-15']
+        expect.stringContaining('WHERE tenant_id = $1 AND order_date = $2'),
+        [TENANT, '2024-06-15']
       );
     });
 
@@ -267,8 +270,8 @@ describe('Summary Controller - getDailySummary', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.date).toBe('2024-06-15');
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE order_date = $1'),
-        ['2024-06-15']
+        expect.stringContaining('WHERE tenant_id = $1 AND order_date = $2'),
+        [TENANT, '2024-06-15']
       );
     });
   });
@@ -382,8 +385,8 @@ describe('Summary Controller - getDailySummary', () => {
       const sql = call[0];
       const params = call[1];
       expect(sql).toContain('FROM orders');
-      expect(sql).toContain('WHERE order_date = $1');
-      expect(params).toEqual(['2024-06-15']);
+      expect(sql).toContain('WHERE tenant_id = $1 AND order_date = $2');
+      expect(params).toEqual([TENANT, '2024-06-15']);
     });
   });
 });

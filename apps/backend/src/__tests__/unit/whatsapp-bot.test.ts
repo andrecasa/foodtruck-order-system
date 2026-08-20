@@ -18,7 +18,10 @@ vi.mock('../../config/supabase.js', () => ({
   },
 }));
 
-// Mock pg Pool
+// Mock pg Pool. The whatsapp service reaches the DB through the shared pool,
+// either directly (resolving the tenant's evolution instance) or through the
+// TenantRepository (session/menu/order reads and writes), so a single query
+// mock covers both paths.
 const mockQuery = vi.fn();
 const mockRelease = vi.fn();
 const mockConnect = vi.fn();
@@ -47,6 +50,8 @@ import {
 } from '../../bot/whatsapp.service.js';
 import type { CartItem } from '../../bot/whatsapp.service.js';
 
+const TENANT_ID = '11111111-1111-1111-1111-111111111111';
+
 // --- Helper Functions ---
 
 function mockRequest(body?: any, headers?: Record<string, string>): Partial<Request> {
@@ -70,6 +75,11 @@ function mockResponse(): Partial<Response> & { statusCode: number; body: any } {
     },
   };
   return res;
+}
+
+/** Queues the initial resolveInstanceName() tenant lookup for a scenario. */
+function mockResolveInstance(instanceName: string | null = 'tenant-instance') {
+  mockQuery.mockResolvedValueOnce({ rows: [{ evolution_instance_name: instanceName }] });
 }
 
 // --- Tests ---
@@ -239,7 +249,7 @@ describe('WhatsApp Bot - Webhook Controller', () => {
 
   it('should reject request without valid API key', async () => {
     const req = mockRequest(
-      { event: 'messages.upsert', data: {} },
+      { instance: 'tenant-instance', event: 'messages.upsert', data: {} },
       { apikey: 'wrong-key' }
     );
     const res = mockResponse();
@@ -251,8 +261,10 @@ describe('WhatsApp Bot - Webhook Controller', () => {
   });
 
   it('should accept request with valid API key', async () => {
+    // Known tenant resolves for the instance.
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: TENANT_ID }] });
     const req = mockRequest(
-      { event: 'messages.upsert', data: { key: { remoteJid: '5511999999999@s.whatsapp.net', fromMe: true } } },
+      { instance: 'tenant-instance', event: 'messages.upsert', data: { key: { remoteJid: '5511999999999@s.whatsapp.net', fromMe: true } } },
       { apikey: 'change-me-evolution-api-key' }
     );
     const res = mockResponse();
@@ -263,8 +275,9 @@ describe('WhatsApp Bot - Webhook Controller', () => {
   });
 
   it('should ignore non-message events', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: TENANT_ID }] });
     const req = mockRequest(
-      { event: 'connection.update', data: {} },
+      { instance: 'tenant-instance', event: 'connection.update', data: {} },
       { apikey: 'change-me-evolution-api-key' }
     );
     const res = mockResponse();
@@ -276,8 +289,10 @@ describe('WhatsApp Bot - Webhook Controller', () => {
   });
 
   it('should ignore fromMe messages', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: TENANT_ID }] });
     const req = mockRequest(
       {
+        instance: 'tenant-instance',
         event: 'messages.upsert',
         data: {
           key: { remoteJid: '5511999999999@s.whatsapp.net', fromMe: true },
@@ -295,8 +310,10 @@ describe('WhatsApp Bot - Webhook Controller', () => {
   });
 
   it('should ignore messages without text content', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: TENANT_ID }] });
     const req = mockRequest(
       {
+        instance: 'tenant-instance',
         event: 'messages.upsert',
         data: {
           key: { remoteJid: '5511999999999@s.whatsapp.net', fromMe: false },
@@ -328,9 +345,11 @@ describe('WhatsApp Bot - State Machine', () => {
 
   describe('New session (saudacao flow)', () => {
     it('should create session and send greeting with menu for new user', async () => {
-      // No existing session
+      // resolveInstanceName
+      mockResolveInstance();
+      // getSession -> no existing session
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Create session
+      // createSession (INSERT ... ON CONFLICT)
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -340,17 +359,17 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date().toISOString(),
         }],
       });
-      // Fetch active menu items
+      // fetchActiveMenuItems
       mockQuery.mockResolvedValueOnce({
         rows: [
           { id: '1', name: 'Pastel de Carne', price_cents: 750, category_name: 'Pastéis Salgados', category_sort_order: 1 },
           { id: '2', name: 'Água Mineral', price_cents: 300, category_name: 'Bebidas', category_sort_order: 3 },
         ],
       });
-      // Update session to selecionando
+      // updateSession to selecionando
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'João', 'oi');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'oi');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
       const sentMessage = mockSendTextMessage.mock.calls[0]![0];
@@ -360,12 +379,15 @@ describe('WhatsApp Bot - State Machine', () => {
       expect(sentMessage.text).toContain('R$ 7,50');
       expect(sentMessage.text).toContain('Água Mineral');
       expect(sentMessage.text).toContain('R$ 3,00');
+      // Message is sent through the tenant's own Evolution instance.
+      expect(sentMessage.instanceName).toBe('tenant-instance');
     });
 
     it('should handle empty menu by informing and ending session', async () => {
-      // No existing session
+      mockResolveInstance();
+      // getSession -> none
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Create session
+      // createSession
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -375,12 +397,12 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date().toISOString(),
         }],
       });
-      // Fetch active menu items - empty
+      // fetchActiveMenuItems - empty
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Delete session
+      // deleteSession
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'Maria', 'oi');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'Maria', 'oi');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
       const sentMessage = mockSendTextMessage.mock.calls[0]![0];
@@ -390,38 +412,8 @@ describe('WhatsApp Bot - State Machine', () => {
 
   describe('Existing session (selecionando flow)', () => {
     it('should add item to cart when valid number is sent', async () => {
-      // Existing session in selecionando state
-      mockQuery.mockResolvedValueOnce({
-        rows: [{
-          phone_number: '5511999999999',
-          state: 'selecionando',
-          cart: [],
-          started_at: new Date().toISOString(),
-          last_activity_at: new Date(Date.now() - 1000).toISOString(), // 1 second ago
-        }],
-      });
-      // Update session (touch last_activity)
-      mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Fetch numbered menu items
-      mockQuery.mockResolvedValueOnce({
-        rows: [
-          { id: 'item-1', name: 'Pastel de Carne', price_cents: 750, category_name: 'Pastéis Salgados', category_sort_order: 1 },
-          { id: 'item-2', name: 'Água Mineral', price_cents: 300, category_name: 'Bebidas', category_sort_order: 3 },
-        ],
-      });
-      // Update session with new cart
-      mockQuery.mockResolvedValueOnce({ rows: [] });
-
-      await handleIncomingMessage('5511999999999', 'João', '1');
-
-      expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
-      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
-      expect(sentMessage.text).toContain('Adicionado');
-      expect(sentMessage.text).toContain('Pastel de Carne');
-    });
-
-    it('should respond with error for unexpected message in selecionando', async () => {
-      // Existing session in selecionando state
+      mockResolveInstance();
+      // getSession -> existing selecionando session
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -431,10 +423,42 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date(Date.now() - 1000).toISOString(),
         }],
       });
-      // Update session (touch last_activity)
+      // updateSession (touch last_activity)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // getNumberedMenuItems -> fetchActiveMenuItems
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 'item-1', name: 'Pastel de Carne', price_cents: 750, category_name: 'Pastéis Salgados', category_sort_order: 1 },
+          { id: 'item-2', name: 'Água Mineral', price_cents: 300, category_name: 'Bebidas', category_sort_order: 3 },
+        ],
+      });
+      // updateSession with new cart
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'João', 'quero pastel');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', '1');
+
+      expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
+      expect(sentMessage.text).toContain('Adicionado');
+      expect(sentMessage.text).toContain('Pastel de Carne');
+    });
+
+    it('should respond with error for unexpected message in selecionando', async () => {
+      mockResolveInstance();
+      // getSession -> existing selecionando session
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          phone_number: '5511999999999',
+          state: 'selecionando',
+          cart: [],
+          started_at: new Date().toISOString(),
+          last_activity_at: new Date(Date.now() - 1000).toISOString(),
+        }],
+      });
+      // updateSession (touch last_activity)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'quero pastel');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
       const sentMessage = mockSendTextMessage.mock.calls[0]![0];
@@ -450,7 +474,8 @@ describe('WhatsApp Bot - State Machine', () => {
         { menuItemId: 'item-1', name: 'Pastel de Carne', quantity: 2, unitPriceCents: 750 },
       ];
 
-      // Existing session in selecionando state with items in cart
+      mockResolveInstance();
+      // getSession -> selecionando with items
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -460,12 +485,12 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date(Date.now() - 1000).toISOString(),
         }],
       });
-      // Update session (touch last_activity)
+      // updateSession (touch last_activity)
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Update session to resumo state
+      // updateSession to resumo
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'João', 'pronto');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'pronto');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
       const sentMessage = mockSendTextMessage.mock.calls[0]![0];
@@ -475,12 +500,13 @@ describe('WhatsApp Bot - State Machine', () => {
       expect(sentMessage.text).toContain('CONFIRMAR');
     });
 
-    it('should create order and confirm when user confirms', async () => {
+    it('should create order attributed to a tenant admin and confirm', async () => {
       const cart: CartItem[] = [
         { menuItemId: 'item-1', name: 'Pastel de Carne', quantity: 2, unitPriceCents: 750 },
       ];
 
-      // Existing session in resumo state
+      mockResolveInstance();
+      // getSession -> resumo state
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -490,13 +516,12 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date(Date.now() - 1000).toISOString(),
         }],
       });
-      // Update session (touch last_activity)
+      // updateSession (touch last_activity)
       mockQuery.mockResolvedValueOnce({ rows: [] });
-
-      // Admin lookup for created_by
+      // Active admin lookup for THIS tenant (created_by)
       mockQuery.mockResolvedValueOnce({ rows: [{ id: 'admin-uuid-1' }] });
 
-      // Order creation transaction
+      // Order creation transaction (withTransaction uses pool.connect()).
       mockConnect.mockResolvedValue({
         query: mockQuery,
         release: mockRelease,
@@ -520,13 +545,22 @@ describe('WhatsApp Bot - State Machine', () => {
         }],
       });
       // INSERT order_item
-      mockQuery.mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'oi-1' }] });
       // COMMIT
       mockQuery.mockResolvedValueOnce(undefined);
-      // Delete session
+      // deleteSession
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'João', 'confirmar');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'confirmar');
+
+      // The admin lookup is scoped to the tenant and active admins only.
+      const adminCall = mockQuery.mock.calls.find(
+        (c) => typeof c[0] === 'string' && c[0].includes("role = 'admin'")
+      );
+      expect(adminCall).toBeDefined();
+      expect(String(adminCall![0])).toContain("status = 'ativo'");
+      expect(String(adminCall![0])).toContain('tenant_id = $1');
+      expect(adminCall![1]).toEqual([TENANT_ID]);
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
       const sentMessage = mockSendTextMessage.mock.calls[0]![0];
@@ -535,12 +569,13 @@ describe('WhatsApp Bot - State Machine', () => {
       expect(sentMessage.text).toContain('R$ 15,00');
     });
 
-    it('should cancel order when user says CANCELAR in resumo', async () => {
+    it('should NOT create order and inform error when tenant has no active admin (R8.9)', async () => {
       const cart: CartItem[] = [
         { menuItemId: 'item-1', name: 'Pastel de Carne', quantity: 1, unitPriceCents: 750 },
       ];
 
-      // Existing session in resumo state
+      mockResolveInstance();
+      // getSession -> resumo state
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -550,12 +585,45 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date(Date.now() - 1000).toISOString(),
         }],
       });
-      // Update session (touch last_activity)
+      // updateSession (touch last_activity)
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Delete session
+      // Active admin lookup -> none for this tenant
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // deleteSession
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'João', 'cancelar');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'confirmar');
+
+      // No order was created: pool.connect() (transaction) must never be called.
+      expect(mockConnect).not.toHaveBeenCalled();
+
+      expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
+      const sentMessage = mockSendTextMessage.mock.calls[0]![0];
+      expect(sentMessage.text).toContain('erro ao criar seu pedido');
+    });
+
+    it('should cancel order when user says CANCELAR in resumo', async () => {
+      const cart: CartItem[] = [
+        { menuItemId: 'item-1', name: 'Pastel de Carne', quantity: 1, unitPriceCents: 750 },
+      ];
+
+      mockResolveInstance();
+      // getSession -> resumo state
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          phone_number: '5511999999999',
+          state: 'resumo',
+          cart: cart,
+          started_at: new Date().toISOString(),
+          last_activity_at: new Date(Date.now() - 1000).toISOString(),
+        }],
+      });
+      // updateSession (touch last_activity)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // deleteSession
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'cancelar');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
       const sentMessage = mockSendTextMessage.mock.calls[0]![0];
@@ -565,8 +633,10 @@ describe('WhatsApp Bot - State Machine', () => {
 
   describe('Session timeout', () => {
     it('should end session and restart when timed out', async () => {
-      // Existing session that is timed out (11 min ago)
       const timedOutDate = new Date(Date.now() - 11 * 60 * 1000).toISOString();
+
+      mockResolveInstance();
+      // getSession -> timed out session
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -576,9 +646,9 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: timedOutDate,
         }],
       });
-      // Delete session (timeout)
+      // deleteSession (timeout)
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      // Create new session
+      // createSession (new)
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -588,16 +658,16 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date().toISOString(),
         }],
       });
-      // Fetch active menu items
+      // fetchActiveMenuItems
       mockQuery.mockResolvedValueOnce({
         rows: [
           { id: '1', name: 'Pastel de Carne', price_cents: 750, category_name: 'Pastéis Salgados', category_sort_order: 1 },
         ],
       });
-      // Update session to selecionando
+      // updateSession to selecionando
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'João', 'oi');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'oi');
 
       // Should send timeout message + greeting
       expect(mockSendTextMessage).toHaveBeenCalledTimes(2);
@@ -612,7 +682,8 @@ describe('WhatsApp Bot - State Machine', () => {
         { menuItemId: 'item-1', name: 'Pastel de Carne', quantity: 1, unitPriceCents: 750 },
       ];
 
-      // Existing session in resumo state
+      mockResolveInstance();
+      // getSession -> resumo state
       mockQuery.mockResolvedValueOnce({
         rows: [{
           phone_number: '5511999999999',
@@ -622,10 +693,10 @@ describe('WhatsApp Bot - State Machine', () => {
           last_activity_at: new Date(Date.now() - 1000).toISOString(),
         }],
       });
-      // Update session (touch last_activity)
+      // updateSession (touch last_activity)
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await handleIncomingMessage('5511999999999', 'João', 'blablabla');
+      await handleIncomingMessage(TENANT_ID, '5511999999999', 'João', 'blablabla');
 
       expect(mockSendTextMessage).toHaveBeenCalledTimes(1);
       const sentMessage = mockSendTextMessage.mock.calls[0]![0];

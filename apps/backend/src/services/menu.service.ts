@@ -1,4 +1,4 @@
-import { pool } from '../config/database.js';
+import { tenantRepository } from '../db/tenant-repository.js';
 
 // --- Interfaces ---
 
@@ -45,29 +45,35 @@ export class ServiceError extends Error {
 // --- Service functions ---
 
 /**
- * Returns menu items grouped by category.
+ * Returns menu items grouped by category for the given tenant.
  * If showAll is false, only active items in active categories are returned.
+ * All access is scoped to `tenantId` via the TenantRepository (R6.1).
  */
-export async function getMenu(showAll: boolean): Promise<MenuGroup[]> {
+export async function getMenu(tenantId: string, showAll: boolean): Promise<MenuGroup[]> {
+  const repo = tenantRepository(tenantId);
+
+  // tenant_id is $1 (required by raw()); the JOIN also filters categories by
+  // the same tenant so cross-tenant categories can never leak in.
   const query = showAll
     ? `SELECT mi.id, mi.name, mi.price_cents, mi.status, mi.created_at, mi.updated_at,
               c.name AS category_name, c.sort_order AS category_sort_order
        FROM menu_items mi
-       LEFT JOIN categories c ON mi.category_id = c.id
+       LEFT JOIN categories c ON mi.category_id = c.id AND c.tenant_id = $1
+       WHERE mi.tenant_id = $1
        ORDER BY c.sort_order ASC, mi.name ASC`
     : `SELECT mi.id, mi.name, mi.price_cents, mi.status, mi.created_at, mi.updated_at,
               c.name AS category_name, c.sort_order AS category_sort_order
        FROM menu_items mi
-       LEFT JOIN categories c ON mi.category_id = c.id
-       WHERE mi.status = 'ativo' AND c.status = 'ativo'
+       LEFT JOIN categories c ON mi.category_id = c.id AND c.tenant_id = $1
+       WHERE mi.tenant_id = $1 AND mi.status = 'ativo' AND c.status = 'ativo'
        ORDER BY c.sort_order ASC, mi.name ASC`;
 
-  const result = await pool.query(query);
+  const rows = await repo.raw<Record<string, any>>(query, [tenantId]);
 
   // Group by category
   const grouped: Record<string, { category: string; sortOrder: number; items: MenuItemRecord[] }> = {};
 
-  for (const row of result.rows) {
+  for (const row of rows) {
     const categoryName = row.category_name || 'Sem categoria';
     const sortOrder = row.category_sort_order ?? 999;
 
@@ -95,11 +101,13 @@ export async function getMenu(showAll: boolean): Promise<MenuGroup[]> {
 }
 
 /**
- * Creates a new menu item.
- * Validates: category exists and is active, name uniqueness among active items, price > 0.
+ * Creates a new menu item for the given tenant.
+ * Validates: category exists and is active (within tenant), name uniqueness
+ * among active items (within tenant), price > 0.
  */
-export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuItemRecord> {
+export async function createMenuItem(tenantId: string, input: CreateMenuItemInput): Promise<MenuItemRecord> {
   const { name, price, category } = input;
+  const repo = tenantRepository(tenantId);
 
   // Check price > 0
   if (price <= 0) {
@@ -110,13 +118,14 @@ export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuIt
     );
   }
 
-  // Check category exists (case-insensitive, active only)
-  const categoryResult = await pool.query(
-    `SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND status = 'ativo' LIMIT 1`,
-    [category]
-  );
+  // Check category exists (case-insensitive, active only) within the tenant
+  const categoryRows = await repo.select<{ id: string }>('categories', {
+    where: { text: `LOWER(name) = LOWER($1) AND status = 'ativo'`, params: [category] },
+  });
 
-  if (categoryResult.rows.length === 0) {
+  const categoryData = categoryRows[0];
+
+  if (!categoryData) {
     throw new ServiceError(
       'Categoria inválida',
       422,
@@ -124,15 +133,12 @@ export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuIt
     );
   }
 
-  const categoryData = categoryResult.rows[0];
+  // Check name uniqueness (case-insensitive) among active items within the tenant
+  const existing = await repo.select<{ id: string }>('menu_items', {
+    where: { text: `LOWER(name) = LOWER($1) AND status = 'ativo'`, params: [name] },
+  });
 
-  // Check name uniqueness (case-insensitive) among active items
-  const existingResult = await pool.query(
-    `SELECT id FROM menu_items WHERE LOWER(name) = LOWER($1) AND status = 'ativo'`,
-    [name]
-  );
-
-  if (existingResult.rows.length > 0) {
+  if (existing.length > 0) {
     throw new ServiceError(
       'Item com este nome já existe',
       409,
@@ -140,15 +146,23 @@ export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuIt
     );
   }
 
-  // Insert item
-  const insertResult = await pool.query(
-    `INSERT INTO menu_items (name, price_cents, category_id, status)
-     VALUES ($1, $2, $3, 'ativo')
-     RETURNING id, name, price_cents, status, created_at, updated_at, category_id`,
-    [name, price, categoryData.id]
-  );
+  // Insert item (tenant_id injected by the repository)
+  const newItem = await repo.insert<{
+    id: string;
+    name: string;
+    price_cents: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    category_id: string;
+  }>('menu_items', {
+    name,
+    price_cents: price,
+    category_id: categoryData.id,
+    status: 'ativo',
+  });
 
-  if (insertResult.rows.length === 0) {
+  if (!newItem) {
     throw new ServiceError(
       'Erro ao criar item.',
       500,
@@ -156,14 +170,11 @@ export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuIt
     );
   }
 
-  const newItem = insertResult.rows[0];
-
-  // Get category name
-  const catNameResult = await pool.query(
-    `SELECT name FROM categories WHERE id = $1`,
-    [newItem.category_id]
-  );
-  const catName = catNameResult.rows[0]?.name || category;
+  // Get category name (scoped to tenant)
+  const catRow = await repo.findOne<{ name: string }>('categories', {
+    where: { text: `id = $1`, params: [newItem.category_id] },
+  });
+  const catName = catRow?.name || category;
 
   return {
     id: newItem.id,
@@ -177,19 +188,25 @@ export async function createMenuItem(input: CreateMenuItemInput): Promise<MenuIt
 }
 
 /**
- * Updates a menu item.
- * Validates: item exists, price > 0, category exists if provided, name uniqueness if changed.
+ * Updates a menu item within the given tenant.
+ * Validates: item exists (within tenant → 404 otherwise), price > 0, category
+ * exists if provided, name uniqueness if changed. A menu item belonging to
+ * another tenant is treated as not existing (R6.3, R6.4).
  */
-export async function updateMenuItem(id: string, input: UpdateMenuItemInput): Promise<MenuItemRecord> {
+export async function updateMenuItem(
+  tenantId: string,
+  id: string,
+  input: UpdateMenuItemInput,
+): Promise<MenuItemRecord> {
   const { name, price, category } = input;
+  const repo = tenantRepository(tenantId);
 
-  // Check item exists
-  const itemResult = await pool.query(
-    `SELECT id, status FROM menu_items WHERE id = $1`,
-    [id]
-  );
+  // Check item exists within the tenant
+  const item = await repo.findOne<{ id: string; status: string }>('menu_items', {
+    where: { text: `id = $1`, params: [id] },
+  });
 
-  if (itemResult.rows.length === 0) {
+  if (!item) {
     throw new ServiceError(
       'Item não encontrado.',
       404,
@@ -206,32 +223,30 @@ export async function updateMenuItem(id: string, input: UpdateMenuItemInput): Pr
     );
   }
 
-  // If category provided, validate it exists
+  // If category provided, validate it exists within the tenant
   let categoryId: string | undefined;
   if (category !== undefined) {
-    const catResult = await pool.query(
-      `SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND status = 'ativo' LIMIT 1`,
-      [category]
-    );
+    const catRow = await repo.findOne<{ id: string }>('categories', {
+      where: { text: `LOWER(name) = LOWER($1) AND status = 'ativo'`, params: [category] },
+    });
 
-    if (catResult.rows.length === 0) {
+    if (!catRow) {
       throw new ServiceError(
         'Categoria inválida',
         422,
         'VALIDATION_ERROR',
       );
     }
-    categoryId = catResult.rows[0].id;
+    categoryId = catRow.id;
   }
 
-  // If name provided, check collision with other active items (excluding this one)
+  // If name provided, check collision with other active items (excluding this one) within the tenant
   if (name !== undefined) {
-    const collisionResult = await pool.query(
-      `SELECT id FROM menu_items WHERE LOWER(name) = LOWER($1) AND status = 'ativo' AND id != $2`,
-      [name, id]
-    );
+    const collisions = await repo.select<{ id: string }>('menu_items', {
+      where: { text: `LOWER(name) = LOWER($1) AND status = 'ativo' AND id != $2`, params: [name, id] },
+    });
 
-    if (collisionResult.rows.length > 0) {
+    if (collisions.length > 0) {
       throw new ServiceError(
         'Item com este nome já existe',
         409,
@@ -240,37 +255,15 @@ export async function updateMenuItem(id: string, input: UpdateMenuItemInput): Pr
     }
   }
 
-  // Build update query dynamically
-  const setClauses: string[] = ['updated_at = NOW()'];
-  const values: unknown[] = [];
-  let paramIndex = 1;
+  // Build update set dynamically
+  const set: Record<string, unknown> = { updated_at: new Date() };
+  if (name !== undefined) set.name = name;
+  if (price !== undefined) set.price_cents = price;
+  if (categoryId !== undefined) set.category_id = categoryId;
 
-  if (name !== undefined) {
-    setClauses.push(`name = $${paramIndex}`);
-    values.push(name);
-    paramIndex++;
-  }
-  if (price !== undefined) {
-    setClauses.push(`price_cents = $${paramIndex}`);
-    values.push(price);
-    paramIndex++;
-  }
-  if (categoryId !== undefined) {
-    setClauses.push(`category_id = $${paramIndex}`);
-    values.push(categoryId);
-    paramIndex++;
-  }
+  const affected = await repo.update('menu_items', set, { text: `id = $1`, params: [id] });
 
-  values.push(id);
-
-  // Execute update
-  const updateResult = await pool.query(
-    `UPDATE menu_items SET ${setClauses.join(', ')} WHERE id = $${paramIndex}
-     RETURNING id, name, price_cents, status, created_at, updated_at, category_id`,
-    values
-  );
-
-  if (updateResult.rows.length === 0) {
+  if (affected === 0) {
     throw new ServiceError(
       'Erro ao atualizar item.',
       500,
@@ -278,19 +271,35 @@ export async function updateMenuItem(id: string, input: UpdateMenuItemInput): Pr
     );
   }
 
-  const updated = updateResult.rows[0];
+  // Re-read the updated row (scoped to tenant) to return current values.
+  const updated = await repo.findOne<{
+    id: string;
+    name: string;
+    price_cents: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    category_id: string;
+  }>('menu_items', { where: { text: `id = $1`, params: [id] } });
 
-  // Get category name
-  const catNameResult = await pool.query(
-    `SELECT name FROM categories WHERE id = $1`,
-    [updated.category_id]
-  );
+  if (!updated) {
+    throw new ServiceError(
+      'Erro ao atualizar item.',
+      500,
+      'INTERNAL_ERROR',
+    );
+  }
+
+  // Get category name (scoped to tenant)
+  const catNameRow = await repo.findOne<{ name: string }>('categories', {
+    where: { text: `id = $1`, params: [updated.category_id] },
+  });
 
   return {
     id: updated.id,
     name: updated.name,
     price: updated.price_cents,
-    category: catNameResult.rows[0]?.name || category || '',
+    category: catNameRow?.name || category || '',
     status: updated.status,
     createdAt: updated.created_at,
     updatedAt: updated.updated_at,
@@ -298,16 +307,18 @@ export async function updateMenuItem(id: string, input: UpdateMenuItemInput): Pr
 }
 
 /**
- * Deletes a menu item if it has no associated order items.
+ * Deletes a menu item within the tenant if it has no associated order items.
+ * A menu item from another tenant is treated as not existing (R6.4 → 404).
  */
-export async function deleteMenuItem(id: string): Promise<void> {
-  // Check item exists
-  const itemResult = await pool.query(
-    `SELECT id FROM menu_items WHERE id = $1`,
-    [id]
-  );
+export async function deleteMenuItem(tenantId: string, id: string): Promise<void> {
+  const repo = tenantRepository(tenantId);
 
-  if (itemResult.rows.length === 0) {
+  // Check item exists within the tenant
+  const item = await repo.findOne<{ id: string }>('menu_items', {
+    where: { text: `id = $1`, params: [id] },
+  });
+
+  if (!item) {
     throw new ServiceError(
       'Item não encontrado.',
       404,
@@ -315,13 +326,12 @@ export async function deleteMenuItem(id: string): Promise<void> {
     );
   }
 
-  // Guard: check for associated order items
-  const orderItemsResult = await pool.query(
-    `SELECT COUNT(*)::int AS count FROM order_items WHERE menu_item_id = $1`,
-    [id]
-  );
+  // Guard: check for associated order items (scoped to tenant)
+  const orderItemRows = await repo.select<{ id: string }>('order_items', {
+    where: { text: `menu_item_id = $1`, params: [id] },
+  });
 
-  if (orderItemsResult.rows[0].count > 0) {
+  if (orderItemRows.length > 0) {
     throw new ServiceError(
       'Item possui pedidos associados. Desative o item em vez de excluí-lo.',
       422,
@@ -329,32 +339,48 @@ export async function deleteMenuItem(id: string): Promise<void> {
     );
   }
 
-  // Delete item
-  await pool.query(`DELETE FROM menu_items WHERE id = $1`, [id]);
+  // Delete item (scoped to tenant)
+  await repo.delete('menu_items', { text: `id = $1`, params: [id] });
 }
 
 /**
- * Toggles item status between 'ativo' and 'inativo'.
- * If activating, checks name uniqueness among other active items.
+ * Toggles item status between 'ativo' and 'inativo' within the tenant.
+ * If activating, checks name uniqueness among other active items (within tenant).
+ * A menu item from another tenant is treated as not existing (R6.4 → 404).
  */
-export async function toggleMenuItemStatus(id: string, requestedStatus?: string): Promise<MenuItemRecord> {
-  // Check item exists
-  const itemResult = await pool.query(
+export async function toggleMenuItemStatus(
+  tenantId: string,
+  id: string,
+  requestedStatus?: string,
+): Promise<MenuItemRecord> {
+  const repo = tenantRepository(tenantId);
+
+  // Check item exists within the tenant (join category scoped to same tenant)
+  const itemRows = await repo.raw<{
+    id: string;
+    name: string;
+    status: string;
+    price_cents: number;
+    created_at: string;
+    updated_at: string;
+    category_name: string | null;
+  }>(
     `SELECT mi.id, mi.name, mi.status, mi.price_cents, mi.created_at, mi.updated_at, c.name AS category_name
-     FROM menu_items mi LEFT JOIN categories c ON mi.category_id = c.id
-     WHERE mi.id = $1`,
-    [id]
+     FROM menu_items mi
+     LEFT JOIN categories c ON mi.category_id = c.id AND c.tenant_id = $1
+     WHERE mi.tenant_id = $1 AND mi.id = $2`,
+    [tenantId, id],
   );
 
-  if (itemResult.rows.length === 0) {
+  const existingItem = itemRows[0];
+
+  if (!existingItem) {
     throw new ServiceError(
       'Item não encontrado.',
       404,
       'NOT_FOUND',
     );
   }
-
-  const existingItem = itemResult.rows[0];
 
   // Determine new status: use requestedStatus if valid, otherwise toggle
   let newStatus: string;
@@ -364,14 +390,16 @@ export async function toggleMenuItemStatus(id: string, requestedStatus?: string)
     newStatus = existingItem.status === 'ativo' ? 'inativo' : 'ativo';
   }
 
-  // If activating, check name uniqueness among other active items
+  // If activating, check name uniqueness among other active items within the tenant
   if (newStatus === 'ativo' && existingItem.status === 'inativo') {
-    const collisionResult = await pool.query(
-      `SELECT id FROM menu_items WHERE LOWER(name) = LOWER($1) AND status = 'ativo' AND id != $2`,
-      [existingItem.name, id]
-    );
+    const collisions = await repo.select<{ id: string }>('menu_items', {
+      where: {
+        text: `LOWER(name) = LOWER($1) AND status = 'ativo' AND id != $2`,
+        params: [existingItem.name, id],
+      },
+    });
 
-    if (collisionResult.rows.length > 0) {
+    if (collisions.length > 0) {
       throw new ServiceError(
         'Item com este nome já existe',
         409,
@@ -380,15 +408,29 @@ export async function toggleMenuItemStatus(id: string, requestedStatus?: string)
     }
   }
 
-  // Update status
-  const updateResult = await pool.query(
-    `UPDATE menu_items SET status = $1, updated_at = NOW()
-     WHERE id = $2
-     RETURNING id, name, price_cents, status, created_at, updated_at`,
-    [newStatus, id]
+  // Update status (scoped to tenant)
+  await repo.update(
+    'menu_items',
+    { status: newStatus, updated_at: new Date() },
+    { text: `id = $1`, params: [id] },
   );
 
-  const updated = updateResult.rows[0];
+  const updated = await repo.findOne<{
+    id: string;
+    name: string;
+    price_cents: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+  }>('menu_items', { where: { text: `id = $1`, params: [id] } });
+
+  if (!updated) {
+    throw new ServiceError(
+      'Erro ao atualizar status.',
+      500,
+      'INTERNAL_ERROR',
+    );
+  }
 
   return {
     id: updated.id,

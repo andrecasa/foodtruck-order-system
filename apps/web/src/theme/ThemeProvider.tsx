@@ -1,12 +1,20 @@
-import React, { createContext, useContext, useLayoutEffect, useMemo } from 'react';
+import React, { createContext, useContext, useLayoutEffect, useMemo, useState, useCallback } from 'react';
 import type { ThemeConfig } from '@order-system/shared';
-import { loadTheme } from './theme.config';
+import { loadTheme, defaultTheme } from './theme.config';
 
-const ThemeContext = createContext<ThemeConfig | null>(null);
+interface ThemeContextValue {
+  theme: ThemeConfig;
+  /** Replaces the active theme (e.g. with the tenant branding fetched after login). */
+  setTheme: (theme: ThemeConfig) => void;
+  /** Resets the active theme back to the neutral platform default. */
+  resetTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  /** Optional theme override. If provided, skips loadTheme() and uses this value. */
+  /** Optional initial theme override. If provided, skips loadTheme() and uses this value. */
   theme?: ThemeConfig;
 }
 
@@ -32,6 +40,9 @@ function applyCSSVariables(theme: ThemeConfig): void {
   root.setProperty('--color-text-secondary', theme.colors.textSecondary);
   root.setProperty('--color-surface', theme.colors.surface);
   root.setProperty('--color-divider', theme.colors.divider);
+  root.setProperty('--color-border', theme.colors.border);
+  root.setProperty('--color-surface-disabled', theme.colors.surfaceDisabled);
+  root.setProperty('--color-text-disabled', theme.colors.textDisabled);
 
   // Typography
   root.setProperty('--font-family', theme.typography.fontFamily);
@@ -63,24 +74,39 @@ function applyCSSVariables(theme: ThemeConfig): void {
  * Provides ThemeConfig to all descendants via React Context and sets CSS custom
  * properties on document.documentElement.
  *
+ * The neutral platform theme is applied synchronously on mount (before the user
+ * authenticates), satisfying Requirement 11.6 (neutral branding within 1s of load)
+ * and R7.8/R11.7 (neutral fallback). After a successful login, the auth flow calls
+ * `setTheme()` with the tenant branding fetched from the backend, which re-applies
+ * the CSS variables before the authenticated screens paint (R7.2).
+ *
  * CSS variables are applied synchronously via useLayoutEffect to guarantee they
- * exist before any child component paints — satisfying Requirement 1.6
- * (global application before rendering).
+ * exist before any child component paints.
  */
 export function ThemeProvider({ children, theme }: ThemeProviderProps) {
-  const resolvedTheme = useMemo(() => theme ?? loadTheme(), [theme]);
+  const initialTheme = useMemo(() => theme ?? loadTheme(), [theme]);
+  const [activeTheme, setActiveTheme] = useState<ThemeConfig>(initialTheme);
+
+  const setTheme = useCallback((next: ThemeConfig) => {
+    setActiveTheme(next);
+  }, []);
+
+  const resetTheme = useCallback(() => {
+    setActiveTheme(defaultTheme);
+  }, []);
 
   // useLayoutEffect runs synchronously after DOM mutations but before the browser paints,
   // ensuring CSS variables are set before children are visually rendered.
   useLayoutEffect(() => {
-    applyCSSVariables(resolvedTheme);
-  }, [resolvedTheme]);
+    applyCSSVariables(activeTheme);
+  }, [activeTheme]);
 
-  return (
-    <ThemeContext.Provider value={resolvedTheme}>
-      {children}
-    </ThemeContext.Provider>
+  const value = useMemo<ThemeContextValue>(
+    () => ({ theme: activeTheme, setTheme, resetTheme }),
+    [activeTheme, setTheme, resetTheme],
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 /**
@@ -90,11 +116,27 @@ export function ThemeProvider({ children, theme }: ThemeProviderProps) {
  * @throws Error if called outside of a ThemeProvider.
  */
 export function useTheme(): ThemeConfig {
-  const theme = useContext(ThemeContext);
+  const ctx = useContext(ThemeContext);
 
-  if (theme === null) {
+  if (ctx === null) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
 
-  return theme;
+  return ctx.theme;
+}
+
+/**
+ * Hook to access theme mutation actions (apply tenant branding / reset to neutral).
+ * Must be used within a ThemeProvider.
+ *
+ * @throws Error if called outside of a ThemeProvider.
+ */
+export function useThemeActions(): Pick<ThemeContextValue, 'setTheme' | 'resetTheme'> {
+  const ctx = useContext(ThemeContext);
+
+  if (ctx === null) {
+    throw new Error('useThemeActions must be used within a ThemeProvider');
+  }
+
+  return { setTheme: ctx.setTheme, resetTheme: ctx.resetTheme };
 }

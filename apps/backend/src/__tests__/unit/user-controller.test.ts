@@ -47,12 +47,17 @@ const mockResetPassword = userService.resetPassword as ReturnType<typeof vi.fn>;
 
 // --- Test helpers ---
 
+const TENANT_ID = 'tenant-a';
+
 function mockRequest(overrides: Partial<AdminRequest> = {}): AdminRequest {
   return {
     body: {},
     params: {},
     query: {},
     user: { id: 'admin-1', email: 'admin@test.com', role: 'admin' as const },
+    // tenantMiddleware runs before the controller and sets this on business
+    // routes; the controller passes it as the first arg to the service.
+    tenantId: TENANT_ID,
     ...overrides,
   } as AdminRequest;
 }
@@ -240,7 +245,7 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.name).toBe('João Atualizado');
-      expect(mockUpdateUser).toHaveBeenCalledWith('user-uuid-1', { name: 'João Atualizado' }, 'admin-1');
+      expect(mockUpdateUser).toHaveBeenCalledWith(TENANT_ID, 'user-uuid-1', { name: 'João Atualizado' }, 'admin-1');
     });
 
     it('should return 422 when body is empty (no fields to update)', async () => {
@@ -316,7 +321,7 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('inativo');
-      expect(mockDeactivateUser).toHaveBeenCalledWith('user-uuid-1', 'admin-1');
+      expect(mockDeactivateUser).toHaveBeenCalledWith(TENANT_ID, 'user-uuid-1', 'admin-1');
     });
 
     it('should return 200 when activation succeeds', async () => {
@@ -332,7 +337,7 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('ativo');
-      expect(mockActivateUser).toHaveBeenCalledWith('user-uuid-1');
+      expect(mockActivateUser).toHaveBeenCalledWith(TENANT_ID, 'user-uuid-1');
     });
 
     it('should return 422 for self-deactivation', async () => {
@@ -418,7 +423,7 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toEqual({ message: 'Usuário excluído com sucesso' });
-      expect(mockDeleteUser).toHaveBeenCalledWith('user-uuid-1', 'admin-1');
+      expect(mockDeleteUser).toHaveBeenCalledWith(TENANT_ID, 'user-uuid-1', 'admin-1');
     });
 
     it('should return 422 for self-deletion', async () => {
@@ -505,7 +510,7 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toEqual({ message: 'Senha redefinida com sucesso' });
-      expect(mockResetPassword).toHaveBeenCalledWith('user-uuid-1', 'novaSenha123');
+      expect(mockResetPassword).toHaveBeenCalledWith(TENANT_ID, 'user-uuid-1', 'novaSenha123');
     });
 
     it('should return 422 when password is too short', async () => {
@@ -591,7 +596,7 @@ describe('User Controller', () => {
       await listUsers(req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
-      expect(mockListUsers).toHaveBeenCalledWith({ role: 'admin', status: 'ativo' });
+      expect(mockListUsers).toHaveBeenCalledWith(TENANT_ID, { role: 'admin', status: 'ativo' });
       expect(res.body.users).toHaveLength(0);
       expect(res.body.total).toBe(0);
     });

@@ -70,9 +70,11 @@ chown ec2-user:ec2-user /opt/order-system
 
 echo ">>> Configurando backup automático..."
 mkdir -p /etc/cron.d
+# O repositório é clonado em /opt/order-system, então o script de backup fica em
+# /opt/order-system/infra/scripts/backup.sh (não em /opt/order-system/scripts).
 cat > /etc/cron.d/order-system-backup << 'CRON'
 # Backup do banco e sessão WhatsApp a cada 6 horas
-0 */6 * * * root /opt/order-system/scripts/backup.sh >> /var/log/order-system-backup.log 2>&1
+0 */6 * * * root /opt/order-system/infra/scripts/backup.sh >> /var/log/order-system-backup.log 2>&1
 CRON
 
 echo ">>> Configurando logrotate..."

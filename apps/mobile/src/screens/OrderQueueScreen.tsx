@@ -80,7 +80,7 @@ const ALL_FILTERS: OrderStatus[] = ['aguardando', 'preparando', 'pronto', 'entre
 export function OrderQueueScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, tenantId } = useAuth();
   const { isOffline } = useNetworkStatus();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -215,8 +215,11 @@ export function OrderQueueScreen() {
     }, [refetchOrders, year, month, fetchDaysWithOrders])
   );
 
-  // Realtime: subscribe to order events for live updates
-  const realtimeChannels = useMemo(() => ['orders:queue', 'orders:payment'], []);
+  // Realtime: subscribe only to THIS tenant's namespaced channels (R12.7, R12.9).
+  const realtimeChannels = useMemo(
+    () => (tenantId ? [`orders:queue:${tenantId}`, `orders:payment:${tenantId}`] : []),
+    [tenantId],
+  );
 
   const { status: realtimeStatus } = useRealtime({
     channels: realtimeChannels,
@@ -446,7 +449,7 @@ export function OrderQueueScreen() {
               style={{
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: theme.colors.divider,
+                backgroundColor: theme.colors.surfaceDisabled,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',

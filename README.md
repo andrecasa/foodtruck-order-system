@@ -1,16 +1,29 @@
-# 🚚 Foodtruck Order System
+# 🚚 Order System — Plataforma White-Label Multi-Tenant
 
-Sistema de pedidos MVP para food truck, com app mobile para o operador, painel web para o preparador e bot WhatsApp para clientes.
+Plataforma **white-label multi-tenant** de pedidos para food trucks: um único build/stack atende múltiplos clientes (tenants), cada um com seus próprios dados, cardápio, usuários, branding e WhatsApp — totalmente isolados. Inclui app mobile para o operador, painel web para o preparador e bot WhatsApp para clientes.
 
 ## Visão Geral
 
 | Componente | Tecnologia | Descrição |
 |---|---|---|
-| **Mobile** | Expo + React Native | App do operador: criar pedidos, gerenciar fila, pagamentos, cardápio, gestão de usuários |
-| **Web** | Vite + React | Painel do preparador: fila em tempo real com avanço de status e notificações de pagamento |
-| **Backend** | Express + Node.js | API REST com autenticação JWT, eventos Realtime e CRUD completo |
-| **Bot WhatsApp** | Evolution API | Atendimento automatizado via máquina de estados |
+| **Mobile** | Expo + React Native | App do operador: criar pedidos, gerenciar fila, pagamentos, cardápio, gestão de usuários. Branding por tenant aplicado após login |
+| **Web** | Vite + React | Painel do preparador: fila em tempo real com avanço de status e notificações de pagamento. Branding por tenant aplicado após login |
+| **Backend** | Express + Node.js | API REST multi-tenant com autenticação JWT, resolução de tenant por requisição, eventos Realtime e CRUD completo |
+| **Bot WhatsApp** | Evolution API | Atendimento automatizado via máquina de estados, com instância e cardápio por tenant |
 | **Shared** | TypeScript + Zod | Tipos, validadores e constantes compartilhados |
+
+## Multi-Tenancy
+
+O sistema roda sobre um **banco/stack único compartilhado**, com uma coluna `tenant_id` em toda tabela com escopo de tenant. Cada tenant (cliente) é uma organização isolada com seus próprios usuários, cardápio, pedidos, branding e configuração de WhatsApp.
+
+- **Isolamento na camada de aplicação** — Todo acesso a dados com escopo de tenant passa por um helper centralizado (`TenantRepository`) que injeta `tenant_id` em toda consulta. Nenhum service monta SQL de tenant manualmente, e uma verificação de arquitetura impede que services acessem o pool diretamente.
+- **Resolução de tenant por requisição** — Um middleware resolve o `tenant_id` a partir do usuário autenticado e o propaga a todas as camadas. Requisições sem tenant válido ou de tenant inativo são rejeitadas (401/403).
+- **Unicidade composta por tenant** — E-mail de usuário, nome de categoria, item de cardápio ativo e numeração diária de pedidos são únicos **dentro de cada tenant** (o mesmo valor pode coexistir em tenants distintos).
+- **Numeração diária por tenant** — Cada tenant tem sua própria sequência diária de pedidos, reiniciada a cada dia e independente do movimento de outros clientes.
+- **Papéis** — `Platform_Admin` gerencia tenants (rotas `/api/platform/*`); `Tenant_Admin` / `Tenant_User` operam apenas dentro do próprio tenant.
+- **Escala-alvo** — Onboarding leve e self-service, pensado para 100–200 clientes.
+
+> Acesso cross-tenant a um registro de outro cliente responde como se o registro não existisse (HTTP 404), sem vazar sua existência.
 
 ## Funcionalidades
 
@@ -24,15 +37,27 @@ Sistema de pedidos MVP para food truck, com app mobile para o operador, painel w
 - **Resumo do dia** — Totais de vendas, pedidos e métodos de pagamento
 
 ### Painel Web (Preparador)
-- **Fila em tempo real** — Pedidos atualizados via Supabase Realtime (WebSocket)
+- **Fila em tempo real** — Pedidos atualizados via Supabase Realtime (WebSocket), no canal do próprio tenant
 - **Filtros por status** — Aguardando, Preparando, Pronto, Entregue
 - **Avanço de status** — Botões contextuais por status (Iniciar Preparo, Marcar Pronto, etc.)
 - **Notificação de pagamento** — Badge atualizado em tempo real quando pagamento é registrado
 - **Banner de conexão** — Indicador visual quando a conexão Realtime é perdida
 
+### Plataforma (Platform_Admin)
+- **Onboarding de tenant** — Provisiona um novo cliente (tenant + cardápio inicial + admin + instância WhatsApp) sem alteração de código nem redeploy
+- **Provisionamento transacional** — Rollback total em caso de falha e idempotência por chave de provisionamento (reenvio não duplica o tenant)
+- **Trilha de auditoria** — Operações de plataforma registram o ator e a ação
+- **Interfaces** — Script CLI (`create-tenant`) e endpoint `POST /api/platform/tenants` (protegido por `platformAdminMiddleware`)
+
+### Branding por Tenant (White-Label)
+- **Tema aplicado após o login** — Cada tenant vê seu próprio nome, logo e paleta, resolvidos em runtime do backend (`GET /api/tenant/branding`) — sem build por cliente
+- **Tema neutro de plataforma** — Aplicado antes de autenticar e como fallback em caso de falha/timeout na obtenção do branding
+- **Web e mobile** — Ambos os apps buscam e aplicam o branding do tenant antes de renderizar as telas autenticadas
+
 ### Realtime (Supabase Broadcast)
-- Canal `orders:queue` — Novos pedidos, mudanças de status, edição de itens
-- Canal `orders:payment` — Registros de pagamento
+- Canais namespaced por tenant: `orders:queue:{tenantId}` — Novos pedidos, mudanças de status, edição de exclusão
+- `orders:payment:{tenantId}` — Registros de pagamento
+- Inscrição lazy por canal (sem pré-warm global) para escalar com N tenants
 - Reconexão automática com reload de dados
 - Debounce de estado "stale" para evitar flickering
 
@@ -101,8 +126,10 @@ docker compose up -d --build
 # 3. Aguardar estabilizar
 sleep 15
 
-# 4. Criar usuário admin (padrão: admin@foodtruck.com / 12345678)
-./scripts/seed-admin.sh
+# 4. Provisionar o primeiro tenant + admin logável (onboarding idempotente)
+#    Cria o tenant, cardápio inicial, o admin no Auth E a linha em `users`
+#    com tenant_id. Credenciais do admin vêm do .env (ADMIN_EMAIL/ADMIN_PASSWORD).
+./scripts/seed-first-tenant.sh
 
 # 5. Iniciar apps
 pnpm dev:mobile    # App mobile (Expo)
@@ -116,15 +143,49 @@ pnpm dev:web       # Painel web (porta 3000)
 docker compose down -v
 docker compose up -d --build
 sleep 15
-./scripts/seed-admin.sh
+./scripts/seed-first-tenant.sh
 ```
+
+### Provisionar um Tenant (Onboarding)
+
+Cada cliente é criado via onboarding — sem alteração de código nem redeploy. O provisionamento é transacional (rollback total em falha) e idempotente pela `provisioning_key`.
+
+**Via CLI** (a partir de `apps/backend`, requer DB + Supabase acessíveis):
+
+```bash
+pnpm create-tenant -- \
+  --provisioning-key=taco-loco-001 \
+  --business-name="Taco Loco" \
+  --evolution-instance=taco-loco \
+  --admin-name="Maria" \
+  --admin-email=maria@tacoloco.com \
+  --admin-password='S3nh@Forte' \
+  --menu-preset=./presets/pastel-das-meninas.json
+```
+
+**Via endpoint de plataforma** (protegido por `platformAdminMiddleware`):
+
+```bash
+curl -X POST http://localhost:4000/api/platform/tenants \
+  -H "Authorization: Bearer <TOKEN_DE_PLATFORM_ADMIN>" \
+  -H "Content-Type: application/json" \
+  -d @tenant.json
+```
+
+O onboarding cria o tenant (branding, tema, timezone, instância WhatsApp), semeia o cardápio inicial, provisiona um admin ativo e registra a instância Evolution + webhook.
+
+> **"Pastel das Meninas"** é apenas o primeiro tenant, provisionado a partir de um preset de onboarding (`presets/pastel-das-meninas.json`) via `pnpm provision-pastel`, e não mais um seed global de schema.
 
 ### Scripts
 
 | Script | Descrição |
 |---|---|
 | `./scripts/generate-keys.sh` | Gera JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY. Atualiza `.env`, `kong.yml`, `apps/mobile/.env` |
-| `./scripts/seed-admin.sh` | Cria usuário admin no Supabase Auth (padrão: admin@foodtruck.com / 12345678) |
+| `./scripts/seed-first-tenant.sh` | Bootstrap de dev: provisiona o primeiro tenant + admin logável (onboarding idempotente) usando `ADMIN_EMAIL`/`ADMIN_PASSWORD` do `.env` |
+| `pnpm create-tenant` | Provisiona um novo tenant via CLI (onboarding) |
+| `pnpm provision-pastel` | Provisiona o tenant "Pastel das Meninas" a partir do preset de onboarding |
+
+> **Nota (multi-tenant):** não existe mais um "seed" que cria apenas o usuário no Supabase Auth — no modelo multi-tenant, um usuário sem linha em `users` com `tenant_id` não resolve tenant e é rejeitado com **HTTP 401** (`TENANT_RESOLUTION_FAILED`) pelo `tenantMiddleware`. Todo admin logável deve vir do **onboarding** (auth user + linha em `users` com `tenant_id` e `role='admin'`). Para dev, `./scripts/seed-first-tenant.sh` faz esse bootstrap de ponta a ponta; para clientes reais, use `pnpm create-tenant` ou `POST /api/platform/tenants`.
 
 ### Rebuildar Backend
 
@@ -157,11 +218,13 @@ pnpm test
 ### Rodar por pacote
 
 ```bash
-pnpm --filter @order-system/backend test    # Backend (59 suites, 400 tests)
-pnpm --filter @order-system/mobile test     # Mobile (20 suites, 66 tests)
-pnpm --filter @order-system/web test        # Web (3 suites, 28 tests)
-pnpm --filter @order-system/shared test     # Shared (3 suites, 64 tests)
+pnpm --filter @order-system/backend test    # Backend (78 suites, 526 tests)
+pnpm --filter @order-system/mobile test     # Mobile (21 suites, 76 tests)
+pnpm --filter @order-system/web test        # Web (4 suites, 37 tests)
+pnpm --filter @order-system/shared test     # Shared (4 suites, 82 tests)
 ```
+
+Entre os testes property-based estão as **propriedades de isolamento multi-tenant** (leitura/escrita cross-tenant, numeração diária por tenant, injeção obrigatória de `tenant_id`, roteamento/isolamento do WhatsApp, fallback de branding e idempotência/atomicidade de onboarding).
 
 ### Rodar um arquivo específico
 
@@ -215,14 +278,20 @@ Gera uma pasta `coverage/` com um `index.html` que pode ser aberto no navegador 
 .
 ├── apps/
 │   ├── backend/          # API REST (Express + TypeScript)
-│   │   ├── migrations/   # SQL migrations (executadas na inicialização)
+│   │   ├── migrations/   # SQL migrations multi-tenant (executadas na inicialização)
+│   │   ├── presets/      # Presets de onboarding (ex: pastel-das-meninas.json)
+│   │   ├── scripts/      # CLIs de plataforma (create-tenant, provision-pastel)
 │   │   └── src/
-│   │       ├── bot/          # WhatsApp bot (Evolution API)
+│   │       ├── bot/          # WhatsApp bot (Evolution API) + WebhookRouter por tenant
 │   │       ├── config/       # Database e Supabase config
 │   │       ├── controllers/  # Route handlers
-│   │       ├── middleware/   # Auth e rate-limit
-│   │       ├── routes/       # Express routes
-│   │       └── __tests__/    # Unit + property-based tests
+│   │       ├── db/           # TenantRepository (helper central de isolamento)
+│   │       ├── middleware/   # Auth, tenant, platformAdmin, rate-limit
+│   │       ├── presets/      # Preset de onboarding tipado
+│   │       ├── routes/       # Express routes (negócio + /api/platform)
+│   │       ├── services/     # Serviços de domínio + tenant-provision
+│   │       ├── theme/        # Tema neutro de plataforma (branding)
+│   │       └── __tests__/    # Unit + property-based tests (isolamento multi-tenant)
 │   ├── mobile/           # App operador (Expo + React Native)
 │   │   └── src/
 │   │       ├── __tests__/    # Unit + property-based tests
@@ -246,7 +315,7 @@ Gera uma pasta `coverage/` com um `index.html` que pode ser aberto no navegador 
 
 ## White Label / Temas
 
-O sistema suporta customização visual completa via **design tokens**. Qualquer food truck pode personalizar cores, tipografia, espaçamentos e bordas sem alterar código-fonte — apenas fornecendo um JSON de override parcial. O tema é aplicado em runtime, sem necessidade de rebuild.
+O sistema suporta customização visual completa via **design tokens**. Cada tenant personaliza cores, tipografia, espaçamentos e bordas sem alterar código-fonte — o branding é armazenado no tenant e resolvido em runtime pelo backend (`GET /api/tenant/branding`) após o login, sem necessidade de rebuild nem build por cliente. O tema padrão é neutro (sem marca) e serve de base para o deep merge e de fallback.
 
 ### Tokens Configuráveis
 
@@ -298,38 +367,28 @@ Além dos tokens visuais, você pode definir `businessName` (nome exibido na int
 
 > **Nota:** Você não precisa informar todos os tokens. O sistema faz **deep merge** com o tema padrão — apenas os campos informados são sobrescritos.
 
-### Passo a Passo: Criar Tema para Outro Food Truck
+### Passo a Passo: Definir o Branding de um Tenant
 
-1. **Crie o arquivo de tema** — Crie um arquivo JSON (ex: `themes/taco-loco.json`) com os tokens que deseja sobrescrever. Pode ser um override parcial (ex: apenas cores).
+O branding é uma propriedade do tenant. Basta fornecê-lo no onboarding e ele será aplicado automaticamente após o login, em web e mobile.
 
-2. **Configure a injeção do tema (Web):**
+1. **Monte o override de tema** — Um JSON parcial (`Partial<ThemeConfig>`) com os tokens que deseja sobrescrever (pode ser apenas cores). Pode incluir também `businessName` e `logo`.
 
-   Adicione ao `index.html` antes do bundle do app:
-   ```html
-   <script>
-     window.__THEME_CONFIG__ = { "businessName": "Taco Loco", "colors": { "primary": "#E65100" } };
-   </script>
-   ```
+2. **Informe no provisionamento do tenant** — Passe o `businessName`, `logoUrl` e `theme` ao provisionar o tenant (via `create-tenant` / `POST /api/platform/tenants`). Esses valores ficam armazenados na tabela `tenants`.
 
-   > **Nota:** A variável `VITE_THEME_CONFIG_PATH` existe como placeholder para carregamento assíncrono futuro, mas atualmente o único mecanismo funcional é `window.__THEME_CONFIG__`.
+3. **Pronto** — No próximo login de um usuário desse tenant, web e mobile buscam `GET /api/tenant/branding` e aplicam o tema (deep merge sobre o neutro) antes de renderizar as telas autenticadas. Nenhum rebuild é necessário.
 
-3. **Mobile** — O override de tema via `EXPO_PUBLIC_THEME_CONFIG` está planejado mas ainda não implementado. Atualmente o mobile usa o tema padrão compilado no bundle.
-
-4. **Reinicie o servidor de desenvolvimento** (ou, em produção, reinicie o container/processo). Nenhum rebuild é necessário quando usado via `window.__THEME_CONFIG__`.
-
-5. **Verifique o contraste** — Garanta que as combinações de cor atendem WCAG AA (razão de contraste ≥ 4.5:1 para texto).
+4. **Verifique o contraste** — Garanta que as combinações de cor atendem WCAG AA (razão de contraste ≥ 4.5:1 para texto).
 
 ### Como o Tema é Carregado em Runtime
 
-**Web** — Ordem de resolução (primeiro encontrado vence):
-1. `window.__THEME_CONFIG__` — objeto injetado no HTML pelo servidor (sem rebuild)
-2. Tema padrão (fallback)
+**Web e Mobile** — Fluxo idêntico:
+1. Antes de autenticar, aplica-se o **tema neutro de plataforma** (sem marca).
+2. Após o login, o app busca `GET /api/tenant/branding` e faz **deep merge** do tema do tenant sobre o neutro, aplicando-o antes de renderizar as telas autenticadas.
+3. Em falha ou timeout, mantém-se o tema neutro (o app continua utilizável). O mobile ainda cacheia o último tema para partida rápida.
 
-O `ThemeProvider` aplica os tokens globalmente via CSS custom properties antes de renderizar componentes filhos, garantindo que a interface nunca pisque com o tema errado.
+O `ThemeProvider` aplica os tokens antes de renderizar os componentes filhos (na web, via CSS custom properties), garantindo que a interface nunca pisque com o tema errado.
 
-**Mobile** — Atualmente usa somente o tema padrão compilado no bundle. Override via variável de ambiente está planejado.
-
-> Em ambos os casos, o override parcial é mesclado (deep merge) com o tema padrão — apenas os campos informados são sobrescritos.
+> O override parcial é sempre mesclado (deep merge) com o tema neutro — apenas os campos informados são sobrescritos.
 
 ### Referência Completa
 
@@ -339,6 +398,8 @@ Para a documentação completa de tokens com valores padrão, regras de implemen
 
 O bot utiliza a [Evolution API](https://github.com/EvolutionAPI/evolution-api) (self-hosted) para integração com WhatsApp. Abaixo estão as instruções completas para conectar, configurar e operar o bot.
 
+> **WhatsApp por tenant** — Cada tenant possui **exatamente uma** instância Evolution (mapeada por `tenants.evolution_instance_name`, UNIQUE) e seu próprio número. O `WebhookRouter` extrai o campo `instance` do payload e resolve o tenant correto; sessões, cardápio e atribuição de pedido são todos escopados a esse tenant. A instância de cada tenant é normalmente criada durante o onboarding. Os exemplos abaixo usam o nome de instância genérico `order-system` como referência — substitua pelo `evolution_instance_name` do tenant desejado.
+
 ### Pré-requisitos
 
 - Docker Compose rodando com todos os serviços saudáveis (`docker compose up -d`)
@@ -347,7 +408,7 @@ O bot utiliza a [Evolution API](https://github.com/EvolutionAPI/evolution-api) (
 - Variáveis configuradas no `.env`:
   - `EVOLUTION_API_URL=http://localhost:8080`
   - `EVOLUTION_API_KEY=change-me-evolution-api-key` (altere para uma chave segura)
-  - `EVOLUTION_INSTANCE_NAME=order-system`
+  - `EVOLUTION_INSTANCE_NAME=default-instance` (fallback/plataforma; a instância real de cada cliente vem de `tenants.evolution_instance_name`)
 
 Verifique que a Evolution API está saudável:
 
@@ -515,9 +576,14 @@ Se o WhatsApp desconectar (troca de celular, logout, etc.):
 | DELETE | `/api/users/:id` | Excluir usuário |
 | PATCH | `/api/users/:id/status` | Ativar/desativar usuário |
 | POST | `/api/users/:id/reset-password` | Resetar senha do usuário |
-| GET | `/api/summary/today` | Resumo do dia (America/Sao_Paulo) |
-| POST | `/api/webhook/evolution` | Webhook da Evolution API (WhatsApp) |
+| GET | `/api/summary/today` | Resumo do dia (America/Sao_Paulo), escopado ao tenant |
+| GET | `/api/tenant/branding` | Branding do tenant autenticado (businessName, logo, tema) |
+| POST | `/api/platform/tenants` | Provisionar um novo tenant (Platform_Admin) |
+| GET | `/api/platform/tenants` | Listar tenants (Platform_Admin) |
+| POST | `/api/webhook/evolution` | Webhook da Evolution API (WhatsApp), roteado por instância → tenant |
 | GET | `/api/health` | Health check |
+
+> Todas as rotas de negócio (`/api/menu`, `/api/orders`, `/api/users`, `/api/summary`, `/api/categories`, `/api/tenant/*`) passam por `auth → syncUser → tenant` e são automaticamente escopadas ao tenant do usuário. As rotas `/api/platform/*` usam `platformAdminMiddleware` e **não** passam pelo middleware de tenant.
 
 ## Tecnologias
 

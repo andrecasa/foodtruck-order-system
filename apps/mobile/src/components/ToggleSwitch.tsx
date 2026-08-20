@@ -33,7 +33,7 @@ export function ToggleSwitch({
     width: 44,
     height: 24,
     borderRadius: 12,
-    backgroundColor: value ? theme.colors.primary : theme.colors.divider,
+    backgroundColor: value ? theme.colors.primary : theme.colors.surfaceDisabled,
     justifyContent: 'center',
     paddingHorizontal: 2,
     opacity: disabled ? 0.5 : 1,

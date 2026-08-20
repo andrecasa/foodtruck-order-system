@@ -1,66 +1,71 @@
-import type { ThemeConfig } from '@order-system/shared';
+import type { ThemeConfig, TenantBrandingResponse } from '@order-system/shared';
+import { themeCache } from '../services/theme-cache';
 
 /**
- * Default theme configuration for the Pastel das Meninas food truck app.
+ * Neutral platform default theme for the white-label mobile app.
  *
- * Brand-aligned design system:
- * - Font: Inter
- * - Icons: Material Symbols Outlined
- * - Primary: Burgundy (#7B2D2D) — brand identity
- * - Secondary: Amber (#D4812B) — warm accent
- * - Surface: White, Background: #FDF8F4 (cream)
- * - Pill-shaped inputs (border-radius: 24px)
- * - Pill buttons (border-radius: 20px)
- * - Card strokes at 30% opacity
- * - Stroke: always 1px
+ * This theme contains NO tenant-specific branding (no "Pastel das Meninas",
+ * no burgundy brand colors). It is a generic, brand-agnostic design system used:
+ * - Before login / while no tenant is authenticated.
+ * - As a safe fallback when tenant branding cannot be fetched (Requirement 7.8, 11.7).
  *
- * WCAG AA compliance:
- * - Text (#3D2020) on Background (#FDF8F4): contrast ratio ~12:1
- * - Primary (#7B2D2D) on white: contrast ratio ~7.5:1
+ * Real per-tenant branding (businessName, logo, colors) is resolved at runtime from
+ * the backend after login via `fetchTenantTheme`, without requiring a new build
+ * (Requirements 7.4, 7.5, 11.1, 11.5).
+ *
+ * WCAG AA compliance (neutral palette):
+ * - Text (#1F2933) on Background (#F5F7FA): high contrast (~13:1)
+ * - Primary (#2C6E9B) on white: contrast ratio ~4.6:1
  */
 export const defaultTheme: ThemeConfig = {
-  businessName: 'Pastel das Meninas',
-  logo: '../../assets/logo.png',
+  businessName: 'Food Truck App',
+  logo: '',
   colors: {
-    // Burgundy/maroon primary — brand identity
-    primary: '#7B2D2D',
-    // Warm orange/amber — accent
-    secondary: '#D4812B',
-    // Warm cream background
-    background: '#FDF8F4',
-    // Dark warm brown text for readability
-    text: '#3D2020',
-    // Status: success/pronto — sage green
-    success: '#5A8C5A',
-    // Status: warning/aguardando — amber
-    warning: '#D4812B',
-    // Error — muted warm red
-    error: '#B54040',
-    // Order status: aguardando (waiting) — amber
-    aguardando: '#D4812B',
-    // Order status: preparando (preparing) — steel blue
-    preparando: '#5B8BA8',
-    // Order status: pronto (ready) — sage green
-    pronto: '#5A8C5A',
-    // Order status: entregue (delivered) — warm brown
-    entregue: '#8B6B5A',
-    // Secondary text — muted warm brown
-    textSecondary: '#8B6B5A',
+    // Neutral platform primary — desaturated blue
+    primary: '#2C6E9B',
+    // Neutral platform secondary — slate
+    secondary: '#5A6B7B',
+    // Light neutral background
+    background: '#F5F7FA',
+    // Dark neutral text
+    text: '#1F2933',
+    // Status: success/pronto — neutral green
+    success: '#3E8E5A',
+    // Status: warning/aguardando — neutral amber
+    warning: '#B8860B',
+    // Error — neutral red
+    error: '#B23A3A',
+    // Order status: aguardando (waiting) — neutral amber
+    aguardando: '#B8860B',
+    // Order status: preparando (preparing) — neutral blue
+    preparando: '#3B6EA5',
+    // Order status: pronto (ready) — neutral green
+    pronto: '#3E8E5A',
+    // Order status: entregue (delivered) — neutral gray
+    entregue: '#6B7280',
+    // Secondary text — muted gray
+    textSecondary: '#6B7280',
     // Card/surface background
     surface: '#FFFFFF',
-    // Border/separator — warm beige
-    divider: '#E8DDD5',
-    // Financial: received — dark green
+    // Thin separator/divider line — light gray
+    divider: '#E2E8F0',
+    // Default outline/border for inputs, cards, chips
+    border: '#E2E8F0',
+    // Background of disabled controls
+    surfaceDisabled: '#E2E8F0',
+    // Text/icon color for disabled or inactive content
+    textDisabled: '#9AA5B1',
+    // Financial: received — neutral green
     received: '#2E7D32',
-    // Financial: pending — dark red
+    // Financial: pending — neutral red
     pending: '#C62828',
-    // Financial: faturamento — amber (same as secondary)
-    revenue: '#D4812B',
-    // Sub-card backgrounds (tinted)
-    surfacePrimary: '#FDF8F4',
-    surfaceRevenue: '#FFF8F0',
-    surfaceReceived: '#F0F8F0',
-    surfacePending: '#FEF2F2',
+    // Financial: faturamento — neutral blue
+    revenue: '#2C6E9B',
+    // Sub-card backgrounds (tinted, neutral)
+    surfacePrimary: '#EEF3F7',
+    surfaceRevenue: '#EEF3F7',
+    surfaceReceived: '#EEF6EF',
+    surfacePending: '#FBEEEE',
   },
   typography: {
     fontFamily: 'Inter',
@@ -144,16 +149,135 @@ export function deepMergeTheme(
 }
 
 /**
- * Loads theme configuration from external sources with fallback to defaultTheme.
+ * Builds the applied ThemeConfig for a tenant branding response by merging the
+ * tenant's partial theme (and businessName/logo) over the neutral platform theme.
+ */
+export function applyBranding(branding: TenantBrandingResponse): ThemeConfig {
+  const merged = deepMergeTheme(defaultTheme, branding.theme ?? {});
+  return {
+    ...merged,
+    businessName: branding.businessName || merged.businessName,
+    logo: branding.logoUrl ?? merged.logo,
+  };
+}
+
+/**
+ * Synchronously returns the theme to use before any tenant branding is fetched.
  *
- * Resolution order (first match wins):
- * 1. `EXPO_PUBLIC_THEME_CONFIG` env var — a JSON string with partial theme overrides
- * 2. Falls back to defaultTheme
- *
- * This allows a new tenant to be configured without code changes or rebuild
- * by setting the env var before starting the Expo dev server or building the app.
+ * This always returns the neutral platform theme, so the app can render immediately
+ * (before login and while the async branding request is in flight). Per-tenant
+ * branding is applied afterwards via `loadTenantTheme` / `fetchTenantTheme`.
  */
 export function loadTheme(): ThemeConfig {
-  // TODO: Support EXPO_PUBLIC_THEME_CONFIG env var when expo/virtual/env resolution is fixed
   return defaultTheme;
+}
+
+/** Default timeout for the branding fetch (Requirement 7.7: backend responds within 2s). */
+const BRANDING_FETCH_TIMEOUT_MS = 2000;
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+
+/**
+ * Fetches the authenticated tenant's branding from the backend and returns the
+ * fully-resolved ThemeConfig (tenant branding merged over the neutral platform theme).
+ *
+ * On failure or timeout, resolves to the neutral platform `defaultTheme` and the app
+ * remains usable (Requirement 7.8 / 11.7, Correctness Property 9). On success, the
+ * resolved theme is cached locally for a fast start on the next launch.
+ *
+ * @param getAccessToken function returning the current access token (or null)
+ */
+export async function fetchTenantTheme(
+  getAccessToken: () => Promise<string | null>,
+  timeoutMs: number = BRANDING_FETCH_TIMEOUT_MS,
+): Promise<ThemeConfig> {
+  try {
+    const token = await getAccessToken();
+    if (!token) {
+      return defaultTheme;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/api/tenant/branding`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!response.ok) {
+      return defaultTheme;
+    }
+
+    const branding = (await response.json()) as TenantBrandingResponse;
+    if (!branding || typeof branding.businessName !== 'string') {
+      return defaultTheme;
+    }
+
+    const theme = applyBranding(branding);
+    // Cache the resolved theme for a fast start next launch (best-effort).
+    await themeCache.save(theme);
+    return theme;
+  } catch {
+    // Network error, timeout/abort, or malformed response → neutral fallback.
+    return defaultTheme;
+  }
+}
+
+/**
+ * Fetches the authenticated tenant's id from GET /api/tenant/branding.
+ *
+ * The app needs the tenant id to subscribe only to its own tenant's realtime
+ * channels (`orders:queue:{tenantId}` / `orders:payment:{tenantId}` — R12.7,
+ * R12.9). Kept as a small, separate helper so `fetchTenantTheme` stays focused
+ * on the theme. Resolves to `null` on any failure/timeout; callers then avoid
+ * subscribing to any tenant channel.
+ *
+ * @param getAccessToken function returning the current access token (or null)
+ */
+export async function fetchTenantId(
+  getAccessToken: () => Promise<string | null>,
+  timeoutMs: number = BRANDING_FETCH_TIMEOUT_MS,
+): Promise<string | null> {
+  try {
+    const token = await getAccessToken();
+    if (!token) return null;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/api/tenant/branding`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!response.ok) return null;
+    const data = (await response.json()) as { tenantId?: unknown };
+    return typeof data.tenantId === 'string' && data.tenantId.length > 0 ? data.tenantId : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns the last cached tenant theme for a fast start, or the neutral platform
+ * theme when no valid cache exists. Never throws.
+ */
+export async function loadCachedTheme(): Promise<ThemeConfig> {
+  try {
+    const cached = await themeCache.load();
+    return cached ?? defaultTheme;
+  } catch {
+    return defaultTheme;
+  }
 }

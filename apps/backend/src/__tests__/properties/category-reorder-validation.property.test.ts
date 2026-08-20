@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { Response } from 'express';
-import type { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 /**
  * Feature: categories-crud, Property 6: Reorder list completeness
@@ -33,7 +33,8 @@ function mockRequest(body: any): Partial<AuthenticatedRequest> {
     body,
     params: {},
     user: { id: 'admin-user-1', email: 'admin@test.com' },
-  };
+    tenantId: 'tenant-1',
+  } as Partial<AuthenticatedRequest>;
 }
 
 function mockResponse(): Partial<Response> & { statusCode: number; body: any } {
@@ -77,7 +78,7 @@ describe('Property 6: Reorder list completeness', () => {
           // Mock existing categories - should not be reached because duplicate check comes first
           vi.mocked(pool.query).mockImplementation(async (query: any) => {
             const queryStr = typeof query === 'string' ? query : '';
-            if (queryStr.includes('SELECT id FROM categories')) {
+            if (queryStr.includes('SELECT * FROM categories')) {
               return { rows: existingIds.map((id) => ({ id })) } as any;
             }
             return { rows: [] } as any;
@@ -114,7 +115,7 @@ describe('Property 6: Reorder list completeness', () => {
 
           vi.mocked(pool.query).mockImplementation(async (query: any) => {
             const queryStr = typeof query === 'string' ? query : '';
-            if (queryStr.includes('SELECT id FROM categories')) {
+            if (queryStr.includes('SELECT * FROM categories')) {
               return { rows: existingIds.map((id) => ({ id })) } as any;
             }
             return { rows: [] } as any;
@@ -156,7 +157,7 @@ describe('Property 6: Reorder list completeness', () => {
 
           vi.mocked(pool.query).mockImplementation(async (query: any) => {
             const queryStr = typeof query === 'string' ? query : '';
-            if (queryStr.includes('SELECT id FROM categories')) {
+            if (queryStr.includes('SELECT * FROM categories')) {
               return { rows: existingIds.map((id) => ({ id })) } as any;
             }
             return { rows: [] } as any;

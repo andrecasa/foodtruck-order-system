@@ -214,7 +214,7 @@ export function CreateMenuItemScreen() {
     height: 52,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     borderRadius: 24,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -278,7 +278,7 @@ export function CreateMenuItemScreen() {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: theme.colors.border,
     marginTop: 4,
     overflow: 'hidden',
   };

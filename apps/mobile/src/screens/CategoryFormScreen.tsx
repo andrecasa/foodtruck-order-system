@@ -146,7 +146,7 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
     height: 52,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: fieldError ? theme.colors.error : theme.colors.divider,
+    borderColor: fieldError ? theme.colors.error : theme.colors.border,
     paddingHorizontal: 16,
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,

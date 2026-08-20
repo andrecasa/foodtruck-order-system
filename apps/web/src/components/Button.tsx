@@ -44,7 +44,7 @@ export function Button({
   const theme = useTheme();
 
   const getBackgroundColor = (): string => {
-    if (disabled) return theme.colors.divider;
+    if (disabled) return theme.colors.surfaceDisabled;
     if (color) return color;
     switch (variant) {
       case 'primary': return theme.colors.primary;
@@ -55,7 +55,7 @@ export function Button({
   };
 
   const getTextColor = (): string => {
-    if (disabled) return theme.colors.textSecondary;
+    if (disabled) return theme.colors.textDisabled;
     switch (variant) {
       case 'outline': return color ? color : theme.colors.textSecondary;
       default: return theme.colors.surface;

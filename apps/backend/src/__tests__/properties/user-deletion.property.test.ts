@@ -98,43 +98,43 @@ describe('Property 14: Exclusão remove usuário completamente', () => {
             updated_at: new Date('2024-01-01'),
           };
 
-          // Mock pool.query
+          // Mock TenantRepository SQL shapes.
           vi.mocked(pool.query).mockImplementation(async (sql: string) => {
-            // SELECT user by id
-            if (typeof sql === 'string' && sql.includes('SELECT *') && sql.includes('WHERE id')) {
-              return {
-                rows: [user],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
-            // COUNT active admins (return >1 so it doesn't block)
-            if (typeof sql === 'string' && sql.includes('COUNT') && sql.includes('admin')) {
-              return {
-                rows: [{ count: '5' }],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
-            // COUNT orders - return 0 (no orders)
-            if (typeof sql === 'string' && sql.includes('COUNT') && sql.includes('orders')) {
-              return {
-                rows: [{ count: '0' }],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
-            // DELETE from users
+            // DELETE from users (scoped)
             if (typeof sql === 'string' && sql.includes('DELETE')) {
               return {
                 rows: [],
                 command: 'DELETE',
+                rowCount: 1,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // Orders lookup (scoped select on orders): no orders.
+            if (typeof sql === 'string' && sql.includes('FROM orders')) {
+              return {
+                rows: [],
+                command: 'SELECT',
+                rowCount: 0,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // Admin guard: >1 active admin so it doesn't block.
+            if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
+              return {
+                rows: [{ id: 'a1' }, { id: 'a2' }, { id: 'a3' }, { id: 'a4' }, { id: 'a5' }],
+                command: 'SELECT',
+                rowCount: 5,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // findOne user by id (scoped).
+            if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
+              return {
+                rows: [user],
+                command: 'SELECT',
                 rowCount: 1,
                 oid: 0,
                 fields: [],
@@ -149,8 +149,8 @@ describe('Property 14: Exclusão remove usuário completamente', () => {
             error: null,
           } as never);
 
-          // Call deleteUser - should complete without error
-          await expect(deleteUser(userId, requesterId)).resolves.toBeUndefined();
+          // Call deleteUser - should complete without error (tenant-scoped)
+          await expect(deleteUser('tenant-a', userId, requesterId)).resolves.toBeUndefined();
 
           // Verify: supabaseAdmin.auth.admin.deleteUser was called with userId
           expect(supabaseAdmin.auth.admin.deleteUser).toHaveBeenCalledWith(userId);
@@ -246,32 +246,35 @@ describe('Property 15: Usuários com pedidos não podem ser excluídos', () => {
             updated_at: new Date('2024-01-01'),
           };
 
-          // Mock pool.query
+          // Build a non-empty list of orders (scoped select returns rows).
+          const orderRows = Array.from({ length: orderCount }, (_v, i) => ({ id: `order-${i}` }));
+
+          // Mock TenantRepository SQL shapes.
           vi.mocked(pool.query).mockImplementation(async (sql: string) => {
-            // SELECT user by id
-            if (typeof sql === 'string' && sql.includes('SELECT *') && sql.includes('WHERE id')) {
+            // Orders lookup (scoped): user HAS orders.
+            if (typeof sql === 'string' && sql.includes('FROM orders')) {
+              return {
+                rows: orderRows,
+                command: 'SELECT',
+                rowCount: orderRows.length,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // Admin guard: >1 active admin so it doesn't block on admin check.
+            if (typeof sql === 'string' && sql.includes("role = 'admin'")) {
+              return {
+                rows: [{ id: 'a1' }, { id: 'a2' }, { id: 'a3' }, { id: 'a4' }, { id: 'a5' }],
+                command: 'SELECT',
+                rowCount: 5,
+                oid: 0,
+                fields: [],
+              } as never;
+            }
+            // findOne user by id (scoped).
+            if (typeof sql === 'string' && sql.includes('SELECT * FROM users')) {
               return {
                 rows: [user],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
-            // COUNT active admins (return >1 so it doesn't block on admin check)
-            if (typeof sql === 'string' && sql.includes('COUNT') && sql.includes('admin')) {
-              return {
-                rows: [{ count: '5' }],
-                command: 'SELECT',
-                rowCount: 1,
-                oid: 0,
-                fields: [],
-              } as never;
-            }
-            // COUNT orders - return positive number (user has orders)
-            if (typeof sql === 'string' && sql.includes('COUNT') && sql.includes('orders')) {
-              return {
-                rows: [{ count: String(orderCount) }],
                 command: 'SELECT',
                 rowCount: 1,
                 oid: 0,
@@ -281,11 +284,11 @@ describe('Property 15: Usuários com pedidos não podem ser excluídos', () => {
             return { rows: [], command: 'SELECT', rowCount: 0, oid: 0, fields: [] } as never;
           });
 
-          // Call deleteUser - should reject with ServiceError 422
-          await expect(deleteUser(userId, requesterId)).rejects.toThrow(ServiceError);
+          // Call deleteUser - should reject with ServiceError 422 (tenant-scoped)
+          await expect(deleteUser('tenant-a', userId, requesterId)).rejects.toThrow(ServiceError);
 
           try {
-            await deleteUser(userId, requesterId);
+            await deleteUser('tenant-a', userId, requesterId);
           } catch (err) {
             expect(err).toBeInstanceOf(ServiceError);
             expect((err as ServiceError).statusCode).toBe(422);

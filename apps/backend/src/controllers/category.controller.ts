@@ -4,7 +4,7 @@ import {
   updateCategoryRequestSchema,
   reorderCategoriesRequestSchema,
 } from '@order-system/shared';
-import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as categoryService from '../services/category.service.js';
 
 // --- Error helpers ---
@@ -32,7 +32,7 @@ function handleServiceError(err: unknown, res: Response, fallbackMessage: string
  */
 export async function listCategories(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
-    const categories = await categoryService.listCategories();
+    const categories = await categoryService.listCategories(req.tenantId as string);
     res.status(200).json(categories);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao processar requisição');
@@ -67,7 +67,7 @@ export async function createCategory(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const category = await categoryService.createCategory(parsed.data.name);
+    const category = await categoryService.createCategory(req.tenantId as string, parsed.data.name);
     res.status(201).json(category);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao processar requisição');
@@ -104,7 +104,7 @@ export async function updateCategory(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const category = await categoryService.updateCategory(id as string, parsed.data.name);
+    const category = await categoryService.updateCategory(req.tenantId as string, id as string, parsed.data.name);
     res.status(200).json(category);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao processar requisição');
@@ -129,7 +129,7 @@ export async function reorderCategories(req: AuthenticatedRequest, res: Response
       return;
     }
 
-    const categories = await categoryService.reorderCategories(parsed.data.categoryIds);
+    const categories = await categoryService.reorderCategories(req.tenantId as string, parsed.data.categoryIds);
     res.status(200).json(categories);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao processar requisição');
@@ -146,7 +146,7 @@ export async function toggleCategoryStatus(req: AuthenticatedRequest, res: Respo
     const { id } = req.params;
     const { action } = req.body;
 
-    const category = await categoryService.toggleCategoryStatus(id as string, action);
+    const category = await categoryService.toggleCategoryStatus(req.tenantId as string, id as string, action);
     res.status(200).json(category);
   } catch (err) {
     handleServiceError(err, res, 'Erro ao processar requisição');
@@ -161,7 +161,7 @@ export async function deleteCategory(req: AuthenticatedRequest, res: Response): 
   try {
     const { id } = req.params;
 
-    await categoryService.deleteCategory(id as string);
+    await categoryService.deleteCategory(req.tenantId as string, id as string);
 
     res.status(200).json({
       message: 'Categoria excluída com sucesso',

@@ -1,27 +1,17 @@
 import React, { useRef, useState } from 'react';
-import { View, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
+import { View, ScrollView, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../hooks/useAuth';
+import { useKeyboardHeight } from '../hooks/useKeyboardHeight';
 
-/**
- * Login screen — pixel-perfect match to Penpot design.
- *
- * Penpot specs:
- * - Full screen centered, bg #FDF8F4 (background), padding 24px, gap 24px
- * - Logo icon: Material Symbols "restaurant" 48px, color #7B2D2D (primary)
- * - Title: 24px weight 400, color #3D2020 (text)
- * - Subtitle: 14px weight 400, color #8B6B5A (textSecondary)
- * - Login Form card: bg #FFFFFF, border-radius 16px, shadow 0 2px 8px rgba(0,0,0,0.06), padding 24px, gap 16px
- * - Input fields: height 52px, border-radius 24px, bg #F5F5F5, padding 0 16px, gap 10px with icon
- * - Button "Entrar": height 44px, radius 22px, bg #7B2D2D (primary), text 14px weight 400, color white, full width
- */
 export function LoginScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { login } = useAuth();
+  const keyboardHeight = useKeyboardHeight();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,8 +66,14 @@ export function LoginScreen() {
     try {
       await login(email.trim(), password);
       router.replace('/(tabs)');
-    } catch {
-      setLoginError('E-mail ou senha incorretos');
+    } catch (err) {
+      // Usa a mensagem do erro (ex.: falha de conexão vs. credenciais inválidas),
+      // com fallback seguro caso o erro não tenha mensagem.
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'E-mail ou senha incorretos';
+      setLoginError(message);
     } finally {
       setLoading(false);
     }
@@ -86,11 +82,12 @@ export function LoginScreen() {
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
   const containerStyle: ViewStyle = {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingTop: 50,
+    paddingBottom: 24,
     gap: 24,
     backgroundColor: theme.colors.background,
   };
@@ -98,12 +95,6 @@ export function LoginScreen() {
   const headerStyle: ViewStyle = {
     alignItems: 'center',
     gap: 8,
-  };
-
-  const logoTextStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 48,
-    color: theme.colors.primary,
   };
 
   const titleStyle: TextStyle = {
@@ -142,76 +133,81 @@ export function LoginScreen() {
 
   return (
     <Screen padding={false}>
-      <View style={containerStyle}>
-        {/* Header with logo, title, subtitle */}
-        <View style={headerStyle}>
-          {/* Logo image from assets */}
-          <Image
-            source={require('../../assets/logo.png')}
-            style={{ width: 80, height: 80, borderRadius: 12 } as ImageStyle}
-            accessibilityLabel={`Logo ${theme.businessName}`}
-            resizeMode="contain"
-          />
-          {/* Fallback icon (commented — kept for reference)
-          <RNText style={logoTextStyle} accessibilityLabel="Logo restaurante">
-            restaurant
-          </RNText>
-          */}
-          <RNText style={titleStyle}>
-            {theme.businessName}
-          </RNText>
-          <RNText style={subtitleStyle}>
-            Faça login para continuar
-          </RNText>
-        </View>
+      {/* Keyboard handling: track the keyboard height and apply it as paddingBottom
+          so the ScrollView shrinks (activating scroll) and no field is hidden behind
+          the keyboard. keyboardShouldPersistTaps keeps taps working while open. */}
+      <View style={{ flex: 1, paddingBottom: keyboardHeight }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={containerStyle}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header with logo, title, subtitle */}
+          <View style={headerStyle}>
+            {/* Logo image from assets */}
+            <Image
+              source={require('../../assets/icon.png')}
+              style={{ width: 150, height: 150, borderRadius: 12 } as ImageStyle}
+              accessibilityLabel={`Logo ${theme.businessName}`}
+              resizeMode="contain"
+            />
+            <RNText style={titleStyle}>
+              {theme.businessName}
+            </RNText>
+            <RNText style={subtitleStyle}>
+              Faça login para continuar
+            </RNText>
+          </View>
 
-        {/* Login Form Card */}
-        <View style={cardStyle}>
-          {loginError ? (
-            <View style={errorContainerStyle}>
-              <RNText style={errorTextStyle}>
-                {loginError}
-              </RNText>
-            </View>
-          ) : null}
+          {/* Login Form Card */}
+          <View style={cardStyle}>
+            {loginError ? (
+              <View style={errorContainerStyle}>
+                <RNText style={errorTextStyle}>
+                  {loginError}
+                </RNText>
+              </View>
+            ) : null}
 
-          <Input
-            accessibilityLabel="E-mail"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="seu@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            icon="mail"
-            error={emailError}
-            testID="login-email-input"
-            inputRef={emailRef}
-          />
+            <Input
+              accessibilityLabel="E-mail"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="seu@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              icon="mail"
+              error={emailError}
+              testID="login-email-input"
+              inputRef={emailRef}
+            />
 
-          <Input
-            accessibilityLabel="Senha"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Sua senha"
-            secureTextEntry
-            icon="lock"
-            error={passwordError}
-            testID="login-password-input"
-            showPasswordToggle
-            inputRef={passwordRef}
-          />
+            <Input
+              accessibilityLabel="Senha"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Sua senha"
+              secureTextEntry
+              icon="lock"
+              error={passwordError}
+              testID="login-password-input"
+              showPasswordToggle
+              inputRef={passwordRef}
+            />
 
-          <Button
-            title="Entrar"
-            variant="primary"
-            size="lg"
-            fullWidth
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
-            testID="login-submit-button"
-          />
-        </View>
+            <Button
+              title="Entrar"
+              variant="primary"
+              size="lg"
+              fullWidth
+              onPress={handleLogin}
+              loading={loading}
+              disabled={loading}
+              testID="login-submit-button"
+            />
+          </View>
+        </ScrollView>
       </View>
     </Screen>
   );

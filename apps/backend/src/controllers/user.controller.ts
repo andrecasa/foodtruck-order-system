@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { ZodError } from 'zod';
 import type { AdminRequest } from '../middleware/role.middleware.js';
+import type { TenantContext } from '../middleware/tenant.middleware.js';
 import {
   createUserSchema,
   updateUserSchema,
@@ -9,6 +10,33 @@ import {
 } from '../validation/user.validation.js';
 import * as userService from '../services/user.service.js';
 import type { UserRecord } from '../services/user.service.js';
+
+/**
+ * Admin request that also carries the tenant resolved by `tenantMiddleware`
+ * (which runs before the controllers). `tenantId` is guaranteed present because
+ * the user routes chain `tenantMiddleware` before the handlers.
+ */
+interface TenantAdminRequest extends AdminRequest {
+  tenantId?: string;
+  tenantContext?: TenantContext;
+}
+
+/**
+ * Extracts the resolved tenant id from the request. The tenant middleware
+ * guarantees this is set on business routes; if it is somehow missing we fail
+ * loudly rather than run an unscoped query.
+ */
+function requireTenantId(req: TenantAdminRequest): string {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    throw new userService.ServiceError(
+      'Contexto de tenant ausente.',
+      500,
+      'INTERNAL_ERROR',
+    );
+  }
+  return tenantId;
+}
 
 // --- Response mapping ---
 
@@ -77,7 +105,7 @@ function mapZodErrorForCreate(error: ZodError): string {
  * POST /api/users
  * Creates a new user.
  */
-export async function createUser(req: AdminRequest, res: Response): Promise<void> {
+export async function createUser(req: TenantAdminRequest, res: Response): Promise<void> {
   try {
     const parsed = createUserSchema.safeParse(req.body);
 
@@ -90,7 +118,7 @@ export async function createUser(req: AdminRequest, res: Response): Promise<void
       return;
     }
 
-    const user = await userService.createUser(parsed.data);
+    const user = await userService.createUser(requireTenantId(req), parsed.data);
 
     res.status(201).json(mapUserToResponse(user));
   } catch (err) {
@@ -102,7 +130,7 @@ export async function createUser(req: AdminRequest, res: Response): Promise<void
  * GET /api/users
  * Lists all users with optional filters.
  */
-export async function listUsers(req: AdminRequest, res: Response): Promise<void> {
+export async function listUsers(req: TenantAdminRequest, res: Response): Promise<void> {
   try {
     const filters: userService.ListUsersFilters = {};
 
@@ -116,7 +144,7 @@ export async function listUsers(req: AdminRequest, res: Response): Promise<void>
       filters.status = status as userService.ListUsersFilters['status'];
     }
 
-    const users = await userService.listUsers(filters);
+    const users = await userService.listUsers(requireTenantId(req), filters);
 
     res.status(200).json({
       users: users.map(mapUserToResponse),
@@ -131,11 +159,11 @@ export async function listUsers(req: AdminRequest, res: Response): Promise<void>
  * GET /api/users/:id
  * Retrieves a user by ID.
  */
-export async function getUserById(req: AdminRequest, res: Response): Promise<void> {
+export async function getUserById(req: TenantAdminRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
 
-    const user = await userService.getUserById(id);
+    const user = await userService.getUserById(requireTenantId(req), id);
 
     if (!user) {
       res.status(404).json({
@@ -156,7 +184,7 @@ export async function getUserById(req: AdminRequest, res: Response): Promise<voi
  * PUT /api/users/:id
  * Updates an existing user.
  */
-export async function updateUser(req: AdminRequest, res: Response): Promise<void> {
+export async function updateUser(req: TenantAdminRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
 
@@ -174,7 +202,7 @@ export async function updateUser(req: AdminRequest, res: Response): Promise<void
 
     const requesterId = req.user?.id || '';
 
-    const user = await userService.updateUser(id, parsed.data, requesterId);
+    const user = await userService.updateUser(requireTenantId(req), id, parsed.data, requesterId);
 
     res.status(200).json(mapUserToResponse(user));
   } catch (err) {
@@ -186,7 +214,7 @@ export async function updateUser(req: AdminRequest, res: Response): Promise<void
  * PATCH /api/users/:id/status
  * Toggles user status between 'ativo' and 'inativo'.
  */
-export async function toggleUserStatus(req: AdminRequest, res: Response): Promise<void> {
+export async function toggleUserStatus(req: TenantAdminRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
 
@@ -204,13 +232,14 @@ export async function toggleUserStatus(req: AdminRequest, res: Response): Promis
 
     const { status } = parsed.data;
     const requesterId = req.user?.id || '';
+    const tenantId = requireTenantId(req);
 
     let user: UserRecord;
 
     if (status === 'inativo') {
-      user = await userService.deactivateUser(id, requesterId);
+      user = await userService.deactivateUser(tenantId, id, requesterId);
     } else {
-      user = await userService.activateUser(id);
+      user = await userService.activateUser(tenantId, id);
     }
 
     res.status(200).json(mapUserToResponse(user));
@@ -223,12 +252,12 @@ export async function toggleUserStatus(req: AdminRequest, res: Response): Promis
  * DELETE /api/users/:id
  * Permanently deletes a user.
  */
-export async function deleteUser(req: AdminRequest, res: Response): Promise<void> {
+export async function deleteUser(req: TenantAdminRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
     const requesterId = req.user?.id || '';
 
-    await userService.deleteUser(id, requesterId);
+    await userService.deleteUser(requireTenantId(req), id, requesterId);
 
     res.status(200).json({ message: 'Usuário excluído com sucesso' });
   } catch (err) {
@@ -240,7 +269,7 @@ export async function deleteUser(req: AdminRequest, res: Response): Promise<void
  * PATCH /api/users/:id/password
  * Resets a user's password.
  */
-export async function resetPassword(req: AdminRequest, res: Response): Promise<void> {
+export async function resetPassword(req: TenantAdminRequest, res: Response): Promise<void> {
   try {
     const id = req.params.id as string;
 
@@ -256,7 +285,7 @@ export async function resetPassword(req: AdminRequest, res: Response): Promise<v
       return;
     }
 
-    await userService.resetPassword(id, parsed.data.password);
+    await userService.resetPassword(requireTenantId(req), id, parsed.data.password);
 
     res.status(200).json({ message: 'Senha redefinida com sucesso' });
   } catch (err) {

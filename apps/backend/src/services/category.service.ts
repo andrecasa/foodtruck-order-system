@@ -1,4 +1,4 @@
-import { pool } from '../config/database.js';
+import { tenantRepository } from '../db/tenant-repository.js';
 
 // --- Interfaces ---
 
@@ -50,33 +50,41 @@ function mapCategoryWithCountRow(row: Record<string, unknown>): CategoryRecord {
 // --- Service functions ---
 
 /**
- * Returns all categories with item count, sorted by sort_order ASC then name ASC.
+ * Returns all categories of the tenant with item count, sorted by sort_order
+ * ASC then name ASC. All access is scoped to `tenantId` (R6.1).
  */
-export async function listCategories(): Promise<CategoryRecord[]> {
-  const result = await pool.query(
+export async function listCategories(tenantId: string): Promise<CategoryRecord[]> {
+  const repo = tenantRepository(tenantId);
+
+  // tenant_id is $1 (required by raw()); the LEFT JOIN also filters menu_items
+  // by the same tenant so counts never include other tenants' rows.
+  const rows = await repo.raw<Record<string, unknown>>(
     `SELECT c.id, c.name, c.sort_order, c.status, c.created_at,
             COUNT(mi.id)::int AS item_count
      FROM categories c
-     LEFT JOIN menu_items mi ON mi.category_id = c.id
+     LEFT JOIN menu_items mi ON mi.category_id = c.id AND mi.tenant_id = $1
+     WHERE c.tenant_id = $1
      GROUP BY c.id
-     ORDER BY c.sort_order ASC, c.name ASC`
+     ORDER BY c.sort_order ASC, c.name ASC`,
+    [tenantId],
   );
 
-  return result.rows.map(mapCategoryWithCountRow);
+  return rows.map(mapCategoryWithCountRow);
 }
 
 /**
- * Creates a new category.
- * Validates name uniqueness (case-insensitive).
+ * Creates a new category within the tenant.
+ * Validates name uniqueness (case-insensitive) within the tenant.
  */
-export async function createCategory(name: string): Promise<CategoryRecord> {
-  // Check name uniqueness (case-insensitive)
-  const existingResult = await pool.query(
-    `SELECT id FROM categories WHERE LOWER(name) = LOWER($1)`,
-    [name]
-  );
+export async function createCategory(tenantId: string, name: string): Promise<CategoryRecord> {
+  const repo = tenantRepository(tenantId);
 
-  if (existingResult.rows.length > 0) {
+  // Check name uniqueness (case-insensitive) within the tenant
+  const existing = await repo.select<{ id: string }>('categories', {
+    where: { text: `LOWER(name) = LOWER($1)`, params: [name] },
+  });
+
+  if (existing.length > 0) {
     throw new ServiceError(
       'Já existe uma categoria com este nome',
       409,
@@ -84,35 +92,38 @@ export async function createCategory(name: string): Promise<CategoryRecord> {
     );
   }
 
-  // Compute sort_order (max + 1 or 0)
-  const maxResult = await pool.query(
-    `SELECT COALESCE(MAX(sort_order), -1) AS max_sort_order FROM categories`
+  // Compute sort_order (max + 1 or 0) within the tenant
+  const maxRows = await repo.raw<{ max_sort_order: number }>(
+    `SELECT COALESCE(MAX(sort_order), -1) AS max_sort_order FROM categories WHERE tenant_id = $1`,
+    [tenantId],
   );
-  const sortOrder = maxResult.rows[0].max_sort_order + 1;
+  const sortOrder = (maxRows[0]?.max_sort_order ?? -1) + 1;
 
-  // Insert category
-  const insertResult = await pool.query(
-    `INSERT INTO categories (name, sort_order, status)
-     VALUES ($1, $2, 'ativo')
-     RETURNING id, name, sort_order, status, created_at`,
-    [name, sortOrder]
-  );
+  // Insert category (tenant_id injected by the repository)
+  const inserted = await repo.insert<Record<string, unknown>>('categories', {
+    name,
+    sort_order: sortOrder,
+    status: 'ativo',
+  });
 
-  return mapCategoryRow(insertResult.rows[0]);
+  return mapCategoryRow(inserted);
 }
 
 /**
- * Updates a category name.
- * Validates category exists and name uniqueness (case-insensitive, excluding self).
+ * Updates a category name within the tenant.
+ * Validates category exists (within tenant → 404 otherwise) and name uniqueness
+ * (case-insensitive, excluding self) within the tenant. A category from another
+ * tenant is treated as not existing (R6.3, R6.4).
  */
-export async function updateCategory(id: string, name: string): Promise<CategoryRecord> {
-  // Check category exists
-  const existResult = await pool.query(
-    `SELECT id, name, sort_order, created_at FROM categories WHERE id = $1`,
-    [id]
-  );
+export async function updateCategory(tenantId: string, id: string, name: string): Promise<CategoryRecord> {
+  const repo = tenantRepository(tenantId);
 
-  if (existResult.rows.length === 0) {
+  // Check category exists within the tenant
+  const existing = await repo.findOne<{ id: string }>('categories', {
+    where: { text: `id = $1`, params: [id] },
+  });
+
+  if (!existing) {
     throw new ServiceError(
       'Categoria não encontrada',
       404,
@@ -120,13 +131,12 @@ export async function updateCategory(id: string, name: string): Promise<Category
     );
   }
 
-  // Check name uniqueness excluding self (case-insensitive)
-  const duplicateResult = await pool.query(
-    `SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2`,
-    [name, id]
-  );
+  // Check name uniqueness excluding self (case-insensitive) within the tenant
+  const duplicates = await repo.select<{ id: string }>('categories', {
+    where: { text: `LOWER(name) = LOWER($1) AND id != $2`, params: [name, id] },
+  });
 
-  if (duplicateResult.rows.length > 0) {
+  if (duplicates.length > 0) {
     throw new ServiceError(
       'Já existe uma categoria com este nome',
       409,
@@ -134,28 +144,37 @@ export async function updateCategory(id: string, name: string): Promise<Category
     );
   }
 
-  // Update name
-  const updateResult = await pool.query(
-    `UPDATE categories SET name = $1 WHERE id = $2
-     RETURNING id, name, sort_order, created_at`,
-    [name, id]
-  );
+  // Update name (scoped to tenant)
+  await repo.update('categories', { name }, { text: `id = $1`, params: [id] });
 
-  const row = updateResult.rows[0];
+  const row = await repo.findOne<Record<string, unknown>>('categories', {
+    where: { text: `id = $1`, params: [id] },
+  });
+
+  if (!row) {
+    throw new ServiceError(
+      'Categoria não encontrada',
+      404,
+      'NOT_FOUND',
+    );
+  }
 
   return {
     id: row.id as string,
     name: row.name as string,
     sortOrder: row.sort_order as number,
+    status: row.status as string,
     createdAt: row.created_at as string,
-  } as CategoryRecord;
+  };
 }
 
 /**
- * Reorders all categories atomically using a transaction.
- * Validates: no duplicates, all IDs exist, count matches total.
+ * Reorders all of the tenant's categories atomically using a transaction.
+ * Validates (all scoped to tenant): no duplicates, all IDs exist, count matches total.
  */
-export async function reorderCategories(categoryIds: string[]): Promise<CategoryRecord[]> {
+export async function reorderCategories(tenantId: string, categoryIds: string[]): Promise<CategoryRecord[]> {
+  const repo = tenantRepository(tenantId);
+
   // Check for duplicates
   const uniqueIds = new Set(categoryIds);
   if (uniqueIds.size !== categoryIds.length) {
@@ -166,11 +185,11 @@ export async function reorderCategories(categoryIds: string[]): Promise<Category
     );
   }
 
-  // Get all existing categories
-  const existingResult = await pool.query(`SELECT id FROM categories`);
-  const existingIds = new Set(existingResult.rows.map((row) => row.id));
+  // Get all existing categories within the tenant
+  const existingRows = await repo.select<{ id: string }>('categories');
+  const existingIds = new Set(existingRows.map((row) => row.id));
 
-  // Check all IDs exist
+  // Check all IDs exist within the tenant
   for (const categoryId of categoryIds) {
     if (!existingIds.has(categoryId)) {
       throw new ServiceError(
@@ -190,60 +209,38 @@ export async function reorderCategories(categoryIds: string[]): Promise<Category
     );
   }
 
-  // Update sort_order in transaction
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
+  // Update sort_order in a transaction (each update scoped to tenant)
+  await repo.withTransaction(async (txRepo) => {
     for (let i = 0; i < categoryIds.length; i++) {
-      await client.query(
-        `UPDATE categories SET sort_order = $1 WHERE id = $2`,
-        [i, categoryIds[i]]
-      );
+      await txRepo.update('categories', { sort_order: i }, { text: `id = $1`, params: [categoryIds[i]] });
     }
+  });
 
-    await client.query('COMMIT');
-  } catch (txErr) {
-    await client.query('ROLLBACK');
-    throw txErr;
-  } finally {
-    client.release();
-  }
-
-  // Return updated list
-  const updatedResult = await pool.query(
-    `SELECT c.id, c.name, c.sort_order, c.status, c.created_at,
-            COUNT(mi.id)::int AS item_count
-     FROM categories c
-     LEFT JOIN menu_items mi ON mi.category_id = c.id
-     GROUP BY c.id
-     ORDER BY c.sort_order ASC, c.name ASC`
-  );
-
-  return updatedResult.rows.map(mapCategoryWithCountRow);
+  // Return updated list (scoped to tenant)
+  return listCategories(tenantId);
 }
 
 /**
- * Toggles category status between 'ativo' and 'inativo'.
+ * Toggles category status between 'ativo' and 'inativo' within the tenant.
  * For deactivation: validates not already inactive, checks no active menu items.
  * For activation: validates not already active.
+ * A category from another tenant is treated as not existing (R6.3, R6.4).
  */
-export async function toggleCategoryStatus(id: string, action: string): Promise<CategoryRecord> {
-  // Check category exists
-  const categoryResult = await pool.query(
-    `SELECT id, name, sort_order, status, created_at FROM categories WHERE id = $1`,
-    [id]
-  );
+export async function toggleCategoryStatus(tenantId: string, id: string, action: string): Promise<CategoryRecord> {
+  const repo = tenantRepository(tenantId);
 
-  if (categoryResult.rows.length === 0) {
+  // Check category exists within the tenant
+  const category = await repo.findOne<{ id: string; status: string }>('categories', {
+    where: { text: `id = $1`, params: [id] },
+  });
+
+  if (!category) {
     throw new ServiceError(
       'Categoria não encontrada',
       404,
       'NOT_FOUND',
     );
   }
-
-  const category = categoryResult.rows[0];
 
   if (action === 'deactivate') {
     if (category.status === 'inativo') {
@@ -254,13 +251,12 @@ export async function toggleCategoryStatus(id: string, action: string): Promise<
       );
     }
 
-    // Guard: check for active menu items
-    const activeItemsResult = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM menu_items WHERE category_id = $1 AND status = 'ativo'`,
-      [id]
-    );
+    // Guard: check for active menu items within the tenant
+    const activeItems = await repo.select<{ id: string }>('menu_items', {
+      where: { text: `category_id = $1 AND status = 'ativo'`, params: [id] },
+    });
 
-    if (activeItemsResult.rows[0].count > 0) {
+    if (activeItems.length > 0) {
       throw new ServiceError(
         'Categoria possui itens ativos. Desative os itens antes de desativar a categoria',
         422,
@@ -268,13 +264,7 @@ export async function toggleCategoryStatus(id: string, action: string): Promise<
       );
     }
 
-    const updateResult = await pool.query(
-      `UPDATE categories SET status = 'inativo' WHERE id = $1
-       RETURNING id, name, sort_order, status, created_at`,
-      [id]
-    );
-
-    return mapCategoryRow(updateResult.rows[0]);
+    await repo.update('categories', { status: 'inativo' }, { text: `id = $1`, params: [id] });
   } else if (action === 'activate') {
     if (category.status === 'ativo') {
       throw new ServiceError(
@@ -284,13 +274,7 @@ export async function toggleCategoryStatus(id: string, action: string): Promise<
       );
     }
 
-    const updateResult = await pool.query(
-      `UPDATE categories SET status = 'ativo' WHERE id = $1
-       RETURNING id, name, sort_order, status, created_at`,
-      [id]
-    );
-
-    return mapCategoryRow(updateResult.rows[0]);
+    await repo.update('categories', { status: 'ativo' }, { text: `id = $1`, params: [id] });
   } else {
     throw new ServiceError(
       'Ação inválida. Use "activate" ou "deactivate"',
@@ -298,19 +282,12 @@ export async function toggleCategoryStatus(id: string, action: string): Promise<
       'VALIDATION_ERROR',
     );
   }
-}
 
-/**
- * Deletes a category if it has no associated menu items.
- */
-export async function deleteCategory(id: string): Promise<void> {
-  // Check category exists
-  const categoryResult = await pool.query(
-    `SELECT id FROM categories WHERE id = $1`,
-    [id]
-  );
+  const row = await repo.findOne<Record<string, unknown>>('categories', {
+    where: { text: `id = $1`, params: [id] },
+  });
 
-  if (categoryResult.rows.length === 0) {
+  if (!row) {
     throw new ServiceError(
       'Categoria não encontrada',
       404,
@@ -318,13 +295,35 @@ export async function deleteCategory(id: string): Promise<void> {
     );
   }
 
-  // Guard: check for associated menu items (any status)
-  const itemsResult = await pool.query(
-    `SELECT COUNT(*)::int AS count FROM menu_items WHERE category_id = $1`,
-    [id]
-  );
+  return mapCategoryRow(row);
+}
 
-  if (itemsResult.rows[0].count > 0) {
+/**
+ * Deletes a category within the tenant if it has no associated menu items.
+ * A category from another tenant is treated as not existing (R6.4 → 404).
+ */
+export async function deleteCategory(tenantId: string, id: string): Promise<void> {
+  const repo = tenantRepository(tenantId);
+
+  // Check category exists within the tenant
+  const category = await repo.findOne<{ id: string }>('categories', {
+    where: { text: `id = $1`, params: [id] },
+  });
+
+  if (!category) {
+    throw new ServiceError(
+      'Categoria não encontrada',
+      404,
+      'NOT_FOUND',
+    );
+  }
+
+  // Guard: check for associated menu items (any status) within the tenant
+  const items = await repo.select<{ id: string }>('menu_items', {
+    where: { text: `category_id = $1`, params: [id] },
+  });
+
+  if (items.length > 0) {
     throw new ServiceError(
       'Categoria possui itens associados. Mova ou exclua os itens antes de excluir a categoria',
       422,
@@ -332,6 +331,6 @@ export async function deleteCategory(id: string): Promise<void> {
     );
   }
 
-  // Delete category
-  await pool.query(`DELETE FROM categories WHERE id = $1`, [id]);
+  // Delete category (scoped to tenant)
+  await repo.delete('categories', { text: `id = $1`, params: [id] });
 }

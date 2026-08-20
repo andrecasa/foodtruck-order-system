@@ -87,8 +87,8 @@ describe('LoginScreen', () => {
     });
   });
 
-  it('shows error message on failed login', async () => {
-    mockLogin.mockRejectedValue(new Error('Invalid credentials'));
+  it('shows the invalid-credentials message on a 401 login failure', async () => {
+    mockLogin.mockRejectedValue(new Error('E-mail ou senha incorretos'));
     const { getByTestId, findByText } = render(<LoginScreen />);
 
     fireEvent.changeText(getByTestId('login-email-input'), 'user@test.com');
@@ -96,5 +96,18 @@ describe('LoginScreen', () => {
     fireEvent.press(getByTestId('login-submit-button'));
 
     await findByText('E-mail ou senha incorretos');
+  });
+
+  it('shows a connection error message when the request cannot reach the server', async () => {
+    mockLogin.mockRejectedValue(
+      new Error('Não foi possível conectar ao servidor. Verifique sua conexão e o endereço da API.'),
+    );
+    const { getByTestId, findByText } = render(<LoginScreen />);
+
+    fireEvent.changeText(getByTestId('login-email-input'), 'user@test.com');
+    fireEvent.changeText(getByTestId('login-password-input'), 'password123');
+    fireEvent.press(getByTestId('login-submit-button'));
+
+    await findByText('Não foi possível conectar ao servidor. Verifique sua conexão e o endereço da API.');
   });
 });

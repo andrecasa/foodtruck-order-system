@@ -18,6 +18,16 @@ curl -SL "https://github.com/docker/compose/releases/latest/download/docker-comp
   -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
+# O buildx que vem no pacote 'docker' do AL2023 é antigo (0.12.x) e o Compose
+# recente exige buildx >= 0.17.0 para 'docker compose --build'. Instalamos um
+# buildx atualizado no mesmo diretório de plugins (tem precedência sobre o do
+# sistema em /usr/libexec/docker/cli-plugins).
+echo ">>> Instalando Docker Buildx (versão compatível com o Compose)..."
+BUILDX_VERSION="v0.19.3"
+curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-amd64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+
 echo ">>> Adicionando ec2-user ao grupo docker..."
 usermod -aG docker ec2-user
 

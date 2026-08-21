@@ -70,7 +70,36 @@ volumes:
 EOF
 
 # ─────────────────────────────────────────────
-# 4. Build e start dos containers
+# 4. Instalar Node.js 20 + pnpm (necessários para migrations e onboarding)
+# ─────────────────────────────────────────────
+if ! command -v node > /dev/null 2>&1; then
+  echo ">>> Instalando Node.js 20..."
+  curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+  dnf install -y nodejs
+fi
+echo ">>> Ativando pnpm (corepack)..."
+corepack enable
+corepack prepare pnpm@9.15.4 --activate
+
+echo ">>> Instalando dependências (pnpm install)..."
+pnpm install --frozen-lockfile
+
+# ─────────────────────────────────────────────
+# 5. Gerar chaves do Supabase ANTES do primeiro "up"
+# ─────────────────────────────────────────────
+# O kong.yml NÃO é versionado; se subirmos os containers sem ele, o Docker cria
+# um DIRETÓRIO vazio no bind mount e o Kong entra em loop de restart. O
+# generate-keys.sh cria o kong.yml a partir do template e grava as chaves.
+# Passa um JWT_SECRET forte (sem argumento, reaproveitaria o valor de exemplo).
+echo ">>> Gerando chaves do Supabase (JWT_SECRET/ANON/SERVICE_ROLE + kong.yml)..."
+if [ -d kong.yml ]; then
+  # Remove um bind-mount fantasma de execuções anteriores mal-ordenadas.
+  rmdir kong.yml 2>/dev/null || rm -rf kong.yml
+fi
+bash ./scripts/generate-keys.sh "$(openssl rand -base64 32)"
+
+# ─────────────────────────────────────────────
+# 6. Build e start dos containers (com kong.yml já gerado)
 # ─────────────────────────────────────────────
 echo ">>> Construindo e iniciando containers..."
 docker compose down || true
@@ -80,7 +109,7 @@ echo ">>> Aguardando estabilizar (15s)..."
 sleep 15
 
 # ─────────────────────────────────────────────
-# 5. Provisionar o primeiro tenant + admin logável (onboarding idempotente)
+# 7. Provisionar o primeiro tenant + admin logável (onboarding idempotente)
 # ─────────────────────────────────────────────
 echo ">>> Provisionando o primeiro tenant (onboarding)..."
 if [ -f "./scripts/seed-first-tenant.sh" ]; then
@@ -88,7 +117,7 @@ if [ -f "./scripts/seed-first-tenant.sh" ]; then
 fi
 
 # ─────────────────────────────────────────────
-# 6. Verificar saúde dos serviços
+# 8. Verificar saúde dos serviços
 # ─────────────────────────────────────────────
 echo ""
 echo ">>> Verificando serviços..."

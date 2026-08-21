@@ -207,7 +207,7 @@ aws_region        = "us-east-1"
 environment       = "prod"
 instance_type     = "t3.small"
 key_pair_name     = "order-system-key"
-domain_name       = "example.com"
+domain_name       = "foodtruck.app.br"
 ssh_allowed_cidrs = ["SEU_IP_AQUI/32"]
 enable_backups    = true
 ```
@@ -244,7 +244,7 @@ Terraform has been successfully initialized!
 terraform plan
 ```
 
-Revise a lista. Deve mostrar algo como `Plan: 12 to add, 0 to change, 0 to destroy.`
+Revise a lista. Deve mostrar algo como `Plan: 19 to add, 0 to change, 0 to destroy.`
 
 ```bash
 # 3. Criar tudo (vai pedir confirmação)
@@ -294,9 +294,11 @@ sudo cat /var/log/cloud-init-output.log | tail -5
 ```bash
 docker --version        # Docker instalado?
 docker compose version  # Docker Compose instalado?
-lsblk                  # EBS data aparece como xvdf?
-df -h /mnt/app-data    # Volume montado?
+lsblk                   # EBS de dados (5G): em instâncias Nitro/t3 aparece como nvme1n1 (não xvdf)
+df -h /mnt/app-data     # Volume montado? (deve mostrar ~5G)
 ```
+
+> 💡 O Terraform anexa o volume como `/dev/xvdf`, mas instâncias Nitro (família t3) usam o driver NVMe, então o SO o enumera como `nvme1n1`. É o mesmo volume — o que importa é estar montado em `/mnt/app-data`. Não confie no nome do device; confirme pelo mount point (`df -h /mnt/app-data`).
 
 ---
 
@@ -326,33 +328,34 @@ O script vai:
 
 ## Passo 8 — Configurar variáveis de produção
 
-O deploy criou um `.env` a partir do `.env.example`. Agora edite com valores de produção:
+O deploy criou um `.env` a partir do `.env.example`. Edite apenas o que **não** é
+gerado automaticamente.
+
+> ℹ️ **`JWT_SECRET`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` NÃO precisam
+> ser definidos aqui** — o `./scripts/generate-keys.sh` (Passo 9) gera e grava esses
+> três valores automaticamente no `.env`, no `apps/mobile/.env` e no `kong.yml`.
+> Aqui você configura só os secrets que o script não cobre (Postgres e Evolution)
+> e as URLs.
 
 ```bash
 cd /opt/order-system
 nano .env
 ```
 
-**Gere os secrets primeiro:**
+**Gere os secrets que faltam:**
 ```bash
-# JWT Secret (copie o resultado)
-openssl rand -base64 32
+# Senha do banco (copie o resultado)
+openssl rand -base64 16
 
 # API Key para Evolution (copie o resultado)
 openssl rand -hex 24
-
-# Senha do banco (copie o resultado)
-openssl rand -base64 16
 ```
 
 **Valores para alterar no `.env`:**
 
 ```env
-# ════ OBRIGATÓRIO ALTERAR ══════════════════════════
-JWT_SECRET=COLE_O_RESULTADO_DO_PRIMEIRO_OPENSSL
-ANON_KEY=será-gerado-pelo-generate-keys
-SERVICE_ROLE_KEY=será-gerado-pelo-generate-keys
-POSTGRES_PASSWORD=COLE_O_RESULTADO_DO_TERCEIRO_OPENSSL
+# ════ OBRIGATÓRIO ALTERAR (não cobertos pelo generate-keys.sh) ════
+POSTGRES_PASSWORD=COLE_O_RESULTADO_DO_PRIMEIRO_OPENSSL
 EVOLUTION_API_KEY=COLE_O_RESULTADO_DO_SEGUNDO_OPENSSL
 
 # ══════ URLS (use IP ou domínio) ════════════════════
@@ -362,9 +365,12 @@ SITE_URL=http://SEU_IP
 EVOLUTION_SERVER_URL=http://SEU_IP:8080
 
 # Quando tiver domínio + HTTPS, troque para:
-# API_EXTERNAL_URL=https://api.example.com
-# SITE_URL=https://web.example.com
-# EVOLUTION_SERVER_URL=https://api.example.com/evolution
+# API_EXTERNAL_URL=https://api.foodtruck.app.br
+# SITE_URL=https://web.foodtruck.app.br
+# EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
+
+# NÃO edite manualmente (gerados pelo generate-keys.sh no Passo 9):
+#   JWT_SECRET, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 ```
 
 Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
@@ -379,20 +385,24 @@ cd /opt/order-system
 # Parar tudo (se estiver rodando do deploy anterior)
 docker compose down
 
-# Subir com as novas variáveis
+# 1. Gerar chaves do Supabase ANTES do primeiro "up".
+# O kong.yml NÃO é versionado (contém as chaves). O generate-keys.sh gera um
+# JWT_SECRET forte, deriva ANON_KEY/SERVICE_ROLE_KEY dele e cria o kong.yml a
+# partir de kong.yml.example, atualizando .env, apps/mobile/.env e kong.yml.
+# Se subir os containers sem isso, o Kong não encontra o kong.yml e falha.
+#
+# IMPORTANTE: passe um secret forte como argumento. Sem argumento, o script
+# REAPROVEITA o JWT_SECRET existente no .env — que, vindo do .env.example, é o
+# valor de exemplo "super-secret-jwt-token-change-in-production" (inseguro).
+./scripts/generate-keys.sh "$(openssl rand -base64 32)"
+
+# 2. Subir com as novas variáveis e o kong.yml já gerado
 docker compose up -d --build
 
-# Aguardar estabilizar
+# 3. Aguardar estabilizar
 sleep 20
 
-# Gerar chaves do Supabase (ANON_KEY e SERVICE_ROLE_KEY)
-./scripts/generate-keys.sh
-
-# Reiniciar para pegar as novas chaves
-docker compose down
-docker compose up -d
-
-# Provisionar o primeiro tenant + admin logável (onboarding idempotente)
+# 4. Provisionar o primeiro tenant + admin logável (onboarding idempotente)
 ./scripts/seed-first-tenant.sh
 ```
 
@@ -401,7 +411,11 @@ docker compose up -d
 docker compose ps
 ```
 
-Todos os serviços devem estar com status `Up` ou `healthy`.
+Todos os serviços devem estar com status `Up` ou `healthy`. Confirme que o `kong.yml` foi gerado (não deve conter os placeholders `REPLACE_WITH_...`):
+
+```bash
+grep -c REPLACE_WITH kong.yml   # deve retornar 0
+```
 
 ---
 
@@ -411,7 +425,7 @@ O Nginx recebe as requisições da internet e direciona para o container correto
 
 ```bash
 # Copiar config
-sudo cp /opt/order-system/infra/scripts/nginx.conf /etc/nginx/conf.d/example.com.conf
+sudo cp /opt/order-system/infra/scripts/nginx.conf /etc/nginx/conf.d/foodtruck.app.br.conf
 
 # Remover config padrão (conflita na porta 80)
 sudo rm -f /etc/nginx/conf.d/default.conf
@@ -426,7 +440,7 @@ sudo systemctl restart nginx
 
 **Testar acesso externo** (na sua máquina local, não na EC2):
 ```bash
-curl -H "Host: api.example.com" http://SEU_IP/api/health
+curl -H "Host: api.foodtruck.app.br" http://SEU_IP/api/health
 # Deve retornar: {"status":"ok"} ou similar
 ```
 
@@ -462,16 +476,16 @@ O build gera arquivos em `apps/web/dist/`. O Nginx já está configurado para se
 
 ### 12.1 — Configurar DNS no Registro.br (modo avançado)
 
-1. Acesse https://registro.br → login → "Meus domínios" → `example.com`
+1. Acesse https://registro.br → login → "Meus domínios" → `foodtruck.app.br`
 2. Clique na aba **DNS**
 3. Em "Configurar endereçamento", clique em **"MODO AVANÇADO"**
 4. O Registro.br vai iniciar a transição da zona (~2 horas). Aguarde até poder adicionar registros.
 5. Quando liberar, adicione os seguintes registros:
 
 ```
-example.com        A    SEU_IP
-api.example.com    A    SEU_IP
-web.example.com    A    SEU_IP
+foodtruck.app.br        A    SEU_IP
+api.foodtruck.app.br    A    SEU_IP
+web.foodtruck.app.br    A    SEU_IP
 ```
 
 > ⚠️ No Registro.br modo avançado, não se usa `@`. O domínio raiz é o próprio nome completo.
@@ -482,9 +496,9 @@ web.example.com    A    SEU_IP
 ### 12.2 — Verificar propagação
 
 ```bash
-dig +short example.com
-dig +short api.example.com
-dig +short web.example.com
+dig +short foodtruck.app.br
+dig +short api.foodtruck.app.br
+dig +short web.foodtruck.app.br
 # Todos devem retornar: SEU_IP
 ```
 
@@ -495,13 +509,13 @@ Se não tiver `dig`, use: https://www.whatsmydns.net
 Na EC2, crie a configuração do Nginx:
 
 ```bash
-sudo bash -c 'cat > /etc/nginx/conf.d/example.com.conf << '\''EOF'\''
+sudo bash -c 'cat > /etc/nginx/conf.d/foodtruck.app.br.conf << '\''EOF'\''
 # ─────────────────────────────────────────────────────────────
-# web.example.com — Painel Web (arquivos estáticos)
+# web.foodtruck.app.br — Painel Web (arquivos estáticos)
 # ─────────────────────────────────────────────────────────────
 server {
     listen 80;
-    server_name web.example.com example.com;
+    server_name web.foodtruck.app.br foodtruck.app.br;
 
     location / {
         root /opt/order-system/apps/web/dist;
@@ -528,11 +542,11 @@ server {
 }
 
 # ─────────────────────────────────────────────────────────────
-# api.example.com — Backend API + Auth + Realtime
+# api.foodtruck.app.br — Backend API + Auth + Realtime
 # ─────────────────────────────────────────────────────────────
 server {
     listen 80;
-    server_name api.example.com;
+    server_name api.foodtruck.app.br;
 
     # Backend API
     location /api/ {
@@ -587,7 +601,7 @@ sudo systemctl reload nginx
 Após os subdomínios estarem propagados (`dig` retornando o IP):
 
 ```bash
-sudo certbot --nginx -d example.com -d web.example.com -d api.example.com
+sudo certbot --nginx -d foodtruck.app.br -d web.foodtruck.app.br -d api.foodtruck.app.br
 ```
 
 O Certbot vai pedir:
@@ -611,9 +625,9 @@ nano .env
 Altere para:
 
 ```env
-API_EXTERNAL_URL=https://api.example.com
-SITE_URL=https://web.example.com
-EVOLUTION_SERVER_URL=https://api.example.com/evolution
+API_EXTERNAL_URL=https://api.foodtruck.app.br
+SITE_URL=https://web.foodtruck.app.br
+EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
 ```
 
 Reinicie:
@@ -628,19 +642,19 @@ docker compose up -d
 No `.env` do projeto mobile (na sua máquina local):
 
 ```env
-EXPO_PUBLIC_API_URL=https://api.example.com/api
-EXPO_PUBLIC_SUPABASE_URL=https://api.example.com
+EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br/api
+EXPO_PUBLIC_SUPABASE_URL=https://api.foodtruck.app.br
 ```
 
 ### 12.7 — Verificar
 
 ```bash
 # Backend
-curl https://api.example.com/api/health
+curl https://api.foodtruck.app.br/api/health
 
 # Painel web — abrir no navegador:
-# https://web.example.com
-# https://example.com (mesmo conteúdo)
+# https://web.foodtruck.app.br
+# https://foodtruck.app.br (mesmo conteúdo)
 ```
 
 ---
@@ -719,10 +733,10 @@ aws s3 ls s3://order-system-backups-$(aws sts get-caller-identity --query Accoun
 
 ```bash
 # 6. Nginx proxy funcionando (acesso externo)
-curl https://api.example.com/api/health
+curl https://api.foodtruck.app.br/api/health
 
 # 7. Painel web carregando
-Abra no navegador: https://web.example.com
+Abra no navegador: https://web.foodtruck.app.br
 ```
 
 ---

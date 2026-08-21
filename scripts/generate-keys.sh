@@ -67,20 +67,33 @@ update_env() {
 update_env ".env"
 update_env "apps/mobile/.env"
 
-# kong.yml não é versionado (contém as chaves). Gera a partir do template.
-if [ ! -f kong.yml ] && [ -f kong.yml.example ]; then
-  cp kong.yml.example kong.yml
-  echo "  ℹ️  kong.yml criado a partir de kong.yml.example"
+# kong.yml não é versionado (contém as chaves) e é gerado a partir do template.
+# Um `docker compose up` feito ANTES de o kong.yml existir cria um DIRETÓRIO
+# vazio no bind mount; detectamos e removemos esse resíduo para não travar aqui.
+if [ -d kong.yml ]; then
+  echo "  ⚠️  kong.yml era um diretório (bind mount fantasma) — removendo"
+  rmdir kong.yml 2>/dev/null || rm -rf kong.yml
 fi
 
-if [ -f kong.yml ]; then
-  awk -v anon="$ANON_KEY" -v sr="$SERVICE_ROLE_KEY" '
-    /username: anon/{fa=1} /username: service_role/{fs=1}
-    fa && /- key:/{$0="      - key: "anon; fa=0}
-    fs && /- key:/{$0="      - key: "sr; fs=0}
-    {print}
-  ' kong.yml > kong.yml.tmp && mv kong.yml.tmp kong.yml
+if [ -f kong.yml.example ]; then
+  # Sempre regenera a partir do template, garantindo placeholders limpos.
+  cp kong.yml.example kong.yml
+
+  # Substituição robusta via sed (as chaves são base64url: só [A-Za-z0-9._-],
+  # portanto seguras com o delimitador |).
+  sed -i \
+    -e "s|REPLACE_WITH_ANON_KEY|${ANON_KEY}|g" \
+    -e "s|REPLACE_WITH_SERVICE_ROLE_KEY|${SERVICE_ROLE_KEY}|g" \
+    kong.yml
+
+  # Falha explícita se algum placeholder sobrou (evita subir o Kong quebrado).
+  if grep -q "REPLACE_WITH_" kong.yml; then
+    echo "  ❌ kong.yml ainda contém placeholders após a substituição" >&2
+    exit 1
+  fi
   echo "  ✅ kong.yml"
+else
+  echo "  ⚠️  kong.yml.example não encontrado — kong.yml não foi gerado" >&2
 fi
 
 echo ""

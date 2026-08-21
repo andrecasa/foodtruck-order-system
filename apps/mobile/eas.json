@@ -17,9 +17,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.example.com",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://api.example.com",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "REPLACE_WITH_ANON_KEY"
+        "EXPO_PUBLIC_API_URL": "https://api.foodtruck.app.br",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://api.foodtruck.app.br",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg3MjY0NDQxLCJleHAiOjIxMDI2MjQ0NDF9.NeqIxlzONmVtWkKsfsaXr81BJ_i1zND70sCss0pBnuk"
       }
     },
     "production": {

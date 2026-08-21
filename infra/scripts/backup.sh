@@ -7,11 +7,15 @@ set -euo pipefail
 
 TIMESTAMP=$(date +%Y-%m-%d_%H%M)
 BACKUP_DIR="/tmp/order-system-backups"
-S3_BUCKET=$(aws s3 ls | grep order-system-backups | awk '{print $3}')
 DATA_MOUNT="/mnt/app-data"
 
-if [ -z "$S3_BUCKET" ]; then
-  echo "[ERROR] Bucket de backup não encontrado"
+# Deriva o nome do bucket a partir do Account ID (a IAM role da EC2 tem
+# permissão para o bucket específico, mas NÃO para s3:ListAllMyBuckets).
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+S3_BUCKET="order-system-backups-${ACCOUNT_ID}"
+
+if [ -z "$ACCOUNT_ID" ]; then
+  echo "[ERROR] Não foi possível obter o Account ID"
   exit 1
 fi
 

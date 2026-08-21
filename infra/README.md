@@ -1026,7 +1026,7 @@ sudo systemctl enable --now crond
 # Criar o arquivo de backup manualmente
 sudo mkdir -p /etc/cron.d
 sudo bash -c 'cat > /etc/cron.d/order-system-backup << EOF
-0 */6 * * * root /opt/order-system/scripts/backup.sh >> /var/log/order-system-backup.log 2>&1
+0 */6 * * * root /opt/order-system/infra/scripts/backup.sh >> /var/log/order-system-backup.log 2>&1
 EOF'
 ```
 

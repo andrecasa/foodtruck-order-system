@@ -136,7 +136,7 @@ export function LoginPage() {
         {/* Header (logo, título, subtítulo) — fora do card, igual ao app */}
         <div style={headerStyle}>
           <img
-            src={theme.logo || '/assets/icon.png'}
+            src={theme.logo || '/assets/logo.png'}
             alt={theme.businessName}
             style={{ width: '150px', height: '150px', borderRadius: '12px', objectFit: 'contain' }}
           />

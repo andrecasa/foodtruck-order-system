@@ -17,6 +17,7 @@ import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
 import type { MenuItem, Order } from '@order-system/shared';
 import { formatPrice } from '../utils/format';
+import { withOpacity } from '../utils/color';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;
@@ -334,7 +335,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     alignItems: 'center',
     height: 48,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(123,45,45,0.06)',
+    backgroundColor: withOpacity(theme.colors.primary, 0.06),
     borderRadius: 8,
   };
 
@@ -411,7 +412,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
           onChangeText={(text) => setCustomerName(text.slice(0, 100))}
           placeholder="Nome do cliente..."
           icon="person"
-          iconColor="#8B6B5A"
+          iconColor={theme.colors.textSecondary}
           testID="input-customer-name"
         />
 

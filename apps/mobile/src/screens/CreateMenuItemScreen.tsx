@@ -227,12 +227,12 @@ export function CreateMenuItemScreen() {
     borderColor: theme.colors.error,
   };
 
-  // Placeholder text: Inter 14px weight 400, color #8B6B5A opacity 0.6
+  // Placeholder text: Inter 14px weight 400, textSecondary do tema
   const placeholderTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: 'rgba(139, 107, 90, 0.6)',
+    color: theme.colors.textSecondary,
     flex: 1,
   };
 
@@ -418,6 +418,7 @@ export function CreateMenuItemScreen() {
               testID="input-item-name"
               accessibilityLabel="Nome do item"
               color={theme.colors.text}
+              placeholderColor={theme.colors.textSecondary}
             />
           </View>
           {nameError ? (
@@ -439,6 +440,7 @@ export function CreateMenuItemScreen() {
               testID="input-item-price"
               accessibilityLabel="Preço"
               color={theme.colors.text}
+              placeholderColor={theme.colors.textSecondary}
             />
           </View>
           {priceError ? (
@@ -476,6 +478,7 @@ interface InputInlineProps {
   testID?: string;
   accessibilityLabel?: string;
   color: string;
+  placeholderColor: string;
 }
 
 /**
@@ -486,7 +489,7 @@ interface InputInlineProps {
  */
 const InputInline = React.forwardRef<TextInput, InputInlineProps>(
   function InputInline(
-    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color },
+    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color, placeholderColor },
     ref,
   ) {
     return (
@@ -504,7 +507,7 @@ const InputInline = React.forwardRef<TextInput, InputInlineProps>(
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="rgba(139, 107, 90, 0.6)"
+        placeholderTextColor={placeholderColor}
         keyboardType={keyboardType}
         testID={testID}
         accessibilityLabel={accessibilityLabel}

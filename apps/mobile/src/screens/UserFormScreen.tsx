@@ -446,7 +446,7 @@ export function UserFormScreen() {
               style={
                 role
                   ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text, flex: 1 }
-                  : { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: 'rgba(139, 107, 90, 0.6)', flex: 1 }
+                  : { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.textSecondary, flex: 1 }
               }
             >
               {role ? ROLE_OPTIONS.find((r) => r.value === role)?.label : 'Selecione...'}
@@ -505,7 +505,7 @@ export function UserFormScreen() {
                 if (apiError) setApiError('');
               }}
               placeholder="Nome completo do usuário"
-              placeholderTextColor="rgba(139, 107, 90, 0.6)"
+              placeholderTextColor={theme.colors.textSecondary}
               accessibilityLabel="Nome"
               testID="input-name"
             />
@@ -529,7 +529,7 @@ export function UserFormScreen() {
                 if (apiError) setApiError('');
               }}
               placeholder="usuario@email.com"
-              placeholderTextColor="rgba(139, 107, 90, 0.6)"
+              placeholderTextColor={theme.colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -555,7 +555,7 @@ export function UserFormScreen() {
                 if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
               }}
               placeholder="Mínimo 8 caracteres"
-              placeholderTextColor="rgba(139, 107, 90, 0.6)"
+              placeholderTextColor={theme.colors.textSecondary}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
@@ -591,7 +591,7 @@ export function UserFormScreen() {
                 if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
               }}
               placeholder="Mínimo 8 caracteres"
-              placeholderTextColor="rgba(139, 107, 90, 0.6)"
+              placeholderTextColor={theme.colors.textSecondary}
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               autoCorrect={false}
@@ -630,7 +630,7 @@ export function UserFormScreen() {
           testID="submit-user"
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
+            <ActivityIndicator color={theme.colors.surface} size="small" />
           ) : (
             <RNText style={confirmButtonTextStyle}>
               Salvar

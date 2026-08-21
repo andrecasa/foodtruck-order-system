@@ -232,7 +232,7 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
               if (apiError) setApiError('');
             }}
             placeholder="Nome da categoria"
-            placeholderTextColor="rgba(139, 107, 90, 0.6)"
+            placeholderTextColor={theme.colors.textSecondary}
             maxLength={101}
             autoFocus
             accessibilityLabel="Nome da categoria"
@@ -263,7 +263,7 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
           testID="submit-category"
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
+            <ActivityIndicator color={theme.colors.surface} size="small" />
           ) : (
             <RNText style={submitButtonTextStyle}>Salvar</RNText>
           )}

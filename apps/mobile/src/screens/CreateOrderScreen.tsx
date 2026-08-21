@@ -17,6 +17,7 @@ import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
 import { formatPrice } from '../utils/format';
+import { withOpacity } from '../utils/color';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;
@@ -352,7 +353,7 @@ export function CreateOrderScreen() {
     alignItems: 'center',
     height: 48,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(123,45,45,0.06)',
+    backgroundColor: withOpacity(theme.colors.primary, 0.06),
     borderRadius: 8,
   };
 

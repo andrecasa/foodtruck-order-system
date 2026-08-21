@@ -277,7 +277,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: '400',
-    color: 'rgba(139, 107, 90, 0.6)',
+    color: theme.colors.textSecondary,
     flex: 1,
   };
 
@@ -476,6 +476,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
               testID="input-item-name"
               accessibilityLabel="Nome do item"
               color={theme.colors.text}
+              placeholderColor={theme.colors.textSecondary}
             />
           </View>
           {nameError ? (
@@ -497,6 +498,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
               testID="input-item-price"
               accessibilityLabel="Preço"
               color={theme.colors.text}
+              placeholderColor={theme.colors.textSecondary}
             />
           </View>
           {priceError ? (
@@ -571,17 +573,18 @@ interface InputInlineProps {
   testID?: string;
   accessibilityLabel?: string;
   color: string;
+  placeholderColor: string;
 }
 
 /**
  * Minimal inline TextInput that matches Penpot field specs:
  * - No extra wrapper/padding (parent container handles it)
  * - Inter 14px weight 400, color #3D2020
- * - Placeholder color rgba(139,107,90,0.6)
+ * - Placeholder color from theme.colors.textSecondary
  */
 const InputInline = React.forwardRef<TextInput, InputInlineProps>(
   function InputInline(
-    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color },
+    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color, placeholderColor },
     ref,
   ) {
     return (
@@ -599,7 +602,7 @@ const InputInline = React.forwardRef<TextInput, InputInlineProps>(
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="rgba(139, 107, 90, 0.6)"
+        placeholderTextColor={placeholderColor}
         keyboardType={keyboardType}
         testID={testID}
         accessibilityLabel={accessibilityLabel}

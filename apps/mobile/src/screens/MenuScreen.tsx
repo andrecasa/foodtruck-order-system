@@ -276,7 +276,7 @@ export function MenuScreen() {
           ))}
           {groupedItems.length === 0 && (
             <View style={{ padding: 24, alignItems: 'center' }}>
-              <Text size="md" color="#8B6B5A">
+              <Text size="md" color={theme.colors.textSecondary}>
                 Nenhum item ativo no cardápio.
               </Text>
             </View>

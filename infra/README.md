@@ -556,6 +556,13 @@ sudo bash -c 'cat > /etc/nginx/conf.d/foodtruck.app.br.conf << '\''EOF'\''
 server {
     listen 80;
     server_name web.foodtruck.app.br foodtruck.app.br;
+    
+    # Assets de branding dos clientes (logos, imagens) servidos direto pelo Nginx
+    location /branding/ {
+        alias /opt/order-system/public-assets/;
+        expires 30d;
+        add_header Cache-Control "public";
+    }
 
     location / {
         root /opt/order-system/apps/web/dist;

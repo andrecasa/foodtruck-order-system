@@ -22,12 +22,13 @@ Terraform para provisionar a stack completa na AWS usando **EC2 + Docker Compose
 14. [Passo 11 — Build do painel web](#passo-11--build-do-painel-web)
 15. [Passo 12 — Configurar domínio e HTTPS](#passo-12--configurar-domínio-e-https)
 16. [Passo 13 — Conectar WhatsApp](#passo-13--conectar-whatsapp)
-17. [Verificar se tudo está funcionando](#verificar-se-tudo-está-funcionando)
-18. [Backups automáticos](#backups-automáticos)
-19. [Operações do dia a dia](#operações-do-dia-a-dia)
-20. [Troubleshooting](#troubleshooting)
-21. [Segurança](#segurança)
-22. [Migração futura](#migração-futura)
+17. [Passo 14 — Gerar o APK do app mobile](#passo-14--gerar-o-apk-do-app-mobile)
+18. [Verificar se tudo está funcionando](#verificar-se-tudo-está-funcionando)
+19. [Backups automáticos](#backups-automáticos)
+20. [Operações do dia a dia](#operações-do-dia-a-dia)
+21. [Troubleshooting](#troubleshooting)
+22. [Segurança](#segurança)
+23. [Migração futura](#migração-futura)
 
 ---
 
@@ -452,15 +453,46 @@ Se retornar "502 Bad Gateway", o backend ainda não está pronto. Espere mais e 
 
 O painel web é servido como arquivos estáticos pelo Nginx.
 
+### 11.1 — Instalar Node.js e pnpm
+
 ```bash
 # Instalar Node.js 20
 curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
 sudo dnf install -y nodejs
 
-# Ativar pnpm
+# Ativar pnpm (via corepack)
 sudo corepack enable
+sudo corepack prepare pnpm@latest --activate
 
-# Instalar dependências e buildar
+# Confirmar
+node --version
+pnpm --version
+```
+
+### 11.2 — Configurar as URLs do painel (importante!)
+
+O painel web é compilado com as URLs **embutidas** no build (variáveis `VITE_*`). Se apontarem para `localhost`, o navegador do usuário não consegue acessar a API. Edite o `.env` na raiz do projeto:
+
+```bash
+cd /opt/order-system
+nano .env
+```
+
+Garanta que estas variáveis apontem para o domínio público:
+
+```env
+VITE_API_URL=https://api.foodtruck.app.br
+VITE_SUPABASE_URL=https://api.foodtruck.app.br
+VITE_SUPABASE_ANON_KEY=<a mesma ANON_KEY gerada pelo generate-keys>
+```
+
+> 💡 O `vite.config.ts` do web usa `envDir` apontando para a raiz do monorepo, então as variáveis ficam no `.env` raiz (não em `apps/web/.env`).
+
+> ⚠️ Se deixar `VITE_SUPABASE_URL=http://localhost:8000`, o WebSocket do Realtime falha com `ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`. E `VITE_API_URL=localhost` causa erro de CORS no login.
+
+### 11.3 — Buildar
+
+```bash
 cd /opt/order-system
 pnpm install
 pnpm --filter @order-system/web build
@@ -468,7 +500,15 @@ pnpm --filter @order-system/web build
 
 O build gera arquivos em `apps/web/dist/`. O Nginx já está configurado para servir dessa pasta.
 
-**Testar:** Abra `http://SEU_IP` no navegador (ou configure `/etc/hosts` com o domínio). Deve carregar o painel.
+> ⚠️ Sempre que mudar uma variável `VITE_*`, precisa **rebuildar** — elas são embutidas em tempo de compilação, não lidas em runtime.
+
+**Testar:** Abra `https://web.foodtruck.app.br` no navegador. Deve carregar o painel.
+
+Se aparecer **500 Internal Server Error** com `rewrite or internal redirection cycle` no log do Nginx, significa que a pasta `dist` está vazia (build não rodou). Confirme:
+
+```bash
+ls -la /opt/order-system/apps/web/dist/index.html
+```
 
 ---
 
@@ -704,6 +744,67 @@ Após conectar, pode fechar o terminal do SSH — o túnel encerra e ninguém ma
 
 ---
 
+## Passo 14 — Gerar o APK do app mobile
+
+O app mobile é feito em Expo. A forma recomendada de gerar o APK é via **EAS Build** (build na nuvem do Expo — não precisa de Android Studio nem SDK Android instalado).
+
+Esses passos rodam na **sua máquina local**, na pasta `apps/mobile`.
+
+### 14.1 — Instalar o EAS CLI e logar
+
+```bash
+npm install -g eas-cli
+eas login          # crie conta grátis em expo.dev se não tiver
+eas whoami         # confirma que está logado
+```
+
+### 14.2 — Configuração de build
+
+O projeto já inclui um `apps/mobile/eas.json` com três perfis:
+
+- **preview** → gera **APK** (instala direto no celular) — é o que você quer
+- **development** → APK com dev client (debug)
+- **production** → AAB (formato da Play Store)
+
+As URLs de produção ficam embutidas no build através do bloco `env` do perfil `preview`:
+
+```json
+"env": {
+  "EXPO_PUBLIC_API_URL": "https://api.foodtruck.app.br",
+  "EXPO_PUBLIC_SUPABASE_URL": "https://api.foodtruck.app.br",
+  "EXPO_PUBLIC_SUPABASE_ANON_KEY": "<anon key>"
+}
+```
+
+> ⚠️ O EAS Build **não usa o `.env` local** — as variáveis precisam estar no `eas.json` (ou como EAS Secrets). Como as `EXPO_PUBLIC_*` são públicas por natureza (vão pro cliente de qualquer forma), deixá-las no `eas.json` é aceitável. A segurança real vem das políticas RLS no banco.
+
+### 14.3 — Gerar o APK
+
+```bash
+cd apps/mobile
+eas build --platform android --profile preview
+```
+
+O build roda na nuvem (~10-15 min). Na primeira vez, o EAS pergunta se quer gerar um **keystore** — responda **Yes** (ele gerencia a assinatura). Ao final, você recebe um link para baixar o APK.
+
+### 14.4 — Testar o app apontando para produção (sem gerar APK)
+
+Se quiser testar no Expo Go/emulador apontando para a API pública, edite `apps/mobile/.env`:
+
+```env
+EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br
+EXPO_PUBLIC_SUPABASE_URL=https://api.foodtruck.app.br
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+```
+
+Reinicie o Expo limpando o cache (variáveis são lidas na inicialização do bundler):
+
+```bash
+npx expo start -c
+```
+
+---
+
 ## Verificar se tudo está funcionando
 
 **Na EC2:**
@@ -904,6 +1005,62 @@ sudo cat /var/log/cloud-init-output.log
 # Se falhou, pode reexecutar manualmente:
 sudo bash /opt/order-system/infra/scripts/user-data.sh
 ```
+
+> 💡 O log do cloud-init não muda depois que roda pela primeira vez. Se você corrigir algo manualmente, ele continuará mostrando o erro antigo — isso é normal.
+
+### cron/backup: "No such file or directory" em /etc/cron.d
+
+Se o cron não estiver instalado (AMIs mais recentes vêm sem):
+
+```bash
+sudo dnf install -y cronie
+sudo systemctl enable --now crond
+
+# Criar o arquivo de backup manualmente
+sudo mkdir -p /etc/cron.d
+sudo bash -c 'cat > /etc/cron.d/order-system-backup << EOF
+0 */6 * * * root /opt/order-system/scripts/backup.sh >> /var/log/order-system-backup.log 2>&1
+EOF'
+```
+
+### Erro "compose build requires buildx 0.17.0 or later"
+
+```bash
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+sudo curl -SL "https://github.com/docker/buildx/releases/download/v0.21.1/buildx-v0.21.1.linux-amd64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+docker buildx version
+```
+
+### "node: command not found" ao rodar generate-keys.sh
+
+```bash
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+sudo dnf install -y nodejs
+```
+
+### Painel web: 500 Internal Server Error (rewrite/redirection cycle)
+
+A pasta `dist` está vazia — o build do web não rodou. Faça o build (Passo 11) e confirme:
+
+```bash
+ls -la /opt/order-system/apps/web/dist/index.html
+```
+
+### Painel web: erro de CORS ou WebSocket bloqueado (localhost)
+
+As variáveis `VITE_*` foram buildadas apontando para `localhost`. Corrija no `.env` raiz e **rebuilde**:
+
+```bash
+grep VITE_ /opt/order-system/.env
+# VITE_API_URL e VITE_SUPABASE_URL devem ser https://api.foodtruck.app.br
+cd /opt/order-system && pnpm --filter @order-system/web build
+```
+
+### APK não aponta para a API pública
+
+O EAS Build não lê o `.env` local. As variáveis `EXPO_PUBLIC_*` precisam estar no bloco `env` do perfil em `apps/mobile/eas.json`. Depois rebuilde o APK.
 
 ### Container não sobe
 

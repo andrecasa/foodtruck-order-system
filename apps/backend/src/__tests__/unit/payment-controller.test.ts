@@ -134,26 +134,26 @@ describe('Order Controller - registerPayment', () => {
       expect(res.body.paymentMethod).toBe('pix');
     });
 
-    it('should register payment with cartão and return 200', async () => {
+    it('should register payment with cartão débito and return 200', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ ...baseOrder }] });
       mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [{
           ...baseOrder,
           payment_status: 'pago',
-          payment_method: 'cartão',
+          payment_method: 'cartão débito',
           paid_at: '2024-06-15T14:00:00.000Z',
         }],
       });
 
-      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'cartão' });
+      const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'cartão débito' });
       const res = mockResponse();
 
       await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.paymentStatus).toBe('pago');
-      expect(res.body.paymentMethod).toBe('cartão');
+      expect(res.body.paymentMethod).toBe('cartão débito');
     });
 
     it('should update payment_status, payment_method and paid_at in the database', async () => {

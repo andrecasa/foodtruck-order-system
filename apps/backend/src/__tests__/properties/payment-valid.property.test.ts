@@ -7,13 +7,13 @@ import type { PaymentMethod, PaymentStatus } from '@order-system/shared';
  * Feature: food-truck-order-system, Property 13: Pagamento válido atualiza para pago
  *
  * Para qualquer pedido com payment_status = 'pendente' e qualquer forma de pagamento
- * válida (dinheiro, pix ou cartão), o registro de pagamento deve ser bem-sucedido,
+ * válida (dinheiro, pix, cartão débito ou cartão crédito), o registro de pagamento deve ser bem-sucedido,
  * atualizar o status para pago e registrar o timestamp.
  *
  * **Validates: Requirements 8.1**
  */
 describe('Property 13: Pagamento válido atualiza para pago', () => {
-  const VALID_PAYMENT_METHODS: PaymentMethod[] = ['dinheiro', 'pix', 'cartão'];
+  const VALID_PAYMENT_METHODS: PaymentMethod[] = ['dinheiro', 'pix', 'cartão débito', 'cartão crédito'];
 
   // Generator: valid payment method
   const validPaymentMethodArb = fc.constantFrom(...VALID_PAYMENT_METHODS);

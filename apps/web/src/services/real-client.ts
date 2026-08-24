@@ -345,7 +345,8 @@ export const realClient: ApiClient = {
       byPaymentMethod: raw.byPaymentMethod ?? raw.by_payment_method ?? {
         dinheiro: 0,
         pix: 0,
-        'cartão': 0,
+        'cartão débito': 0,
+        'cartão crédito': 0,
       },
     };
   },

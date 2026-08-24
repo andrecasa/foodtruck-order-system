@@ -20,7 +20,8 @@ export const ORDER_ORIGINS: readonly OrderOrigin[] = [
 export const PAYMENT_METHODS: readonly PaymentMethod[] = [
   'dinheiro',
   'pix',
-  'cartão',
+  'cartão débito',
+  'cartão crédito',
 ] as const;
 
 export const VALID_TRANSITIONS: Readonly<Partial<Record<OrderStatus, OrderStatus>>> = {

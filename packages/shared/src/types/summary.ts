@@ -8,7 +8,8 @@ export interface DailySummary {
   byPaymentMethod: {
     dinheiro: number;
     pix: number;
-    cartão: number;
+    'cartão débito': number;
+    'cartão crédito': number;
   };
 }
 
@@ -22,9 +23,10 @@ export interface MonthlySummaryResponse {
     totalPending: number;   // cents
   };
   byPaymentMethod: {
-    dinheiro: number;       // cents
-    pix: number;            // cents
-    cartão: number;         // cents
+    dinheiro: number;           // cents
+    pix: number;                // cents
+    'cartão débito': number;    // cents
+    'cartão crédito': number;   // cents
   };
   days: DayBreakdown[];
 }

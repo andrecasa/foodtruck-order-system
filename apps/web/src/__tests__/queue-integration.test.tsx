@@ -53,7 +53,7 @@ const mockOrders: Order[] = [
     origin: 'presencial',
     status: 'pronto',
     paymentStatus: 'pago',
-    paymentMethod: 'cartão',
+    paymentMethod: 'cartão débito',
     items: [
       { menuItemId: 'menu-004', name: 'Pastel de Pizza', quantity: 3, unitPrice: 1300 },
       { menuItemId: 'menu-009', name: 'Refrigerante Lata', quantity: 2, unitPrice: 600 },

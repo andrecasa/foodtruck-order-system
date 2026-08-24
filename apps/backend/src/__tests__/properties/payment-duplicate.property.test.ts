@@ -12,7 +12,7 @@ import * as fc from 'fast-check';
  */
 describe('Property 14: Pagamento duplicado rejeitado com 409', () => {
   // Valid payment methods as defined in shared validator
-  const PAYMENT_METHODS = ['dinheiro', 'pix', 'cartão'] as const;
+  const PAYMENT_METHODS = ['dinheiro', 'pix', 'cartão débito', 'cartão crédito'] as const;
   type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
   // Generator: any valid payment method

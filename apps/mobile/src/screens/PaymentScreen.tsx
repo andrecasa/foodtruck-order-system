@@ -16,7 +16,8 @@ import { formatPrice } from '../utils/format';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'pix', label: 'PIX' },
-  { value: 'cartão', label: 'Cartão' },
+  { value: 'cartão débito', label: 'Cartão Débito' },
+  { value: 'cartão crédito', label: 'Cartão Crédito' },
   { value: 'dinheiro', label: 'Dinheiro' },
 ];
 

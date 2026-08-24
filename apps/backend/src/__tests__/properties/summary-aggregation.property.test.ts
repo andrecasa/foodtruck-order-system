@@ -13,7 +13,7 @@ import * as fc from 'fast-check';
  */
 describe('Property 16: Invariante de agregação do resumo', () => {
   type PaymentStatus = 'pendente' | 'pago';
-  type PaymentMethod = 'dinheiro' | 'pix' | 'cartão';
+  type PaymentMethod = 'dinheiro' | 'pix' | 'cartão débito' | 'cartão crédito';
 
   interface Order {
     totalAmountCents: number;
@@ -30,7 +30,8 @@ describe('Property 16: Invariante de agregação do resumo', () => {
     byPaymentMethod: {
       dinheiro: number;
       pix: number;
-      cartão: number;
+      'cartão débito': number;
+      'cartão crédito': number;
     };
   }
 
@@ -45,7 +46,7 @@ describe('Property 16: Invariante de agregação do resumo', () => {
   const paidOrderArb = fc.record({
     totalAmountCents: fc.integer({ min: 1, max: 999999 }),
     paymentStatus: fc.constant('pago' as PaymentStatus),
-    paymentMethod: fc.constantFrom('dinheiro' as PaymentMethod, 'pix' as PaymentMethod, 'cartão' as PaymentMethod),
+    paymentMethod: fc.constantFrom('dinheiro' as PaymentMethod, 'pix' as PaymentMethod, 'cartão débito' as PaymentMethod, 'cartão crédito' as PaymentMethod),
   });
 
   // Generator: a random order (either pending or paid)
@@ -72,8 +73,11 @@ describe('Property 16: Invariante de agregação do resumo', () => {
       pix: orders
         .filter(o => o.paymentStatus === 'pago' && o.paymentMethod === 'pix')
         .reduce((sum, o) => sum + o.totalAmountCents, 0),
-      'cartão': orders
-        .filter(o => o.paymentStatus === 'pago' && o.paymentMethod === 'cartão')
+      'cartão débito': orders
+        .filter(o => o.paymentStatus === 'pago' && o.paymentMethod === 'cartão débito')
+        .reduce((sum, o) => sum + o.totalAmountCents, 0),
+      'cartão crédito': orders
+        .filter(o => o.paymentStatus === 'pago' && o.paymentMethod === 'cartão crédito')
         .reduce((sum, o) => sum + o.totalAmountCents, 0),
     };
     return { totalOrders, paidOrders, pendingOrders, paidTotal, pendingTotal, byPaymentMethod };
@@ -102,14 +106,15 @@ describe('Property 16: Invariante de agregação do resumo', () => {
     );
   });
 
-  it('byPaymentMethod.dinheiro + byPaymentMethod.pix + byPaymentMethod.cartão === paidTotal', () => {
+  it('byPaymentMethod.dinheiro + byPaymentMethod.pix + byPaymentMethod[cartão débito] + byPaymentMethod[cartão crédito] === paidTotal', () => {
     fc.assert(
       fc.property(ordersArb, (orders) => {
         const summary = computeSummary(orders);
         const sumByMethod =
           summary.byPaymentMethod.dinheiro +
           summary.byPaymentMethod.pix +
-          summary.byPaymentMethod['cartão'];
+          summary.byPaymentMethod['cartão débito'] +
+          summary.byPaymentMethod['cartão crédito'];
 
         expect(sumByMethod).toBe(summary.paidTotal);
       }),
@@ -133,7 +138,8 @@ describe('Property 16: Invariante de agregação do resumo', () => {
         const sumByMethod =
           summary.byPaymentMethod.dinheiro +
           summary.byPaymentMethod.pix +
-          summary.byPaymentMethod['cartão'];
+          summary.byPaymentMethod['cartão débito'] +
+          summary.byPaymentMethod['cartão crédito'];
         expect(sumByMethod).toBe(summary.paidTotal);
       }),
       { numRuns: 100 }

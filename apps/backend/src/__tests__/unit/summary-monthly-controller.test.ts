@@ -183,7 +183,8 @@ describe('Summary Controller - getMonthlySummary', () => {
           total_pending: '25000',
           by_dinheiro: '20000',
           by_pix: '25000',
-          by_cartao: '15000',
+          by_cartao_debito: '10000',
+          by_cartao_credito: '5000',
         }],
       });
 
@@ -214,7 +215,8 @@ describe('Summary Controller - getMonthlySummary', () => {
         byPaymentMethod: {
           dinheiro: 20000,
           pix: 25000,
-          'cartão': 15000,
+          'cartão débito': 10000,
+          'cartão crédito': 5000,
         },
         days: [
           { day: 1, orderCount: 3, revenue: 20000, paidOrders: 2 },
@@ -273,7 +275,8 @@ describe('Summary Controller - getMonthlySummary', () => {
           total_pending: '0',
           by_dinheiro: '0',
           by_pix: '0',
-          by_cartao: '0',
+          by_cartao_debito: '0',
+          by_cartao_credito: '0',
         }],
       });
 
@@ -299,7 +302,8 @@ describe('Summary Controller - getMonthlySummary', () => {
         byPaymentMethod: {
           dinheiro: 0,
           pix: 0,
-          'cartão': 0,
+          'cartão débito': 0,
+          'cartão crédito': 0,
         },
         days: [],
       });

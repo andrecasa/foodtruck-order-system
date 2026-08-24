@@ -67,7 +67,8 @@ function createMonthlySummary(): MonthlySummaryResponse {
     },
     byPaymentMethod: {
       pix: 20000,
-      'cartão': 12000,
+      'cartão débito': 8000,
+      'cartão crédito': 4000,
       dinheiro: 6000,
     },
   } as MonthlySummaryResponse;

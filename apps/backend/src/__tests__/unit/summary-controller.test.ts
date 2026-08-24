@@ -66,7 +66,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 0,
           by_dinheiro: 0,
           by_pix: 0,
-          by_cartao: 0,
+          by_cartao_debito: 0,
+          by_cartao_credito: 0,
         }],
       });
 
@@ -86,7 +87,8 @@ describe('Summary Controller - getDailySummary', () => {
         byPaymentMethod: {
           dinheiro: 0,
           pix: 0,
-          'cartão': 0,
+          'cartão débito': 0,
+          'cartão crédito': 0,
         },
       });
     });
@@ -103,7 +105,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 2000,
           by_dinheiro: 1500,
           by_pix: 2000,
-          by_cartao: 1000,
+          by_cartao_debito: 0,
+          by_cartao_credito: 1000,
         }],
       });
 
@@ -132,7 +135,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 0,
           by_dinheiro: 3000,
           by_pix: 4000,
-          by_cartao: 2000,
+          by_cartao_debito: 1500,
+          by_cartao_credito: 500,
         }],
       });
 
@@ -145,12 +149,14 @@ describe('Summary Controller - getDailySummary', () => {
       expect(res.body.byPaymentMethod).toEqual({
         dinheiro: 3000,
         pix: 4000,
-        'cartão': 2000,
+        'cartão débito': 1500,
+        'cartão crédito': 500,
       });
       // Verify sum of byPaymentMethod equals paidTotal
       const methodSum = res.body.byPaymentMethod.dinheiro
         + res.body.byPaymentMethod.pix
-        + res.body.byPaymentMethod['cartão'];
+        + res.body.byPaymentMethod['cartão débito']
+        + res.body.byPaymentMethod['cartão crédito'];
       expect(methodSum).toBe(res.body.paidTotal);
     });
 
@@ -164,7 +170,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 0,
           by_dinheiro: 0,
           by_pix: 5000,
-          by_cartao: 0,
+          by_cartao_debito: 0,
+          by_cartao_credito: 0,
         }],
       });
 
@@ -176,7 +183,8 @@ describe('Summary Controller - getDailySummary', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.byPaymentMethod.dinheiro).toBe(0);
       expect(res.body.byPaymentMethod.pix).toBe(5000);
-      expect(res.body.byPaymentMethod['cartão']).toBe(0);
+      expect(res.body.byPaymentMethod['cartão débito']).toBe(0);
+      expect(res.body.byPaymentMethod['cartão crédito']).toBe(0);
     });
   });
 
@@ -191,7 +199,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 800,
           by_dinheiro: 0,
           by_pix: 0,
-          by_cartao: 0,
+          by_cartao_debito: 0,
+          by_cartao_credito: 0,
         }],
       });
 
@@ -223,7 +232,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 800,
           by_dinheiro: 1500,
           by_pix: 0,
-          by_cartao: 0,
+          by_cartao_debito: 0,
+          by_cartao_credito: 0,
         }],
       });
 
@@ -258,7 +268,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 0,
           by_dinheiro: 0,
           by_pix: 0,
-          by_cartao: 0,
+          by_cartao_debito: 0,
+          by_cartao_credito: 0,
         }],
       });
 
@@ -287,7 +298,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 5000,
           by_dinheiro: 5000,
           by_pix: 6000,
-          by_cartao: 4000,
+          by_cartao_debito: 2000,
+          by_cartao_credito: 2000,
         }],
       });
 
@@ -310,7 +322,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 0,
           by_dinheiro: 2000,
           by_pix: 3000,
-          by_cartao: 3000,
+          by_cartao_debito: 2000,
+          by_cartao_credito: 1000,
         }],
       });
 
@@ -332,7 +345,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 6000,
           by_dinheiro: 0,
           by_pix: 0,
-          by_cartao: 0,
+          by_cartao_debito: 0,
+          by_cartao_credito: 0,
         }],
       });
 
@@ -371,7 +385,8 @@ describe('Summary Controller - getDailySummary', () => {
           pending_total: 0,
           by_dinheiro: 0,
           by_pix: 0,
-          by_cartao: 0,
+          by_cartao_debito: 0,
+          by_cartao_credito: 0,
         }],
       });
 

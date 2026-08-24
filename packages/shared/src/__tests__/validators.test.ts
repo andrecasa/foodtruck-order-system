@@ -188,8 +188,16 @@ describe('registerPaymentRequestSchema', () => {
     expect(registerPaymentRequestSchema.safeParse({ paymentMethod: 'pix' }).success).toBe(true);
   });
 
-  it('accepts cartão', () => {
-    expect(registerPaymentRequestSchema.safeParse({ paymentMethod: 'cartão' }).success).toBe(true);
+  it('accepts cartão débito', () => {
+    expect(registerPaymentRequestSchema.safeParse({ paymentMethod: 'cartão débito' }).success).toBe(true);
+  });
+
+  it('accepts cartão crédito', () => {
+    expect(registerPaymentRequestSchema.safeParse({ paymentMethod: 'cartão crédito' }).success).toBe(true);
+  });
+
+  it('rejects bare cartão (legacy value no longer accepted)', () => {
+    expect(registerPaymentRequestSchema.safeParse({ paymentMethod: 'cartão' }).success).toBe(false);
   });
 
   it('rejects invalid payment method', () => {

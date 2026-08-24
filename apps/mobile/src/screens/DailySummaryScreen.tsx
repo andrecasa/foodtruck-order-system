@@ -242,7 +242,8 @@ export function DailySummaryScreen() {
 
         <View style={paymentCardStyle}>
           <PaymentRow icon="qr_code" iconColor={theme.colors.success} label="PIX" value={formatPrice(summary?.byPaymentMethod.pix ?? 0)} textColor={theme.colors.primary} />
-          <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão" value={formatPrice(summary?.byPaymentMethod['cartão'] ?? 0)} textColor={theme.colors.primary} />
+          <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão Débito" value={formatPrice(summary?.byPaymentMethod['cartão débito'] ?? 0)} textColor={theme.colors.primary} />
+          <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão Crédito" value={formatPrice(summary?.byPaymentMethod['cartão crédito'] ?? 0)} textColor={theme.colors.primary} />
           <PaymentRow icon="payments" iconColor={theme.colors.primary} label="Dinheiro" value={formatPrice(summary?.byPaymentMethod.dinheiro ?? 0)} textColor={theme.colors.primary} />
         </View>
 

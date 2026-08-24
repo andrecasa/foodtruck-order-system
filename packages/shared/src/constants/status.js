@@ -15,7 +15,8 @@ export const ORDER_ORIGINS = [
 export const PAYMENT_METHODS = [
     'dinheiro',
     'pix',
-    'cartão',
+    'cartão débito',
+    'cartão crédito',
 ];
 export const VALID_TRANSITIONS = {
     aguardando: 'preparando',

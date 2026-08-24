@@ -301,7 +301,8 @@ export function MonthlySummaryScreen() {
 
         <View style={paymentCardStyle}>
           <PaymentRow icon="qr_code" iconColor={theme.colors.success} label="PIX" value={formatPrice(monthlySummary?.byPaymentMethod?.pix ?? 0)} textColor={theme.colors.primary} />
-          <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão" value={formatPrice(monthlySummary?.byPaymentMethod?.['cartão'] ?? 0)} textColor={theme.colors.primary} />
+          <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão Débito" value={formatPrice(monthlySummary?.byPaymentMethod?.['cartão débito'] ?? 0)} textColor={theme.colors.primary} />
+          <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão Crédito" value={formatPrice(monthlySummary?.byPaymentMethod?.['cartão crédito'] ?? 0)} textColor={theme.colors.primary} />
           <PaymentRow icon="payments" iconColor={theme.colors.primary} label="Dinheiro" value={formatPrice(monthlySummary?.byPaymentMethod?.dinheiro ?? 0)} textColor={theme.colors.primary} />
         </View>
       </ScrollView>

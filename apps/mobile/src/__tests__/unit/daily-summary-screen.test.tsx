@@ -70,7 +70,8 @@ function createDailySummary(): DailySummary {
     pendingTotal: 5000,
     byPaymentMethod: {
       pix: 8000,
-      'cartão': 5000,
+      'cartão débito': 3000,
+      'cartão crédito': 2000,
       dinheiro: 2000,
     },
   } as DailySummary;
@@ -109,8 +110,9 @@ describe('DailySummaryScreen', () => {
     await findByText('Formas de Pagamento');
     await findByText('PIX');
     await findByText('R$ 80,00');
-    await findByText('Cartão');
-    // R$ 50,00 may appear in both Pendente and Cartão
+    await findByText('Cartão Débito');
+    await findByText('Cartão Crédito');
+    // R$ 50,00 may appear in Pendente and/or card breakdown rows
     const fiftyElements = await findAllByText('R$ 50,00');
     expect(fiftyElements.length).toBeGreaterThanOrEqual(1);
     await findByText('Dinheiro');

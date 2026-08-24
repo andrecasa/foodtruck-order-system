@@ -92,7 +92,8 @@ export async function getDailySummary(tenantId: string, dateParam?: string): Pro
     pending_total: number;
     by_dinheiro: number;
     by_pix: number;
-    by_cartao: number;
+    by_cartao_debito: number;
+    by_cartao_credito: number;
   }>(
     `SELECT
       COUNT(*)::int AS total_orders,
@@ -102,7 +103,8 @@ export async function getDailySummary(tenantId: string, dateParam?: string): Pro
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pendente'), 0)::int AS pending_total,
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'dinheiro'), 0)::int AS by_dinheiro,
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'pix'), 0)::int AS by_pix,
-      COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão'), 0)::int AS by_cartao
+      COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão débito'), 0)::int AS by_cartao_debito,
+      COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão crédito'), 0)::int AS by_cartao_credito
     FROM orders
     WHERE tenant_id = $1 AND order_date = $2`,
     [tenantId, targetDate],
@@ -121,7 +123,8 @@ export async function getDailySummary(tenantId: string, dateParam?: string): Pro
     byPaymentMethod: {
       dinheiro: row.by_dinheiro,
       pix: row.by_pix,
-      'cartão': row.by_cartao,
+      'cartão débito': row.by_cartao_debito,
+      'cartão crédito': row.by_cartao_credito,
     },
   };
 }
@@ -158,7 +161,8 @@ export async function getMonthlySummary(
     total_pending: string;
     by_dinheiro: string;
     by_pix: string;
-    by_cartao: string;
+    by_cartao_debito: string;
+    by_cartao_credito: string;
   }>(
     `SELECT
       COUNT(*)::int AS total_orders,
@@ -167,7 +171,8 @@ export async function getMonthlySummary(
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pendente'), 0)::bigint AS total_pending,
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'dinheiro'), 0)::bigint AS by_dinheiro,
       COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'pix'), 0)::bigint AS by_pix,
-      COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão'), 0)::bigint AS by_cartao
+      COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão débito'), 0)::bigint AS by_cartao_debito,
+      COALESCE(SUM(total_amount_cents) FILTER (WHERE payment_status = 'pago' AND payment_method = 'cartão crédito'), 0)::bigint AS by_cartao_credito
     FROM orders
     WHERE tenant_id = $1 AND order_date >= $2 AND order_date <= $3`,
     [tenantId, firstDay, lastDay],
@@ -209,7 +214,8 @@ export async function getMonthlySummary(
     byPaymentMethod: {
       dinheiro: Number(totalsRow.by_dinheiro) || 0,
       pix: Number(totalsRow.by_pix) || 0,
-      'cartão': Number(totalsRow.by_cartao) || 0,
+      'cartão débito': Number(totalsRow.by_cartao_debito) || 0,
+      'cartão crédito': Number(totalsRow.by_cartao_credito) || 0,
     },
     days,
   };

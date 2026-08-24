@@ -92,7 +92,8 @@ function runQuery(sql: string, params: unknown[] = []): { rows: any[]; rowCount:
           pending_total: sum(pending, () => true),
           by_dinheiro: sum(paid, (o) => o.payment_method === 'dinheiro'),
           by_pix: sum(paid, (o) => o.payment_method === 'pix'),
-          by_cartao: sum(paid, (o) => o.payment_method === 'cartão'),
+          by_cartao_debito: sum(paid, (o) => o.payment_method === 'cartão débito'),
+          by_cartao_credito: sum(paid, (o) => o.payment_method === 'cartão crédito'),
           // expose tenant_id of the scoped rows for the isolation assertion
           _tenant_ids: [...new Set(scoped.map((o) => o.tenant_id))],
         },

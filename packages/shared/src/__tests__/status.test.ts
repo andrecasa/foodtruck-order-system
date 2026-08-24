@@ -59,8 +59,8 @@ describe('constants', () => {
     expect(ORDER_ORIGINS).toEqual(['presencial', 'whatsapp']);
   });
 
-  it('PAYMENT_METHODS contains dinheiro, pix, cartão', () => {
-    expect(PAYMENT_METHODS).toEqual(['dinheiro', 'pix', 'cartão']);
+  it('PAYMENT_METHODS contains dinheiro, pix, cartão débito, cartão crédito', () => {
+    expect(PAYMENT_METHODS).toEqual(['dinheiro', 'pix', 'cartão débito', 'cartão crédito']);
   });
 
   it('VALID_TRANSITIONS maps exactly 3 transitions', () => {

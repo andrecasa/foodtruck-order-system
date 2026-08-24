@@ -237,7 +237,7 @@ describe('Order isolation between tenants (Properties 1 & 2)', () => {
   // Property 2 — write isolation: cross-tenant payment registration → 404.
   it('registerPayment in tenant A cannot mutate a B-owned order → 404, B unchanged (Property 2, R6.4)', async () => {
     await fc.assert(
-      fc.asyncProperty(orderRowArb(TENANT_B), fc.constantFrom('dinheiro', 'pix', 'cartão'), async (orderB, method) => {
+      fc.asyncProperty(orderRowArb(TENANT_B), fc.constantFrom('dinheiro', 'pix', 'cartão débito', 'cartão crédito'), async (orderB, method) => {
         store.seed([orderB]);
         const before = store.snapshot();
 

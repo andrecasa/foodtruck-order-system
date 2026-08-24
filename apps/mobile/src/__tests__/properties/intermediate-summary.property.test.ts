@@ -64,7 +64,8 @@ describe('Property 2: Total revenue is the sum of paid and pending', () => {
     byPaymentMethod: fc.record({
       dinheiro: fc.integer({ min: 0, max: 99_999_999 }),
       pix: fc.integer({ min: 0, max: 99_999_999 }),
-      'cartão': fc.integer({ min: 0, max: 99_999_999 }),
+      'cartão débito': fc.integer({ min: 0, max: 99_999_999 }),
+      'cartão crédito': fc.integer({ min: 0, max: 99_999_999 }),
     }),
   });
 

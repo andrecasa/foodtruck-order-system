@@ -460,15 +460,17 @@ O webhook é o canal pelo qual a Evolution API envia as mensagens recebidas para
 **Para ambiente Docker (serviços na mesma rede):**
 
 ```bash
-curl -X PUT http://localhost:8080/webhook/set/order-system \
-  -H "apikey: SUA_API_KEY" \
+  curl -X POST "http://localhost:8080/webhook/set/pastel-das-meninas" \
+  -H "apikey: 6pWzwWOJQeX7e8heE2UDpTZ6IKPvjsPK1qyC3HhscgM=" \
   -H "Content-Type: application/json" \
   -d '{
     "webhook": {
       "enabled": true,
-      "url": "http://backend:4000/api/webhook/evolution",
+      "url": "http://localhost:4000/api/webhook/evolution",
       "webhookByEvents": false,
-      "events": ["MESSAGES_UPSERT"]
+      "events": [
+        "MESSAGES_UPSERT"
+      ]
     }
   }'
 ```

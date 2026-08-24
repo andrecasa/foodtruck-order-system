@@ -4,17 +4,13 @@
       "name": "Pastéis Salgados",
       "sortOrder": 1,
       "items": [
-        { "name": "Pastel de Carne", "priceCents": 750 },
-        { "name": "Pastel de Queijo", "priceCents": 700 },
-        { "name": "Pastel de Frango", "priceCents": 750 },
-        { "name": "Pastel de Pizza", "priceCents": 800 }
+        { "name": "Pastel de Carne", "priceCents": 800 }
       ]
     },
     {
       "name": "Pastéis Doces",
       "sortOrder": 2,
       "items": [
-        { "name": "Pastel de Chocolate", "priceCents": 800 },
         { "name": "Pastel de Doce de Leite", "priceCents": 800 }
       ]
     },
@@ -22,9 +18,7 @@
       "name": "Bebidas",
       "sortOrder": 3,
       "items": [
-        { "name": "Caldo de Cana 300ml", "priceCents": 600 },
-        { "name": "Refrigerante Lata", "priceCents": 500 },
-        { "name": "Água Mineral", "priceCents": 300 }
+        { "name": "Refrigerante Lata", "priceCents": 500 }
       ]
     }
   ]

@@ -147,7 +147,7 @@ export function LoginScreen() {
           <View style={headerStyle}>
             {/* Logo image from assets */}
             <Image
-              source={require('../../assets/icon.png')}
+              source={require('../../assets/logo.png')}
               style={{ width: 150, height: 150, borderRadius: 12 } as ImageStyle}
               accessibilityLabel={`Logo ${theme.businessName}`}
               resizeMode="contain"

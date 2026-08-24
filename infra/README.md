@@ -260,7 +260,7 @@ Quando pedir `Enter a value:`, digite `yes` e pressione Enter.
 Outputs:
 
 public_ip     = "3.92.xxx.xxx"
-ssh_command   = "ssh -i ~/.ssh/order-system-key.pem ec2-user@3.92.xxx.xxx"
+ssh_command   = "ssh -i ~/.ssh/order-system-key.pem ec2-user@SEU_IP"
 ssm_connect   = "aws ssm start-session --target i-0abc123 --region us-east-1"
 instance_id   = "i-0abc123def456"
 ```
@@ -276,7 +276,7 @@ instance_id   = "i-0abc123def456"
 Espere 2-3 minutos após o `terraform apply` (o user-data precisa terminar de instalar Docker, Nginx, etc).
 
 ```bash
-ssh -i ~/.ssh/order-system-key.pem ec2-user@3.92.xxx.xxx
+ssh -i ~/.ssh/order-system-key.pem ec2-user@SEU_IP
 ```
 
 Se der erro "Permission denied", verifique:
@@ -382,6 +382,9 @@ Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
 
 ```bash
 cd /opt/order-system
+
+# Quando tive problemas após reiniciar EC2
+sudo systemctl restart docker
 
 # Parar tudo (se estiver rodando do deploy anterior)
 docker compose down
@@ -689,7 +692,7 @@ docker compose up -d
 No `.env` do projeto mobile (na sua máquina local):
 
 ```env
-EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br/api
+EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br
 EXPO_PUBLIC_SUPABASE_URL=https://api.foodtruck.app.br
 ```
 
@@ -726,19 +729,18 @@ Para escanear o QR Code, acesse a interface web da Evolution API pelo navegador 
 
 ```bash
 # Na sua máquina local (NÃO na EC2) — rode e deixe o terminal aberto:
-ssh -i ~/.ssh/order-system-key.pem -L 9090:localhost:8080 ec2-user@SEU_IP
+ssh -i ~/.ssh/order-system-key.pem -L 8080:localhost:8080 ec2-user@SEU_IP
 ```
 
 O que esse comando faz:
-- `-L 9090:localhost:8080` → "pegue o que está na porta 8080 da EC2 e disponibilize na porta 9090 da minha máquina"
-- Usamos 9090 em vez de 8080 para não conflitar caso tenha Evolution API rodando localmente em dev
+- `-L 8080:localhost:8080` → "pegue o que está na porta 8080 da EC2 e disponibilize na porta 8080 da minha máquina"
 - Enquanto esse terminal estiver aberto, o túnel funciona
 - Quando fechar o terminal (ou Ctrl+C), o acesso se encerra
 
 Agora abra **o navegador da sua máquina local** e acesse:
 
 ```
-http://localhost:9090/manager
+http://localhost:8080/manager
 ```
 
 Você verá a interface gráfica da Evolution API com o QR Code. Escaneie com o WhatsApp do food truck (WhatsApp > Aparelhos conectados > Conectar aparelho).
@@ -1216,7 +1218,7 @@ terraform output            # ver IP, comandos, etc
 terraform destroy           # ⚠️ DESTRUIR TUDO
 
 # ═══ Conectar na EC2 ═══
-ssh -i ~/.ssh/order-system-key.pem ec2-user@IP
+ssh -i ~/.ssh/order-system-key.pem ec2-user@ec2-user@SEU_IP
 # ou via SSM:
 aws ssm start-session --target INSTANCE_ID --region us-east-1
 

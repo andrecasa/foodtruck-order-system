@@ -13,7 +13,7 @@ import type { MonthlySummaryResponse } from '@order-system/shared';
 import { useRouter } from 'expo-router';
 import { Screen, Header } from '../components';
 import { ErrorState } from '../components/ErrorState';
-import { Button } from '../components/Button';
+import { CalendarModal } from '../components/CalendarModal';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
@@ -45,8 +45,13 @@ export function MonthlySummaryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [daysWithOrders, setDaysWithOrders] = useState<number[]>([]);
 
   const monthName = useMemo(() => getPortugueseMonthName(month), [month]);
+
+  // Header title with month name: "Resumo - Agosto/2026"
+  const headerTitle = useMemo(() => `Resumo - ${monthName} ${year}`, [monthName, year]);
 
   // ─── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -55,6 +60,7 @@ export function MonthlySummaryScreen() {
       setError(null);
       const data = await apiClient.getMonthlySummary(fetchYear, fetchMonth);
       setMonthlySummary(data);
+      setDaysWithOrders(data.days.map((d: { day: number }) => d.day));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar resumo');
     }
@@ -92,25 +98,14 @@ export function MonthlySummaryScreen() {
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
-  const handlePreviousMonth = useCallback(async () => {
-    const newMonth = month === 1 ? 12 : month - 1;
-    const newYear = month === 1 ? year - 1 : year;
-    setMonth(newMonth);
-    setYear(newYear);
+  const handleDaySelect = useCallback(async (_selectedDay: number, selectedMonth: number, selectedYear: number) => {
+    setCalendarModalVisible(false);
+    setMonth(selectedMonth);
+    setYear(selectedYear);
     setLoading(true);
-    await fetchMonthlySummary(newYear, newMonth);
+    await fetchMonthlySummary(selectedYear, selectedMonth);
     setLoading(false);
-  }, [year, month, fetchMonthlySummary]);
-
-  const handleNextMonth = useCallback(async () => {
-    const newMonth = month === 12 ? 1 : month + 1;
-    const newYear = month === 12 ? year + 1 : year;
-    setMonth(newMonth);
-    setYear(newYear);
-    setLoading(true);
-    await fetchMonthlySummary(newYear, newMonth);
-    setLoading(false);
-  }, [year, month, fetchMonthlySummary]);
+  }, [fetchMonthlySummary]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -136,40 +131,6 @@ export function MonthlySummaryScreen() {
   const contentStyle: ViewStyle = { flexGrow: 1, padding: 16, gap: 16 };
   const loadingContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
 
-  const monthSelectorStyle: ViewStyle = {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 22,
-    height: 44,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-  };
-
-  const arrowStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 20,
-    color: theme.colors.surface,
-  };
-
-  const monthLabelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.surface,
-    flex: 1,
-    textAlign: 'center',
-  };
-
-  const calendarIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 18,
-    color: theme.colors.primary,
-    marginLeft: 4,
-
-  };
-
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
@@ -193,19 +154,18 @@ export function MonthlySummaryScreen() {
     paddingVertical: 4,
   };
 
-  const paymentRowStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 44,
-    gap: 12,
-  };
+  const calendarRightElement = (
+    <Pressable onPress={() => setCalendarModalVisible(true)} accessibilityRole="button" accessibilityLabel="Selecionar mês">
+      <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.textSecondary }}>calendar_today</RNText>
+    </Pressable>
+  );
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   if (loading && !monthlySummary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Mês" onBack={() => router.back()} />
+        <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
         <View style={loadingContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
           <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: theme.colors.textSecondary, marginTop: 8 }}>
@@ -219,7 +179,7 @@ export function MonthlySummaryScreen() {
   if (error && !monthlySummary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Mês" onBack={() => router.back()} />
+        <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
         <ErrorState message={error} onRetry={handleRetry} />
       </Screen>
     );
@@ -229,7 +189,7 @@ export function MonthlySummaryScreen() {
 
   return (
     <Screen padding={false}>
-      <Header title="Resumo do Mês" onBack={() => router.back()} />
+      <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
 
       <ScrollView
         contentContainerStyle={contentStyle}
@@ -243,19 +203,6 @@ export function MonthlySummaryScreen() {
         }
         showsVerticalScrollIndicator
       >
-        {/* Month Selector */}
-        <View style={monthSelectorStyle}>
-          <Pressable onPress={handlePreviousMonth} accessibilityLabel="Mês anterior" hitSlop={12}>
-            <RNText style={arrowStyle}>chevron_left</RNText>
-          </Pressable>
-          <RNText style={monthLabelStyle}>
-            {monthName} {year}
-          </RNText>
-          <Pressable onPress={handleNextMonth} accessibilityLabel="Próximo mês" hitSlop={12}>
-            <RNText style={arrowStyle}>chevron_right</RNText>
-          </Pressable>
-        </View>
-
         {/* Sub-cards grid 2×2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>
@@ -306,6 +253,25 @@ export function MonthlySummaryScreen() {
           <PaymentRow icon="payments" iconColor={theme.colors.primary} label="Dinheiro" value={formatPrice(monthlySummary?.byPaymentMethod?.dinheiro ?? 0)} textColor={theme.colors.primary} />
         </View>
       </ScrollView>
+
+      {/* Calendar Modal — user picks any day, we use its month/year */}
+      <CalendarModal
+        visible={calendarModalVisible}
+        year={year}
+        month={month}
+        selectedDay={-1}
+        daysWithOrders={daysWithOrders}
+        onDaySelect={handleDaySelect}
+        onMonthChange={async (newYear, newMonth) => {
+          try {
+            const data = await apiClient.getMonthlySummary(newYear, newMonth);
+            return data.days.map((d: { day: number }) => d.day);
+          } catch {
+            return [];
+          }
+        }}
+        onClose={() => setCalendarModalVisible(false)}
+      />
     </Screen>
   );
 }

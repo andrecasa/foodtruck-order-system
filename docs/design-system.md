@@ -1,95 +1,151 @@
-# Design System — Order System
+# Design System — Order System (Food Truck App)
 
 ## Introdução
 
-O Design System do Order System é a camada de tokens visuais compartilhada entre as aplicações web e mobile. Ele foi projetado para suportar **white-label**: qualquer food truck pode personalizar cores, tipografia, espaçamentos e bordas sem alterar código-fonte — apenas fornecendo um JSON de override parcial.
+Design System da plataforma white-label **Food Truck App**. Define os tokens visuais compartilhados entre mobile (Expo/React Native) e web (Vite/React), projetados para suportar personalização por tenant sem alteração de código.
 
-Todos os tokens são definidos pela interface `ThemeConfig` em `packages/shared/src/types/theme.ts` e consumidos de forma idêntica pelas duas plataformas.
+Cada tenant pode sobrescrever qualquer token via JSON parcial retornado pelo backend (`GET /api/tenant/branding`). O deep merge preserva valores não-informados, garantindo que a paleta neutra (documentada aqui) seja sempre o fallback seguro.
 
-> **Fonte da verdade**: O design no Penpot (conectado via MCP) é a referência para todos os valores visuais. Este documento é uma representação textual extraída do Penpot — em caso de dúvida, consulte o Penpot diretamente.
+> **Fonte da verdade**: Este documento + projeto Penpot "Food Truck App" (conectado via MCP).
+> Os valores aqui correspondem exatamente a `apps/mobile/src/theme/theme.config.ts` (tema neutro).
 
 ---
 
 ## Princípios de Design
 
-- **Clean & Minimal** — Superfícies brancas, sombras sutis, foco no conteúdo
-- **Material Design Influence** — Ícones Material Symbols Outlined, elevation scale, pill buttons
-- **Fonte Inter** — Legibilidade máxima em todas as densidades
-- **Stroke 1px** — Bordas sempre com 1px, alinhamento inner
-- **Pill-shaped** — Inputs (border-radius 24px) e botões (border-radius 20px)
-- **WCAG AA** — Contraste mínimo de 4.5:1 em texto sobre fundo
+- **Neutral & Professional** — Paleta dessaturada, sem identidade de marca. Cada tenant aplica seu branding.
+- **Clean & Minimal** — Superfícies brancas, sombras sutis, foco no conteúdo.
+- **Material Design Influence** — Ícones Material Symbols Outlined, elevation scale, pill buttons.
+- **Fonte Inter** — Legibilidade máxima em todas as densidades.
+- **Stroke 1px** — Bordas sempre com 1px, alinhamento inner.
+- **Pill-shaped** — Inputs (border-radius 24px) e botões (border-radius 20px).
+- **WCAG AA** — Contraste mínimo 4.5:1 em texto sobre fundo.
+- **Token-driven** — Todos os valores visuais vêm de tokens semânticos; nenhum hardcode nos componentes.
 
 ---
 
-## Visão Geral dos Tokens
+## Arquitetura de Tokens
+          
+```
+ThemeConfig (interface TypeScript)
+├── colors.*           → Paleta semântica
+├── typography.*       → Família, tamanhos, pesos
+├── spacing.*          → Escala de espaçamento
+└── borderRadius.*     → Raios de borda
+```
 
-| Categoria         | Descrição                                    | Estrutura                                       |
-| ----------------- | -------------------------------------------- | ----------------------------------------------- |
-| **Colors**        | Paleta de cores da marca e status de pedidos | `colors.*`                                      |
-| **Typography**    | Família tipográfica, tamanhos e pesos        | `typography.fontFamily`, `sizes.*`, `weights.*` |
-| **Spacing**       | Escala de espaçamento (margin/padding)       | `spacing.*`                                     |
-| **Border Radius** | Raios de borda para componentes              | `borderRadius.*`                                |
+Interface definida em `packages/shared/src/types/theme.ts`.
+Implementações neutras em:
+- Mobile: `apps/mobile/src/theme/theme.config.ts`
+- Web: `apps/web/src/theme/theme.config.ts`
 
 ---
 
-## Valores Padrão
+## Paleta de Cores (Tema Neutro da Plataforma)
 
-Os valores abaixo representam o tema padrão ("Pastel das Meninas") e servem como fallback caso nenhum override seja fornecido.
+### Cores Primárias
 
-### Colors
+| Token          | Hex Mobile  | Hex Web     | Uso                                       |
+| -------------- | ----------- | ----------- | ----------------------------------------- |
+| `primary`      | `#2C6E9B`   | `#3B5568`   | Cor principal (botões, destaques, ícones ativos) |
+| `secondary`    | `#5A6B7B`   | `#6B7B8C`   | Cor secundária (acentos)                  |
 
-| Token        | Valor Hex   | Uso                                        |
-| ------------ | ----------- | ------------------------------------------ |
-| `primary`    | `#1B5E20`   | Cor principal (botões, destaques, ícones)  |
-| `secondary`  | `#4E342E`   | Cor secundária (acentos)                   |
-| `background` | `#FAFAFA`   | Fundo de tela                              |
-| `surface`    | `#FFFFFF`   | Fundo de cards, header, modais             |
-| `text`       | `#212121`   | Texto principal                            |
-| `textSecondary` | `#757575` | Texto secundário, placeholders, labels   |
-| `divider`    | `#E0E0E0`   | Bordas, separadores                        |
-| `success`    | `#388E3C`   | Sucesso / status pronto                    |
-| `warning`    | `#F9A825`   | Alerta / status aguardando                 |
-| `error`      | `#D32F2F`   | Erro / ações destrutivas                   |
-| `aguardando` | `#F9A825`   | Status: pedido aguardando preparo          |
-| `preparando` | `#1976D2`   | Status: pedido em preparação               |
-| `pronto`     | `#388E3C`   | Status: pedido pronto para entrega         |
+### Superfícies
 
-### Typography
+| Token              | Hex         | Uso                                        |
+| ------------------ | ----------- | ------------------------------------------ |
+| `background`       | `#F5F7FA`   | Fundo de tela                              |
+| `surface`          | `#FFFFFF`   | Fundo de cards, header, modais             |
+| `surfaceDisabled`  | `#E2E8F0`   | Fundo de controles desabilitados           |
+| `surfacePrimary`   | `#EEF3F7`   | Sub-card: tint primário                    |
+| `surfaceRevenue`   | `#F7F1E6`   | Sub-card: tint faturamento (amber)         |
+| `surfaceReceived`  | `#EDF5EF`   | Sub-card: tint recebido (verde)            |
+| `surfacePending`   | `#FBEEEE`   | Sub-card: tint pendente (vermelho)         |
 
-| Token              | Valor         | Descrição                         |
-| ------------------ | ------------- | --------------------------------- |
-| `fontFamily`       | `Inter` | Fonte principal    |
-| `iconFont`         | `Material Symbols Outlined` | Fonte de ícones   |
+### Texto
 
-#### Escala Tipográfica (extraída do Penpot)
+| Token            | Hex         | Uso                                      |
+| ---------------- | ----------- | ---------------------------------------- |
+| `text`           | `#1F2933`   | Texto principal                          |
+| `textSecondary`  | `#6B7280`   | Texto secundário, placeholders, labels   |
+| `textDisabled`   | `#9AA5B1`   | Texto/ícone de conteúdo desabilitado     |
 
-| Estilo       | Size | Weight | Uso                                   |
-| ------------ | ---- | ------ | ------------------------------------- |
-| **Display**  | 32px | 300    | Logotipo, nomes de negócio            |
-| **Headline** | 24px | 400    | Títulos de página (em texto corrido)  |
-| **Title**    | 20px | 500    | Títulos de seção, AppBar (DS page)    |
-| **Body Large** | 16px | 400  | Texto primário, card header           |
-| **Body**     | 14px | 400    | Texto padrão, botões, itens           |
-| **Label**    | 12px | 500    | Labels de formulário, ênfase          |
-| **Caption**  | 11px | 400    | Timestamps, textos auxiliares         |
+### Bordas e Separadores
 
-> **Nota sobre AppBar nas telas**: No design das telas (página "App"), o AppBar usa título 18px weight 500 com ícone leading 24px em primary. Na página "Design System", o componente AppBar mostra 20px weight 400. As telas são a referência final para implementação.
+| Token      | Hex         | Uso                          |
+| ---------- | ----------- | ---------------------------- |
+| `divider`  | `#E2E8F0`   | Separadores finos            |
+| `border`   | `#E2E8F0`   | Bordas de inputs, cards, chips |
 
-#### Tokens usados no ThemeConfig
+### Status de Pedidos
+
+| Token        | Hex         | Uso                              |
+| ------------ | ----------- | -------------------------------- |
+| `aguardando` | `#B8860B`   | Status: pedido aguardando preparo (amber) |
+| `preparando` | `#3B6EA5`   | Status: pedido em preparação (azul) |
+| `pronto`     | `#3E8E5A`   | Status: pedido pronto (verde)    |
+| `entregue`   | `#6B7280`   | Status: pedido entregue (cinza)  |
+
+### Semânticas
+
+| Token      | Hex         | Uso                            |
+| ---------- | ----------- | ------------------------------ |
+| `success`  | `#3E8E5A`   | Sucesso / confirmação          |
+| `warning`  | `#B8860B`   | Alerta / atenção               |
+| `error`    | `#B23A3A`   | Erro / ações destrutivas       |
+
+### Financeiras
+
+| Token      | Hex         | Uso                          |
+| ---------- | ----------- | ---------------------------- |
+| `received` | `#2E7D32`   | Valor recebido (verde escuro)|
+| `pending`  | `#C62828`   | Valor pendente (vermelho)    |
+| `revenue`  | `#2C6E9B`   | Faturamento (azul primário)  |
+
+### Nota sobre Divergência Mobile × Web
+
+As cores primárias diferem intencionalmente: o mobile usa `#2C6E9B` (blue, mais vibrante para touch targets) enquanto o web usa `#3B5568` (blue-gray, mais discreto para tela de preparador). Ambas são neutras e sem identidade de marca. Tenants podem sobrescrever para suas próprias cores.
+
+---
+
+## Tipografia
+
+### Fontes
+
+| Token        | Valor                         | Descrição         |
+| ------------ | ----------------------------- | ----------------- |
+| `fontFamily` | `Inter`                       | Fonte principal   |
+| (ícones)     | `Material Symbols Outlined`   | Fonte de ícones   |
+
+### Escala Tipográfica
+
+| Estilo       | Token Size | Valor | Weight Token | Valor | Uso                                   |
+| ------------ | ---------- | ----- | ------------ | ----- | ------------------------------------- |
+| **Display**  | `xxl`      | 32px  | `regular`    | 400   | Logotipo, nomes de negócio            |
+| **Title**    | `xl`       | 20px  | `medium`     | 500   | Títulos de seção                      |
+| **AppBar**   | —          | 18px  | `regular`    | 400   | Título do header                      |
+| **Body Large** | `lg`     | 16px  | `regular`    | 400   | Texto primário, nomes em cards        |
+| **Body**     | `md`       | 14px  | `regular`    | 400   | Texto padrão, botões, itens           |
+| **Label**    | `sm`       | 12px  | `regular`    | 400   | Labels de formulário, badges          |
+| **Caption**  | `xs`       | 10px  | `regular`    | 400   | Timestamps, nav labels, textos auxiliares |
+
+### Tokens do ThemeConfig
 
 | Token             | Valor | Descrição              |
 | ----------------- | ----- | ---------------------- |
-| `sizes.xs`        | `10`  | Caption / labels mínimos |
+| `sizes.xs`        | `10`  | Caption                |
 | `sizes.sm`        | `12`  | Label / badge          |
 | `sizes.md`        | `14`  | Body text              |
 | `sizes.lg`        | `16`  | Body large             |
 | `sizes.xl`        | `20`  | Title                  |
-| `sizes.xxl`       | `32`  | Display / headline     |
-| `weights.regular` | `400` | Texto corrido, botões md |
-| `weights.medium`  | `500` | Ênfase, títulos, labels |
+| `sizes.xxl`       | `32`  | Display                |
+| `weights.regular` | `400` | Texto corrido, botões  |
+| `weights.medium`  | `500` | Títulos, ênfase        |
 | `weights.bold`    | `600` | Preços, destaques      |
 
-### Spacing
+---
+
+## Espaçamento
 
 | Token  | Valor (px) | Uso                         |
 | ------ | ---------- | --------------------------- |
@@ -99,7 +155,9 @@ Os valores abaixo representam o tema padrão ("Pastel das Meninas") e servem com
 | `lg`   | `24`       | Seções, padding de tela     |
 | `xl`   | `32`       | Separação de blocos grandes |
 
-### Border Radius
+---
+
+## Border Radius
 
 | Token  | Valor (px) | Uso                              |
 | ------ | ---------- | -------------------------------- |
@@ -108,47 +166,80 @@ Os valores abaixo representam o tema padrão ("Pastel das Meninas") e servem com
 | `lg`   | `24`       | Inputs (pill-shaped)             |
 | `full` | `9999`     | Badges circulares, avatares      |
 
-**Valores específicos por componente:**
+### Valores por Componente
 
-| Componente  | Border Radius |
-| ----------- | ------------- |
-| Botão md    | 20px          |
-| Botão sm    | 18px          |
-| Botão lg    | 22px          |
-| Input       | 24px          |
-| Card        | 12px          |
-| Badge md    | 14px          |
-| Badge sm    | 11px          |
-| Modal       | 16px          |
+| Componente       | Border Radius |
+| ---------------- | ------------- |
+| Botão lg         | 22px          |
+| Botão md         | 20px          |
+| Botão sm         | 18px          |
+| Input            | 24px          |
+| Card             | 14px          |
+| Card (sub-card)  | 10px          |
+| Badge md         | 14px          |
+| Badge sm         | 11px          |
+| Modal            | 16px          |
+| FilterChip icon  | 18px          |
+| FilterChip pill  | 16px          |
+| BottomNav        | 0 (flat)      |
+
+---
+
+## Sombras (Elevation)
+
+| Nível      | Valor                            | Uso                     |
+| ---------- | -------------------------------- | ----------------------- |
+| Level 0    | nenhuma                          | Flat / inline elements  |
+| Level 1    | `0 1px 3px rgba(0,0,0,0.06)`    | AppBar, BottomNav       |
+| Level 2    | `0 2px 8px rgba(0,0,0,0.08)`    | Cards                   |
+| Level 3    | `0 8px 24px rgba(0,0,0,0.15)`   | Modais, overlays        |
 
 ---
 
 ## Ícones
 
 - **Fonte:** Material Symbols Outlined
-- **Mobile:** Renderizados via font text (fontFamily: "Material Symbols Outlined")
-- **Web:** Google Fonts link `Material+Symbols+Outlined`
 - **Weight:** Sempre 400
-- **Tamanhos:** 18px (xs), 20px (sm), 24px (md), 32px (lg)
+- **Renderização Mobile:** font text (`fontFamily: "Material Symbols Outlined"`)
+- **Renderização Web:** Google Fonts link
+
+### Tamanhos
+
+| Contexto     | Tamanho |
+| ------------ | ------- |
+| Badge inline | 12px    |
+| Timer/small  | 14px    |
+| Sub-card     | 18px    |
+| Input icon   | 20px    |
+| Nav/default  | 22px    |
+| AppBar       | 24px    |
+| Hero/large   | 32px    |
 
 ### Ícones Utilizados
 
-| Ícone                   | Contexto          | Tamanho típico |
-| ----------------------- | ----------------- | -------------- |
-| `receipt_long`          | Pedidos / AppBar  | 24px (AppBar), 22px (nav) |
-| `add_circle`            | Novo Pedido       | 24px / 22px    |
-| `restaurant_menu`       | Cardápio          | 24px / 22px    |
-| `bar_chart`             | Resumo            | 24px / 22px    |
-| `payments`              | Pagamento         | 24px           |
-| `logout`                | Sair              | 24px           |
-| `check_circle`          | Pronto            | 20px           |
-| `schedule`              | Aguardando        | 20px           |
-| `local_fire_department` | Preparando        | 20px           |
-| `chat`                  | WhatsApp          | 20px           |
-| `mail`                  | Campo email       | 20px           |
-| `lock`                  | Campo senha       | 20px           |
-| `person`                | Campo nome        | 20px           |
-| `add` / `remove`        | Stepper +/−       | 20px           |
+| Ícone                   | Contexto          |
+| ----------------------- | ----------------- |
+| `receipt_long`          | Pedidos / nav     |
+| `add_circle`            | Novo Pedido / nav |
+| `restaurant_menu`       | Cardápio / nav    |
+| `monitoring`            | Resumo / nav      |
+| `payments`              | Pagamento         |
+| `menu`                  | Abrir drawer      |
+| `arrow_back`            | Voltar            |
+| `logout`                | Sair              |
+| `check_circle`          | Pronto/Entregue   |
+| `schedule`              | Aguardando        |
+| `local_fire_department` | Preparando        |
+| `notifications`         | Pronto (nav)      |
+| `chat`                  | WhatsApp          |
+| `storefront`            | Presencial        |
+| `mail`                  | Campo email       |
+| `lock`                  | Campo senha       |
+| `person`               | Campo nome        |
+| `add` / `remove`        | Stepper +/−       |
+| `currency_exchange`     | Badge pagamento   |
+| `timer`                 | Tempo do pedido   |
+| `visibility` / `visibility_off` | Toggle senha |
 
 ---
 
@@ -157,74 +248,38 @@ Os valores abaixo representam o tema padrão ("Pastel das Meninas") e servem com
 ### AppBar (Header)
 
 ```
-Background: #FFFFFF
+Background: surface (#FFFFFF)
 Height: 56px
 Padding: 0 16px
-Shadow: 0 1px 3px rgba(0,0,0,0.06)  [nas telas]
-        0 1px 3px rgba(0,0,0,0.08)  [no DS page]
-Layout: flex row, align-items center, gap 12px
+Gap: 12px
+Layout: flex row, align-items center
+Shadow: Level 1 (0 1px 3px rgba(0,0,0,0.06))
 
-Conteúdo (nas telas App):
-- Ícone leading: Material Symbols Outlined 24px, color #8B6B5A
+Elementos:
+- Leading icon: Material Symbols 24px, color textSecondary (#6B7280)
   - "menu" (abre drawer) — padrão
-  - "arrow_back" (volta) — quando prop onBack é fornecido
-- Título: 18px weight 400, Inter, color #3D2020, flex:1, textAlign center
-- Spacer ou rightElement à direita (24px width para centralizar título)
-```
-
-### Role Badge (Tela de Usuários)
-
-```
-Shape: pill (borderRadius 10px)
-Height: 15px
-Padding: 0 8px
-Font: 8px weight 400, Inter
-
-Estilo (padrão dos filter chips):
-- Background: cor do role com 12% opacidade (hex + '1F')
-- Text: cor sólida do role
-
-Cores por role:
-- Admin:      bg #7B2D2D1F, text #7B2D2D
-- Atendente:  bg #5B8BA81F, text #5B8BA8
-- Preparador: bg #5A8C5A1F, text #5A8C5A
-```
-
-### Payment Method Button (Tela de Pagamento)
-
-```
-Height: 44px
-Border-radius: 22px
-Font: 14px weight 400, Inter
-
-Estados:
-- Não selecionado: bg #FFFFFF, border 1px #E8DDD5, text #3D2020
-- Selecionado: bg #5A8C5A (verde sólido), sem border, text #FFFFFF
-
-Ordem dos métodos: PIX, Cartão, Dinheiro
-
-Estado "Já Pago":
-- Exibe apenas o método usado com bg #5A8C5A1F (12% opacidade) e text #5A8C5A
-- Mensagem "Pedido já foi pago" em verde centralizada abaixo
+  - "arrow_back" (volta) — quando onBack fornecido
+- Título: 18px weight 400, Inter, color text (#1F2933), flex:1, textAlign center
+- Trailing: rightElement ou spacer 24px (para centralizar título)
 ```
 
 ### Bottom Navigation
 
 ```
-Background: #FFFFFF
+Background: surface (#FFFFFF)
 Height: 56px
 Shadow: 0 -1px 3px rgba(0,0,0,0.06)
 Layout: flex row, justify-content space-around, align-items center
 
 Cada item:
 - Layout: flex column, gap 2px, align-items center
-- Ícone: Material Symbols Outlined 22px weight 400
-- Label: 10px Inter
-- Ativo: cor primary (#1B5E20), label weight 600
-- Inativo: cor #757575, label weight 400
+- Ícone: Material Symbols 22px weight 400
+- Label: 10px Inter weight 400
+- Ativo: color primary (#2C6E9B)
+- Inativo: color textSecondary (#6B7280)
 
 Items: Pedidos | Novo | Cardápio | Resumo
-Icons: receipt_long | add_circle | restaurant_menu | bar_chart
+Icons: receipt_long | add_circle | restaurant_menu | monitoring
 ```
 
 ### Button
@@ -232,8 +287,8 @@ Icons: receipt_long | add_circle | restaurant_menu | bar_chart
 #### Filled (md — padrão)
 
 ```
-Background: #1B5E20 (primary) | #1976D2 (preparando) | #388E3C (pronto) | #D32F2F (danger)
-Color: #FFFFFF
+Background: primary (#2C6E9B)
+Color: surface (#FFFFFF)
 Border: none
 Border-radius: 20px
 Height: 40px
@@ -244,58 +299,53 @@ Font: 14px weight 400, Inter
 #### Filled (sm — in-card actions)
 
 ```
-Background: mesmas cores por status
-Color: #FFFFFF
+Background: varia por status (aguardando, preparando, pronto)
+Color: surface (#FFFFFF)
 Border: none
 Border-radius: 18px
 Height: 36px
 Padding: 0 16px
-Font: 12px weight 500, Inter
-Align-self: flex-start (não full-width)
+Font: 12px weight 400, Inter
 ```
 
 #### Filled (lg — main CTA)
 
 ```
-Background: #1B5E20
-Color: #FFFFFF
+Background: primary (#2C6E9B)
+Color: surface (#FFFFFF)
 Border: none
 Border-radius: 22px
 Height: 44px
 Padding: 0 20px
-Font: 14px weight 500, Inter
+Font: 14px weight 400, Inter
 ```
+
+#### Variantes de cor (filled)
+
+| Variante    | Background            |
+| ----------- | --------------------- |
+| primary     | `primary` (#2C6E9B)  |
+| secondary   | `secondary` (#5A6B7B)|
+| danger      | `error` (#B23A3A)    |
+| status      | cor do status atual   |
 
 #### Outlined
 
 ```
 Background: transparent
-Border: 1px solid (inner alignment)
+Border: 1px solid textSecondary (#6B7280) — inner alignment
 Border-radius: 20px
 Height: 40px
 Padding: 0 20px
 Font: 14px weight 400
-
-Variantes de cor:
-- Cancelar: border #757575, text #757575
-- Desativar: border #1B5E20, text #1B5E20
-- Sair: border #D32F2F, text #D32F2F
-```
-
-#### Text
-
-```
-Background: transparent
-Border: none
-Border-radius: 20px
-Font: 14px weight 400, color #1B5E20
+Color: textSecondary (#6B7280) ou custom color prop
 ```
 
 #### Disabled
 
 ```
-Background: #E0E0E0
-Color: #9E9E9E
+Background: surfaceDisabled (#E2E8F0)
+Color: textDisabled (#9AA5B1)
 Border: none
 Border-radius: 20px
 Height: 40px
@@ -304,168 +354,371 @@ Font: 14px weight 400
 
 ### Badge
 
-#### Status (sólido)
+#### Status (tinted — padrão)
 
-| Status     | Background | Text Color |
-| ---------- | ---------- | ---------- |
-| Aguardando | `#F9A825`  | `#FFFFFF`  |
-| Preparando | `#1976D2`  | `#FFFFFF`  |
-| Pronto     | `#388E3C`  | `#FFFFFF`  |
-| Entregue   | `#E0E0E0`  | `#616161`  |
+Badges usam fundo com 12% de opacidade da cor do status + texto na cor sólida.
 
-```
-Border-radius: 14px
-Height: 28px
-Padding: 0 12px
-Font: 11px weight 400, Inter
-Text: capitalizado (ex: "Aguardando", não "aguardando")
-```
-
-#### Status sm (usado em cards)
+| Status     | Background           | Text Color   |
+| ---------- | -------------------- | ------------ |
+| Aguardando | `aguardando` + 1F   | `#B8860B`    |
+| Preparando | `preparando` + 1F   | `#3B6EA5`    |
+| Pronto     | `pronto` + 1F       | `#3E8E5A`    |
+| Entregue   | `entregue` + 1F     | `#6B7280`    |
 
 ```
-Border-radius: 11px
-Height: 22px
-Padding: 0 12px
-Font: 10px weight 600, Inter
+Layout: flex row, gap 3px, align-items center
+Border-radius: 11px (sm) / 14px (md)
+Height: 22px (sm) / 28px (md)
+Padding: 0 8px (sm) / 0 12px (md)
+Icon: Material Symbols 12px, mesma cor do texto
+Font: 10px (sm) / 11px (md) weight 400, Inter
+Text: capitalizado (ex: "Aguardando")
 ```
 
 #### Tinted (informativo)
 
-| Tipo       | Background | Text Color |
-| ---------- | ---------- | ---------- |
-| Pendente   | `#FFF3E0`  | `#E65100`  |
-| Pago       | `#E8F5E9`  | `#1B5E20`  |
-| Presencial | `#E3F2FD`  | `#1565C0`  |
-| WhatsApp   | `#E8F5E9`  | `#2E7D32`  |
-
-```
-Mesmas dimensões do badge md (28px, 14px radius, 11px font, weight 400)
-```
+| Tipo       | Background          | Text Color   |
+| ---------- | ------------------- | ------------ |
+| Pago       | `surfaceReceived`   | `primary`    |
+| Pendente   | `surfaceRevenue`    | `aguardando` |
+| Presencial | `preparando` + 14   | `preparando` |
+| WhatsApp   | `pronto` + 14       | `pronto`     |
 
 ### Input (Pill)
 
 ```
-Shape: Pill (border-radius 24px)
-Height: 48px
-Padding: 0 16px
-Font: 14px weight 400, Inter
-Leading icon: Material Symbols Outlined 20px, color #757575 (default) / #212121 (focus)
+Wrapper: flex column, gap 8px
 
-Label acima do campo:
-- Font: 13px weight 600, color #212121
-- Gap entre label e campo: 8px
+Label:
+- Font: 12px weight 400, Inter
+- Color: text (#1F2933)
+
+Campo:
+- Shape: Pill (border-radius 24px)
+- Height: 52px
+- Padding: 0 16px
+- Gap: 10px (entre icon e texto)
+- Layout: flex row, align-items center
 
 Estados:
-- Default: Background #F5F5F5, sem borda
-- Focus: Background #FFFFFF, borda 1px solid #1B5E20 (inner)
-- Error: Background #FFFFFF, borda 1px solid #E91E63 (inner) — nota: pink, não #D32F2F
-- Disabled: Background #F5F5F5, opacity 0.5
+- Default: bg surface (#FFFFFF), border 1px solid border (#E2E8F0)
+- Focus: bg surface (#FFFFFF), border 1px solid primary (#2C6E9B)
+- Error: bg surface (#FFFFFF), border 1px solid error (#B23A3A)
+- Disabled: bg surface (#FFFFFF), border 1px solid border (#E2E8F0), opacity 0.5
+
+Leading icon: Material Symbols 20px, color textSecondary (#6B7280)
+Trailing icon (password toggle): Material Symbols "visibility" 20px, color textSecondary
+Placeholder: 14px weight 400, color textSecondary (#6B7280)
+Value text: 14px weight 400, color text (#1F2933)
+
+Error message:
+- Font: 10px weight 400, color error (#B23A3A)
+- Margin-top: 4px (xs)
 ```
 
-### Card
+### Card (Order Card)
 
 ```
-Background: #FFFFFF (sempre branco, nunca tinted)
-Border-radius: 12px
-Padding: 16px (DS page) / 14px top-bottom + 16px left-right (nas telas)
-Gap: 8px (flex column)
-Border: 1px solid <status-color>, alignment inner
+Background: surface (#FFFFFF)
+Border-radius: 14px
+Border: 1px solid <status-color> + 40 (25% opacity) — inner alignment
+Layout: flex row (stripe + content)
+Overflow: hidden
 
-Variantes:
-- Elevated (default): sem borda, shadow 0 2px 8px rgba(0,0,0,0.08)
-- Aguardando: border #F9A825
-- Preparando: border #1976D2
-- Pronto: border #388E3C
+Left stripe:
+- Width: 5px
+- Background: <status-color> sólida
+- Border-radius: 14px 0 0 14px (top-left, bottom-left)
+
+Content area:
+- Padding: 12px
+- Gap: 8px
+- Layout: flex column
+
+Composição do card:
+1. Badges row: flex row, gap 6px
+   - Payment badge (sm): [icon 12px] + [label 10px]
+   - Origin badge (sm): [icon 12px] + [label 10px]
+   - Status badge (sm): [icon 12px] + [label 10px]
+2. Nome: "#{dailyNumber} - {customerName}", 16px weight 600, color text
+3. Itens: "{qty}x {name} ({subtotal})", 12px weight 400, color text
+4. Preço: formatPrice(totalAmount), 16px weight 600, color text
+5. Tempo: [icon timer 14px] + [label 11px], color textSecondary, opacity 0.7
+6. CTA Button (sm): se status permite avanço
 ```
 
-#### Card de Pedido (composição nas telas)
+### FilterChips (Icon Tabs)
 
 ```
-Header row: flex row, justify-content space-between, align-items center
-- Título: "#1 — Maria Silva", 16px weight 500
-- Badge sm à direita
+Container:
+- Background: surface (#FFFFFF)
+- Border-radius: 16px
+- Padding: 10px vertical
+- Layout: flex row
 
-Corpo:
-- Origem: "Presencial" ou "WhatsApp", 12px weight 400, color #757575
-- Itens: "2x Pastel de Carne\n1x Caldo de Cana", 13px weight 400, color #212121
-- Preço: "R$ 25,00" (sem prefixo "Total:"), 14px weight 600, color #212121
-- Status pronto: "✓ Pronto para entrega", 12px weight 500, color #388E3C
+Cada tab:
+- Flex: 1
+- Layout: flex column, align-items center, gap 6px
 
-Botão de ação (apenas aguardando e preparando):
-- Size sm (36px, border-radius 18px, 12px weight 500)
-- Aguardando: "Iniciar Preparo", bg #1B5E20
-- Preparando: "Marcar Pronto", bg #1976D2
-- Pronto: sem botão (apenas texto indicador)
+Icon area:
+- Width: 75px, Height: 36px
+- Border-radius: 18px
+- Active: bg <status-color> sólida, icon color surface (#FFFFFF) 22px
+- Inactive: bg <status-color> + 14 (8% opacity), icon color <status-color> opacity 0.5
+
+Label:
+- Font: 10px weight 400, Inter
+- Active: color <status-color>
+- Inactive: color textSecondary (#6B7280)
+```
+
+### Origin Selector (Swipeable)
+
+```
+Container:
+- Height: 40px
+- Border-radius: 20px
+- Border: 1px solid border (#E2E8F0)
+- Background: surface (#FFFFFF)
+
+Thumb (slider):
+- Background: primary (#2C6E9B)
+- Border-radius: 18px
+- Margin: 2px
+- Animated (spring)
+
+Tab labels:
+- Font: 13px weight 400, Inter
+- Active: color surface (#FFFFFF)
+- Inactive: color textSecondary (#6B7280)
+
+Options: "Presencial" | "WhatsApp"
 ```
 
 ### Modal / Dialog
 
 ```
-Overlay: rgba(33,33,33,0.4)
+Overlay: rgba(33, 33, 33, 0.4)
 
 Dialog:
-- Background: #FFFFFF
+- Background: surface (#FFFFFF)
 - Border-radius: 16px
-- Shadow: 0 8px 24px rgba(0,0,0,0.15)
+- Shadow: Level 3 (0 8px 24px rgba(0,0,0,0.15))
 - Padding: 24px
 - Gap: 16px
+- Max-width: 400px
 - Layout: flex column
 
-Título: 18px weight 400, color #212121
-Body: 14px weight 400, color #757575
+Título: 18px weight 500, color text (#1F2933)
+Body: 14px weight 400, color textSecondary (#6B7280)
 
-Action buttons:
-- Height: 36px
-- Border-radius: 18px
-- Font: 13px weight 400
-- Confirm: bg primary (#1B5E20) ou danger (#D32F2F), text white
-- Cancel: bg transparent, text #757575, sem borda
-- Actions row: gap 8px, justify-content flex-end
+Actions row:
+- Layout: flex row, gap 8px, justify-content flex-end
+- Cancel: outlined button (md), border textSecondary, text textSecondary
+- Confirm: filled button (md), bg primary ou error (variant danger)
+```
+
+### SubCard (Stat Card)
+
+```
+Layout: flex row, align-items center, gap 8px
+Background: surfacePrimary / surfaceRevenue / surfaceReceived / surfacePending
+Border-radius: 10px
+Padding: 10px horizontal, 12px vertical
+Height: 60px
+
+Icon circle:
+- Width/Height: 34px
+- Border-radius: 17px (full)
+- Background: <color> + 1F (12% opacity)
+- Icon: Material Symbols 18px, color <color>
+
+Text area:
+- Value: 15px weight 600, color <color>
+- Label: 10px weight 400, color textSecondary (#6B7280) ou labelColor
+```
+
+### PaymentRow
+
+```
+Layout: flex row, align-items center, gap 12px, height 44px
+
+Icon circle:
+- Width/Height: 30px
+- Border-radius: 15px (full)
+- Background: <iconColor> + 1F (12% opacity)
+- Icon: Material Symbols 16px, color <iconColor>
+
+Label: flex 1, 14px weight 400, color text (#1F2933)
+Value: 14px weight 600, color text (#1F2933)
+```
+
+### Toast / Error Banner
+
+```
+Background: error (#B23A3A) ou surface com border
+Border-radius: 8px (sm)
+Padding: 12px 16px
+Font: 12px weight 400, color surface (#FFFFFF)
+Position: top, centered
+```
+
+---
+
+## Telas do App Mobile
+
+### Login
+
+```
+Layout: flex column, align-items center, gap 24px
+Background: background (#F5F7FA)
+Padding: 24px horizontal, 50px top
+
+Elementos:
+1. Logo/título: businessName, 32px weight 400 (Display)
+2. Subtítulo: "Faça login para continuar", 14px, color textSecondary
+3. Input Email: icon "mail", placeholder "Seu e-mail"
+4. Input Senha: icon "lock", placeholder "Sua senha", toggle visibility
+5. Error message: 12px, color error, centralizado
+6. Button lg (fullWidth): "Entrar"
+```
+
+### Fila de Pedidos (OrderQueue)
+
+```
+Layout: flex column, fill height
+Background: background (#F5F7FA)
+
+1. Header: AppBar com title "Pedidos", menu icon
+2. DateChip: seletor de data (abre CalendarModal)
+3. FilterChips (icon tabs): Aguardando | Preparando | Pronto | Entregue
+4. ScrollContainer: lista de Order Cards
+5. Empty state: ilustração + texto quando sem pedidos
+
+Cada card mostra: badges, nome, itens, preço, tempo, CTA
+Realtime: atualização automática via WebSocket
+```
+
+### Novo Pedido (CreateOrder)
+
+```
+Layout: FormScreen (scroll + fixed CTA bottom)
+Background: background (#F5F7FA)
+
+1. Header: AppBar com title "Novo Pedido", back arrow
+2. Input: "Nome do cliente" (icon person)
+3. Origin Selector: "Presencial" | "WhatsApp"
+4. Section "Itens do Pedido":
+   - Agrupados por categoria (label 13px bold)
+   - Cada item: nome + preço + stepper (−/qty/+)
+   - Stepper: circles 28px, minus (bg surface, border border), plus (bg primary, icon surface)
+5. Total row: bg surfacePrimary, borderRadius 8px, h 48px
+   - "Total" 14px weight 400
+   - Amount: 20px weight 600, color primary
+6. Button lg (fullWidth): "Criar Pedido"
+```
+
+### Pagamento
+
+```
+Layout: flex column
+Background: background (#F5F7FA)
+
+1. Header: AppBar com title "Pagamento", back arrow
+2. Order summary card: número, cliente, itens, total
+3. Section "Formas de Pagamento":
+   - 4 botões pill (height 44px, radius 22px):
+     PIX | Cartão Débito | Cartão Crédito | Dinheiro
+   - Não selecionado: bg surface, border 1px border, text text
+   - Selecionado: bg success (#3E8E5A), text surface
+4. Button lg: "Confirmar Pagamento"
+5. Estado "Já Pago":
+   - Método exibido com bg success + 1F, text success
+   - Mensagem "Pedido já foi pago" centralizada
+```
+
+### Resumo do Dia
+
+```
+Layout: flex column, scroll
+Background: background (#F5F7FA)
+
+1. Header: AppBar com title "Resumo do Dia", menu icon
+2. DateChip: seletor de data
+3. Section "Resumo do Dia" — Grid 2x2 de SubCards:
+   - Pedidos: icon receipt_long, color primary, bg surfacePrimary
+   - Faturamento: icon trending_up, color revenue, bg surfaceRevenue
+   - Recebido: icon check_circle, color received, bg surfaceReceived
+   - Pendente: icon schedule, color pending, bg surfacePending
+4. Section "Formas de Pagamento" — PaymentRows:
+   - PIX, Cartão Débito, Cartão Crédito, Dinheiro
+5. Button outline: "Ver Resumo Mensal"
 ```
 
 ---
 
 ## Regras de Implementação
 
-1. **Stroke sempre 1px** — Nunca usar 2px em bordas (stroke alignment: inner)
-2. **Border-radius 20px** para todos os botões md (filled, outlined, disabled, text)
-3. **Border-radius 24px** para inputs
-4. **Border-radius 12px** para cards
-5. **Border-radius 14px** para badges
-6. **Sem background tinted nos cards** — Sempre fundo branco, apenas borda colorida
-7. **Ícones via fonte Material Symbols Outlined** — weight 400
-8. **Botão de ação por status**: aguardando → primary #1B5E20, preparando → azul #1976D2
-9. **Inputs com label externo acima** — 13px weight 600, campo com placeholder + leading icon
-10. **Font-family: "Inter"**
-11. **Font-weight nos botões md: 400** — Não usar 500 nem 600
-12. **Todos os botões md: 40px height, 20px radius, 14px font** — Consistentes
-13. **Input error border cor é #E91E63** (pink), não #D32F2F (red)
-14. **Badge text weight: 400** (md) — Sem text-transform uppercase
-15. **Button sm: 12px weight 500** — Diferente do md (14px weight 400)
+1. **Todos os valores visuais via tokens** — Nenhum hardcode de cor/tamanho nos componentes
+2. **Stroke sempre 1px** — Nunca usar 2px (stroke alignment: inner)
+3. **Border-radius por componente** — Seguir tabela de valores específicos
+4. **Sem background tinted nos order cards** — Sempre fundo branco, borda colorida + stripe
+5. **Ícones via fonte Material Symbols Outlined** — weight 400
+6. **Botão CTA por status**: aguardando → `aguardando`, preparando → `preparando`
+7. **Font-weight nos botões: 400** — Consistente em todos os tamanhos
+8. **Badge bg = cor + "1F" (12% opacity)** — Padrão tinted, não sólido
+9. **Inputs com label externo acima** — 12px weight 400, gap 8px
+10. **Font-family: "Inter"** — Sempre
+11. **Opacity pattern**: "14" = 8%, "1F" = 12%, "40" = 25% — Sufixos hex no color string
 
 ---
 
-## Como Criar um Novo Tema
+## Design Tokens no Penpot
 
-1. Crie um JSON com override parcial dos tokens:
+Para manter sincronismo entre código e design, o projeto Penpot "Food Truck App" utiliza Design Tokens organizados em sets:
+
+### Token Set: `platform-neutral`
+
+| Tipo            | Tokens                                                      |
+| --------------- | ----------------------------------------------------------- |
+| `color`         | Toda a paleta de cores listada acima                        |
+| `dimension`     | spacing.xs (4), sm (8), md (16), lg (24), xl (32)          |
+| `borderRadius`  | sm (8), md (12), lg (24), full (9999)                      |
+| `fontSizes`     | xs (10), sm (12), md (14), lg (16), xl (20), xxl (32)      |
+| `fontWeights`   | regular (400), medium (500), bold (600)                     |
+| `fontFamilies`  | Inter                                                       |
+| `opacity`       | disabled (0.5), subtle (0.7)                                |
+
+### Tema: `Platform Default`
+
+Ativa o token set `platform-neutral`. Tenants criam seus próprios sets com overrides parciais.
+
+---
+
+## Como Criar um Novo Tema (Tenant)
+
+1. Crie um JSON com override parcial:
 
 ```json
 {
-  "businessName": "Novo Food Truck",
-  "colors": {
-    "primary": "#E65100",
-    "secondary": "#BF360C",
-    "background": "#FFF8E1"
+  "businessName": "Taco Loco",
+  "logoUrl": "https://...",
+  "theme": {
+    "colors": {
+      "primary": "#E65100",
+      "secondary": "#BF360C"
+    }
   }
 }
 ```
 
-2. Configure via variável de ambiente:
-   - **Mobile:** `EXPO_PUBLIC_THEME_CONFIG='{"colors":{"primary":"#E65100"}}'`
-   - **Web:** Injete via `window.__THEME_CONFIG__` no HTML ou use `VITE_THEME_CONFIG_PATH`
+2. Configure no banco (tabela `tenants`, coluna `theme` JSONB).
 
-3. O sistema faz deep merge com o tema padrão — apenas os campos informados são sobrescritos.
+3. O backend retorna via `GET /api/tenant/branding` após login.
+
+4. O sistema faz deep merge com o tema neutro — apenas campos informados são sobrescritos.
+
+5. Tokens não-informados (como status colors, spacing, typography) herdam do tema neutro.
 
 ---
 
@@ -474,11 +727,11 @@ Action buttons:
 | Arquivo | Descrição |
 | ------- | --------- |
 | `packages/shared/src/types/theme.ts` | Interface `ThemeConfig` |
-| `apps/mobile/src/theme/theme.config.ts` | Tema padrão mobile |
-| `apps/web/src/theme/theme.config.ts` | Tema padrão web |
+| `apps/mobile/src/theme/theme.config.ts` | Tema neutro mobile + merge + fetch |
+| `apps/web/src/theme/theme.config.ts` | Tema neutro web + merge + fetch |
 | `apps/*/src/theme/ThemeProvider.tsx` | Provider de contexto |
-| `apps/*/src/components/` | Componentes que consomem tokens |
-| `.kiro/steering/design-system-sync.md` | Spec técnica para agente (valores CSS exatos) |
+| `apps/mobile/src/components/` | Componentes que consomem tokens |
+| `docs/design-system.md` | Este documento |
 
 ---
 
@@ -486,5 +739,6 @@ Action buttons:
 
 | Data       | Alteração |
 | ---------- | --------- |
-| 2025-08-14 | Atualizado design dos badges de role na tela de usuários: fundo com 12% de opacidade + texto na cor do role (padrão dos filter chips). Botão de pagamento selecionado agora usa verde sólido (#5A8C5A) com texto branco. Ordem dos métodos de pagamento: PIX, Cartão, Dinheiro. Header com suporte a `onBack` (seta de volta). |
-| 2025-08-11 | Atualizado com valores reais extraídos do Penpot via MCP. Adicionadas seções: AppBar, Bottom Navigation, Card de Pedido (composição), Regras de Implementação, Button sm/lg. Corrigidos valores que divergiam (badge sm weight, input error color, card padding nas telas). |
+| 2025-08-24 | **Reescrita completa**: removidas todas as referências ao Pastel das Meninas e cores Material Design legadas. Alinhado com o tema neutro real de `theme.config.ts`. Documentados tokens, componentes e telas com valores corretos da plataforma. Adicionada seção de Design Tokens para Penpot. |
+| 2025-08-14 | (legado) Atualizado design dos badges de role. |
+| 2025-08-11 | (legado) Valores extraídos do Penpot antigo (order-system). |

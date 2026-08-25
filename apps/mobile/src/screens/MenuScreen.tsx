@@ -9,10 +9,9 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { MenuItem } from '@order-system/shared';
-import { Screen, ScrollContainer, Header, Text } from '../components';
+import { Screen, ScrollContainer, Header, Text, FloatingButton } from '../components';
 import { ErrorState } from '../components/ErrorState';
 import { ToggleSwitch } from '../components/ToggleSwitch';
-import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { formatPrice } from '../utils/format';
@@ -171,36 +170,6 @@ export function MenuScreen() {
     color: theme.colors.primary,
   };
 
-  // "Novo Item" inline button — Penpot specs:
-  // full width (fill), height 44, bg white, border 1px #E8DDD5, borderRadius 22 (pill)
-  // content: "+" 16px + "Novo Item" 14px, color #3D2020, gap 6, centered
-  const novoItemBtnStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 8,
-  };
-
-  const novoItemPlusStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const novoItemTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -232,7 +201,7 @@ export function MenuScreen() {
     <Screen padding={false}>
       <Header title="Cardápio" onBack={() => router.back()} />
       <View style={containerStyle}>
-        <ScrollContainer>
+        <ScrollContainer style={{ paddingBottom: 72 }}>
           {groupedItems.map(({ category, items }) => (
             <View key={category}>
               <View style={categoryHeaderStyle}>
@@ -281,20 +250,15 @@ export function MenuScreen() {
               </Text>
             </View>
           )}
-          {/* Inline "+ Novo Item" button — matches Penpot design */}
-          <Pressable
-            style={novoItemBtnStyle}
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar"
-            accessibilityHint="Navega para a tela de criação de item do cardápio"
-            onPress={() => {
-              router.push('/create-menu-item');
-            }}
-          >
-            <RNText style={novoItemPlusStyle}>+</RNText>
-            <RNText style={novoItemTextStyle}>Adicionar</RNText>
-          </Pressable>
         </ScrollContainer>
+
+        {/* Floating "Adicionar" button — fixed at bottom */}
+        <FloatingButton
+          label="Adicionar"
+          icon="add"
+          onPress={() => router.push('/create-menu-item')}
+          accessibilityHint="Navega para a tela de criação de item do cardápio"
+        />
       </View>
     </Screen>
   );

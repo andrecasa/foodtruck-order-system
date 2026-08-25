@@ -116,6 +116,8 @@ describe('DailySummaryScreen', () => {
     const fiftyElements = await findAllByText('R$ 50,00');
     expect(fiftyElements.length).toBeGreaterThanOrEqual(1);
     await findByText('Dinheiro');
-    await findByText('R$ 20,00');
+    // R$ 20,00 appears in both Cartão Crédito and Dinheiro rows
+    const twentyElements = await findAllByText('R$ 20,00');
+    expect(twentyElements.length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -551,7 +551,7 @@ export function QueuePage() {
 
   const getOriginBadge = (origin: string) => {
     return origin === 'whatsapp'
-      ? { icon: 'chat', label: 'WhatsApp', color: theme.colors.preparando }
+      ? { icon: 'chat', label: 'WhatsApp', color: theme.colors.pronto }
       : { icon: 'storefront', label: 'Presencial', color: theme.colors.preparando };
   };
 

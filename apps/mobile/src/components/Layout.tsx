@@ -152,9 +152,9 @@ export function Header({ children, title, icon: _icon, rightElement, showMenu = 
                 <Text style={menuIconStyle}>menu</Text>
               </Pressable>
             ) : null}
-            <Text style={titleStyle}>{title}</Text>
+            <Text style={titleStyle} numberOfLines={1}>{title}</Text>
             {rightElement ? (
-              <View>{rightElement}</View>
+              <View style={{ zIndex: 1 }}>{rightElement}</View>
             ) : (
               /* Spacer: invisible element matching menu icon width for symmetric centering */
               <View style={{ width: 24 }} />

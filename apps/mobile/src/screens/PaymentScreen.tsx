@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Order, PaymentMethod } from '@order-system/shared';
-import { Screen, ScrollContainer, Modal, Header } from '../components';
+import { Screen, ScrollContainer, Modal, Header, Badge } from '../components';
 import { Text } from '../components/Typography';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
@@ -213,27 +213,22 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           <View style={{ flex: 1, padding: 12, gap: 8 }}>
             {/* Line 1: Badges — Pagamento | Origem | Status */}
             <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-              {/* Payment badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: getPayColor() + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: getPayColor() }}>currency_exchange</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: getPayColor() }}>
-                  {order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
-                </RNText>
-              </View>
-              {/* Origin badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.preparando + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.preparando }}>{order.origin === 'whatsapp' ? 'chat' : 'storefront'}</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.preparando }}>
-                  {order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
-                </RNText>
-              </View>
-              {/* Status badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: getStatusColor() + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: getStatusColor() }}>{getStatusIcon()}</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: getStatusColor() }}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </RNText>
-              </View>
+              <Badge
+                icon="currency_exchange"
+                label={order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
+                color={getPayColor()}
+              />
+              <Badge
+                icon={order.origin === 'whatsapp' ? 'chat' : 'storefront'}
+                label={order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
+                color={order.origin === 'whatsapp' ? theme.colors.success : theme.colors.preparando}
+                opacitySuffix="14"
+              />
+              <Badge
+                icon={getStatusIcon()}
+                label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                color={getStatusColor()}
+              />
             </View>
 
             {/* Line 2: Name */}
@@ -287,11 +282,11 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
             }
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Adicionar Item"
+            accessibilityLabel="Adicionar"
             testID="add-items-button-main"
           >
             <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '400', color: theme.colors.text }}>+</RNText>
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text }}>Adicionar Item</RNText>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text }}>Adicionar</RNText>
           </TouchableOpacity>
         )}
 
@@ -329,7 +324,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
         {/* Already Paid State — show only payment method badge + message */}
         {isAlreadyPaid ? (
           <View>
-            <RNText style={sectionTitleStyle}>Forma de pagamento</RNText>
+            <RNText style={sectionTitleStyle}>Formas de pagamento</RNText>
             <View style={methodsContainerStyle}>
               <View
                 style={{
@@ -369,7 +364,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           <>
             {/* Payment Method Selection */}
             <View>
-              <RNText style={sectionTitleStyle}>Forma de pagamento</RNText>
+              <RNText style={sectionTitleStyle}>Formas de pagamento</RNText>
               <View style={methodsContainerStyle}>
                 {PAYMENT_METHODS.map((method) => (
                   <TouchableOpacity
@@ -415,6 +410,36 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 }}
               >
                 Confirmar Pagamento
+              </RNText>
+            </TouchableOpacity>
+
+            {/* Skip Payment Button */}
+            <TouchableOpacity
+              style={{
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: theme.colors.surface,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                alignItems: 'center',
+                justifyContent: 'center',
+                alignSelf: 'stretch',
+              }}
+              onPress={() => router.push('/(tabs)/orders')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Pular Pagamento"
+              testID="skip-payment-button"
+            >
+              <RNText
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 14,
+                  fontWeight: '400',
+                  color: theme.colors.text,
+                }}
+              >
+                Pular Pagamento
               </RNText>
             </TouchableOpacity>
 

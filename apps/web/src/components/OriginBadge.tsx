@@ -23,10 +23,11 @@ export function OriginBadge({ origin }: OriginBadgeProps) {
   const isWhatsApp = origin === 'whatsapp';
 
   const label = isWhatsApp ? 'WhatsApp' : 'Presencial';
+  const badgeColor = isWhatsApp ? theme.colors.pronto : theme.colors.preparando;
 
   const style: React.CSSProperties = {
-    backgroundColor: `${theme.colors.preparando}14`,
-    color: theme.colors.preparando,
+    backgroundColor: `${badgeColor}14`,
+    color: badgeColor,
     borderRadius: '11px',
     height: '22px',
     paddingLeft: '12px',

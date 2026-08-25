@@ -1,18 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, type TextStyle, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 import {
   Screen,
   Header,
   ScrollContainer,
-  Button,
   Text,
   FilterChips,
+  Badge,
   type FilterChipOption,
 } from '../components';
 import { Toast } from '../components/Toast';
-import { DateChip } from '../components/DateChip';
 import { CalendarModal } from '../components/CalendarModal';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
@@ -98,10 +97,21 @@ export function OrderQueueScreen() {
   const [calendarModalVisible, setCalendarModalVisible] = useState(false);
   const [daysWithOrders, setDaysWithOrders] = useState<number[]>([]);
 
+  // Payment filter state: empty or both selected = show all; single selection = filter
+  const [paymentFilters, setPaymentFilters] = useState<PaymentStatus[]>([]);
+
   const selectedDateStr = useMemo(
     () => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
     [year, month, day]
   );
+
+  // Header title: "Pedidos - Hoje" or "Pedidos - DD/MM/YYYY"
+  const headerTitle = useMemo(() => {
+    const today = new Date();
+    const isToday = year === today.getFullYear() && month === today.getMonth() + 1 && day === today.getDate();
+    if (isToday) return 'Pedidos - Hoje';
+    return `Pedidos - ${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+  }, [year, month, day]);
 
   // Fetch days with orders for the calendar dots
   const fetchDaysWithOrders = useCallback(async (fetchYear: number, fetchMonth: number) => {
@@ -365,27 +375,22 @@ export function OrderQueueScreen() {
           >
             {/* Line 1: Badges — Pagamento | Origem | Status */}
             <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-              {/* Payment badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: payColor + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: payColor }}>currency_exchange</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: payColor }}>
-                  {order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
-                </RNText>
-              </View>
-              {/* Origin badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: theme.colors.preparando + '14', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: theme.colors.preparando }}>{ORIGIN_ICON[order.origin] || 'storefront'}</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: theme.colors.preparando }}>
-                  {order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
-                </RNText>
-              </View>
-              {/* Status badge */}
-              <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center', backgroundColor: statusColor + '1F', borderRadius: 11, paddingHorizontal: 8, height: 22 }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: statusColor }}>{STATUS_ICON[order.status]}</RNText>
-                <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, color: statusColor }}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </RNText>
-              </View>
+              <Badge
+                icon="currency_exchange"
+                label={order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
+                color={payColor}
+              />
+              <Badge
+                icon={ORIGIN_ICON[order.origin] || 'storefront'}
+                label={order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
+                color={order.origin === 'whatsapp' ? theme.colors.success : theme.colors.preparando}
+                opacitySuffix="14"
+              />
+              <Badge
+                icon={STATUS_ICON[order.status]}
+                label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                color={statusColor}
+              />
             </View>
 
             {/* Line 2: Name */}
@@ -470,7 +475,15 @@ export function OrderQueueScreen() {
   if (loading) {
     return (
       <Screen>
-        <Header title="Pedidos" icon="receipt_long" />
+      <Header
+        title={headerTitle}
+        icon="receipt_long"
+        rightElement={
+          <Pressable onPress={() => setCalendarModalVisible(true)} accessibilityRole="button" accessibilityLabel="Selecionar data">
+            <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.textSecondary }}>calendar_today</RNText>
+          </Pressable>
+        }
+      />
         <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
         <View style={loadingContainerStyle} accessibilityLabel="Carregando pedidos">
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -485,16 +498,68 @@ export function OrderQueueScreen() {
   if (orders.length === 0 && !loading) {
     return (
       <Screen padding={false}>
-        <Header title="Pedidos" icon="receipt_long" />
+      <Header
+        title={headerTitle}
+        icon="receipt_long"
+        rightElement={
+          <Pressable onPress={() => setCalendarModalVisible(true)} accessibilityRole="button" accessibilityLabel="Selecionar data">
+            <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.textSecondary }}>calendar_today</RNText>
+          </Pressable>
+        }
+      />
         <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
         <ScrollContainer style={contentGapStyle}>
-          <DateChip day={day} month={month} year={year} onPress={() => setCalendarModalVisible(true)} />
           <FilterChips
             options={filterOptions}
             selected={selectedFilters}
             onSelectionChange={handleFiltersChange}
             testID="status-filter"
           />
+          {/* Payment Filter — badge-style pills */}
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable
+              onPress={() => setPaymentFilters(prev => prev.includes('pago') ? prev.filter(f => f !== 'pago') : [...prev, 'pago'])}
+              style={{
+                flexDirection: 'row',
+                gap: 4,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: 1,
+                height: 28,
+                paddingHorizontal: 12,
+                borderRadius: 14,
+                backgroundColor: paymentFilters.includes('pago') ? theme.colors.pronto : theme.colors.success + '1F',
+                borderWidth: 0,
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: paymentFilters.includes('pago') }}
+              accessibilityLabel="Filtrar por Pago"
+            >
+              <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: paymentFilters.includes('pago') ? theme.colors.surface : theme.colors.success }}>currency_exchange</RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: paymentFilters.includes('pago') ? theme.colors.surface : theme.colors.success }}>Pago</RNText>
+            </Pressable>
+            <Pressable
+              onPress={() => setPaymentFilters(prev => prev.includes('pendente') ? prev.filter(f => f !== 'pendente') : [...prev, 'pendente'])}
+              style={{
+                flexDirection: 'row',
+                gap: 4,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: 1,
+                height: 28,
+                paddingHorizontal: 12,
+                borderRadius: 14,
+                backgroundColor: paymentFilters.includes('pendente') ? theme.colors.error : theme.colors.error + '1F',
+                borderWidth: 0,
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: paymentFilters.includes('pendente') }}
+              accessibilityLabel="Filtrar por Pendente"
+            >
+              <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: paymentFilters.includes('pendente') ? theme.colors.surface : theme.colors.error }}>currency_exchange</RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: paymentFilters.includes('pendente') ? theme.colors.surface : theme.colors.error }}>Pendente</RNText>
+            </Pressable>
+          </View>
           <View style={emptyContainerStyle}>
             {/* Illustrated empty state */}
             <View style={{ alignItems: 'center', gap: 12 }}>
@@ -570,12 +635,17 @@ export function OrderQueueScreen() {
 
   return (
     <Screen padding={false}>
-      <Header title="Pedidos" icon="receipt_long" />
+      <Header
+        title={headerTitle}
+        icon="receipt_long"
+        rightElement={
+          <Pressable onPress={() => setCalendarModalVisible(true)} accessibilityRole="button" accessibilityLabel="Selecionar data">
+            <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.textSecondary }}>calendar_today</RNText>
+          </Pressable>
+        }
+      />
       <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
       <ScrollContainer style={contentGapStyle}>
-        {/* Date Selector */}
-        <DateChip day={day} month={month} year={year} onPress={() => setCalendarModalVisible(true)} />
-
         {/* Status Filter (Penpot: row of tinted chips, gap 8px) */}
         <FilterChips
           options={filterOptions}
@@ -584,7 +654,57 @@ export function OrderQueueScreen() {
           testID="status-filter"
         />
 
-        {orders.map((order) => renderOrderCard(order))}
+        {/* Payment Filter — badge-style pills */}
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
+          <Pressable
+            onPress={() => setPaymentFilters(prev => prev.includes('pago') ? prev.filter(f => f !== 'pago') : [...prev, 'pago'])}
+            style={{
+              flexDirection: 'row',
+              gap: 4,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+              height: 28,
+              paddingHorizontal: 12,
+              borderRadius: 14,
+              backgroundColor: paymentFilters.includes('pago') ? theme.colors.pronto : theme.colors.success + '1F',
+              borderWidth: 0,
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: paymentFilters.includes('pago') }}
+            accessibilityLabel="Filtrar por Pago"
+            testID="payment-filter-pago"
+          >
+            <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: paymentFilters.includes('pago') ? theme.colors.surface : theme.colors.success }}>currency_exchange</RNText>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: paymentFilters.includes('pago') ? theme.colors.surface : theme.colors.success }}>Pago</RNText>
+          </Pressable>
+          <Pressable
+            onPress={() => setPaymentFilters(prev => prev.includes('pendente') ? prev.filter(f => f !== 'pendente') : [...prev, 'pendente'])}
+            style={{
+              flexDirection: 'row',
+              gap: 4,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 1,
+              height: 28,
+              paddingHorizontal: 12,
+              borderRadius: 14,
+              backgroundColor: paymentFilters.includes('pendente') ? theme.colors.error : theme.colors.error + '1F',
+              borderWidth: 0,
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: paymentFilters.includes('pendente') }}
+            accessibilityLabel="Filtrar por Pendente"
+            testID="payment-filter-pendente"
+          >
+            <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 12, color: paymentFilters.includes('pendente') ? theme.colors.surface : theme.colors.error }}>currency_exchange</RNText>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: paymentFilters.includes('pendente') ? theme.colors.surface : theme.colors.error }}>Pendente</RNText>
+          </Pressable>
+        </View>
+
+        {orders
+          .filter(order => paymentFilters.length === 0 || paymentFilters.length === 2 || paymentFilters.includes(order.paymentStatus))
+          .map((order) => renderOrderCard(order))}
       </ScrollContainer>
 
       {/* Calendar Modal */}

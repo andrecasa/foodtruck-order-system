@@ -14,7 +14,7 @@ import { Screen, Header } from '../components/Layout';
 import { ErrorState } from '../components/ErrorState';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
-import { Button } from '../components/Button';
+import { FloatingButton } from '../components/FloatingButton';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import type { Category } from '@order-system/shared';
@@ -196,25 +196,6 @@ export function CategoriesListScreen() {
     gap: 8,
   };
 
-  const novaCategoriaButtonStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  };
-
-  const novaCategoriaTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
   const centeredContainerStyle: ViewStyle = {
     flex: 1,
     justifyContent: 'center',
@@ -341,21 +322,8 @@ export function CategoriesListScreen() {
         data={categories}
         keyExtractor={(item) => item.id}
         renderItem={renderCategoryCard}
-        contentContainerStyle={{ gap: 12 }}
+        contentContainerStyle={{ gap: 12, paddingBottom: 80 }}
         showsVerticalScrollIndicator
-        ListFooterComponent={
-          <Pressable
-            style={[novaCategoriaButtonStyle, { marginTop: 12 }]}
-            onPress={() => router.push('/category-form')}
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar"
-            accessibilityHint="Navega para a tela de criação de categoria"
-            testID="new-category-button"
-          >
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '400', color: theme.colors.text }}>+</RNText>
-            <RNText style={novaCategoriaTextStyle}>Adicionar</RNText>
-          </Pressable>
-        }
       />
     );
   };
@@ -369,6 +337,16 @@ export function CategoriesListScreen() {
       <View style={contentStyle}>
         {renderContent()}
       </View>
+
+      {/* Floating "Adicionar" button */}
+      <FloatingButton
+        label="Adicionar"
+        icon="add"
+        bottomOffset={72}
+        onPress={() => router.push('/category-form')}
+        accessibilityHint="Navega para a tela de criação de categoria"
+        testID="new-category-button"
+      />
 
       {/* Bottom Navigation */}
       <BottomNav />

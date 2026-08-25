@@ -14,7 +14,7 @@ import { ErrorState } from '../components/ErrorState';
 import { FilterChips, type FilterChipOption } from '../components/FilterChips';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { BottomNav } from '../components/BottomNav';
-import { Button } from '../components/Button';
+import { FloatingButton } from '../components/FloatingButton';
 import { useTheme } from '../theme';
 import { withOpacity } from '../utils/color';
 import { apiClient } from '../services/api-client';
@@ -200,33 +200,6 @@ export function UsersListScreen() {
     alignItems: 'center',
   };
 
-  // "Novo Usuário" button: full width, height 44, borderRadius 22, white bg, border 1px #E8DDD5
-  const novoUsuarioBtnStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  };
-
-  const novoUsuarioPlusStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const novoUsuarioTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
   // Loading/Error/Empty state styles
   const centeredContainerStyle: ViewStyle = {
     flex: 1,
@@ -336,21 +309,8 @@ export function UsersListScreen() {
         data={users}
         keyExtractor={(item) => item.id}
         renderItem={renderUserCard}
-        contentContainerStyle={{ gap: 12 }}
+        contentContainerStyle={{ gap: 12, paddingBottom: 80 }}
         showsVerticalScrollIndicator
-        ListFooterComponent={
-          <Pressable
-            style={[novoUsuarioBtnStyle, { marginTop: 12 }]}
-            onPress={() => router.push('/user-form')}
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar"
-            accessibilityHint="Navega para a tela de criação de usuário"
-            testID="new-user-button"
-          >
-            <RNText style={novoUsuarioPlusStyle}>+</RNText>
-            <RNText style={novoUsuarioTextStyle}>Adicionar</RNText>
-          </Pressable>
-        }
       />
     );
   };
@@ -373,6 +333,16 @@ export function UsersListScreen() {
         {/* User list / states */}
         {renderContent()}
       </View>
+
+      {/* Floating "Adicionar" button */}
+      <FloatingButton
+        label="Adicionar"
+        icon="add"
+        bottomOffset={72}
+        onPress={() => router.push('/user-form')}
+        accessibilityHint="Navega para a tela de criação de usuário"
+        testID="new-user-button"
+      />
 
       {/* Bottom Navigation */}
       <BottomNav />

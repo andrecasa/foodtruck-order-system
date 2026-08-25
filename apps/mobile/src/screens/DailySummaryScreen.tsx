@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   TouchableOpacity,
@@ -13,9 +14,7 @@ import type { DailySummary } from '@order-system/shared';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Screen, Header } from '../components';
 import { ErrorState } from '../components/ErrorState';
-import { DateChip } from '../components/DateChip';
 import { CalendarModal } from '../components/CalendarModal';
-import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
@@ -52,6 +51,20 @@ export function DailySummaryScreen() {
   const dateStr = useMemo(
     () => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
     [year, month, day]
+  );
+
+  // Header title: "Resumo do Dia - Hoje" or "Resumo do Dia - DD/MM/YYYY"
+  const headerTitle = useMemo(() => {
+    const today = new Date();
+    const isToday = year === today.getFullYear() && month === today.getMonth() + 1 && day === today.getDate();
+    if (isToday) return 'Resumo - Hoje';
+    return `Resumo - ${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+  }, [year, month, day]);
+
+  const calendarRightElement = (
+    <Pressable onPress={() => setCalendarModalVisible(true)} accessibilityRole="button" accessibilityLabel="Selecionar data">
+      <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.textSecondary }}>calendar_today</RNText>
+    </Pressable>
   );
 
   // ─── Data Fetching ──────────────────────────────────────────────────────────
@@ -189,7 +202,7 @@ export function DailySummaryScreen() {
   if (loading && !summary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Dia" onBack={() => router.back()} />
+        <Header title={headerTitle} rightElement={calendarRightElement} />
         <View style={loadingContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
           <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: theme.colors.textSecondary, marginTop: 8 }}>
@@ -203,7 +216,7 @@ export function DailySummaryScreen() {
   if (error && !summary) {
     return (
       <Screen padding={false}>
-        <Header title="Resumo do Dia" onBack={() => router.back()} />
+        <Header title={headerTitle} rightElement={calendarRightElement} />
         <ErrorState message={error} onRetry={handleRetry} />
       </Screen>
     );
@@ -213,7 +226,7 @@ export function DailySummaryScreen() {
 
   return (
     <Screen padding={false}>
-      <Header title="Resumo do Dia" onBack={() => router.back()} />
+      <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
 
       <ScrollView
         contentContainerStyle={contentStyle}
@@ -222,9 +235,6 @@ export function DailySummaryScreen() {
         }
         showsVerticalScrollIndicator
       >
-        {/* Date Chip */}
-        <DateChip day={day} month={month} year={year} onPress={() => setCalendarModalVisible(true)} />
-
         {/* Sub-cards grid 2x2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>

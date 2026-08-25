@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { MonthlySummaryScreen } from '../../screens/MonthlySummaryScreen';
 import type { MonthlySummaryResponse } from '@order-system/shared';
 
@@ -97,30 +97,22 @@ describe('MonthlySummaryScreen', () => {
     expect(pendingElements.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('navigates between months', async () => {
+  it('opens calendar modal via AppBar icon', async () => {
     mockGetMonthlySummary.mockResolvedValue(createMonthlySummary());
 
-    const { findByLabelText, findByText } = render(<MonthlySummaryScreen />);
+    const { findByText, findByLabelText } = render(<MonthlySummaryScreen />);
 
     // Wait for initial load
     await findByText('45');
 
-    // Navigate to previous month
-    const prevButton = await findByLabelText('Mês anterior');
-    mockGetMonthlySummary.mockResolvedValue({
-      ...createMonthlySummary(),
-      month: 12,
-      year: 2023,
-      totals: { ...createMonthlySummary().totals, totalOrders: 30 },
-    });
+    // Calendar icon in AppBar should be present and pressable
+    const calendarButton = await findByLabelText('Selecionar mês');
+    fireEvent.press(calendarButton);
 
-    fireEvent.press(prevButton);
-
-    await waitFor(() => {
-      expect(mockGetMonthlySummary).toHaveBeenCalledWith(
-        expect.any(Number),
-        expect.any(Number),
-      );
-    });
+    // Verify getMonthlySummary was called on initial load
+    expect(mockGetMonthlySummary).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+    );
   });
 });

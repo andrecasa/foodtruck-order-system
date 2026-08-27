@@ -20,9 +20,10 @@ Terraform para provisionar a stack completa na AWS usando **EC2 + Docker Compose
 12. [Passo 9 — Subir containers em produção](#passo-9--subir-containers-em-produção)
 13. [Passo 10 — Configurar Nginx (reverse proxy)](#passo-10--configurar-nginx-reverse-proxy)
 14. [Passo 11 — Build do painel web](#passo-11--build-do-painel-web)
-15. [Passo 12 — Configurar domínio e HTTPS](#passo-12--configurar-domínio-e-https)
-16. [Passo 13 — Conectar WhatsApp](#passo-13--conectar-whatsapp)
-17. [Passo 14 — Gerar o APK do app mobile](#passo-14--gerar-o-apk-do-app-mobile)
+15. [Passo 12 — Build do PWA Operador](#passo-12--build-do-pwa-operador)
+16. [Passo 13 — Configurar domínio e HTTPS](#passo-13--configurar-domínio-e-https)
+17. [Passo 14 — Conectar WhatsApp](#passo-14--conectar-whatsapp)
+18. [Passo 15 — Gerar o APK do app mobile](#passo-15--gerar-o-apk-do-app-mobile)
 18. [Verificar se tudo está funcionando](#verificar-se-tudo-está-funcionando)
 19. [Backups automáticos](#backups-automáticos)
 20. [Operações do dia a dia](#operações-do-dia-a-dia)
@@ -515,7 +516,126 @@ ls -la /opt/order-system/apps/web/dist/index.html
 
 ---
 
-## Passo 12 — Configurar domínio e HTTPS
+## Passo 12 — Build do PWA Operador
+
+O app do operador (feito em Expo/React Native Web) pode ser exportado como PWA e servido como arquivos estáticos — mesmo padrão do painel web.
+
+### 12.1 — Configurar variáveis de ambiente
+
+As variáveis `EXPO_PUBLIC_*` são embutidas no build. Garanta que estejam corretas no `.env` raiz:
+
+```env
+EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br
+EXPO_PUBLIC_SUPABASE_URL=https://api.foodtruck.app.br
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key gerada pelo generate-keys>
+```
+
+### 12.2 — Buildar o PWA
+
+```bash
+cd /opt/order-system
+pnpm build:pwa
+```
+
+O build gera `apps/mobile/dist/` com HTML, JS, CSS, manifest.json e Service Worker — tudo pronto para servir como site estático.
+
+### 12.3 — Configurar Nginx para o PWA
+
+Adicione o bloco do subdomínio `order.foodtruck.app.br` ao arquivo Nginx:
+
+```bash
+sudo nano /etc/nginx/conf.d/foodtruck.app.br.conf
+```
+
+Adicione **antes** do bloco `api.foodtruck.app.br`:
+
+```nginx
+# ─────────────────────────────────────────────────────────────
+# order.foodtruck.app.br — PWA do Operador
+# ─────────────────────────────────────────────────────────────
+server {
+    listen 80;
+    server_name order.foodtruck.app.br;
+
+    location / {
+        root /opt/order-system/apps/mobile/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+            expires 30d;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    # Service Worker não pode ser cacheado agressivamente
+    location = /sw.js {
+        root /opt/order-system/apps/mobile/dist;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # Manifest
+    location = /manifest.json {
+        root /opt/order-system/apps/mobile/dist;
+        add_header Cache-Control "no-cache";
+    }
+
+    # Headers de segurança
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+    gzip_min_length 1000;
+
+    client_max_body_size 10M;
+}
+```
+
+Teste e recarregue:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 12.4 — Ativar HTTPS (após configurar DNS)
+
+Adicione o subdomínio ao Certbot (Passo 13):
+
+```bash
+sudo certbot --nginx -d order.foodtruck.app.br
+```
+
+### 12.5 — Verificar
+
+Abra `https://order.foodtruck.app.br` no Chrome. Deve:
+- Carregar o app normalmente
+- Mostrar o botão "Instalar" na barra do navegador (ícone ⊕ ou banner)
+- Funcionar como app standalone após instalar
+
+> 💡 No Chrome DevTools → Application → Manifest, confira que não há erros. Em Service Workers, confira que o SW está ativo.
+
+### 12.6 — Atualizar o PWA
+
+Para fazer deploy de uma nova versão:
+
+```bash
+cd /opt/order-system
+git pull origin main
+pnpm build:pwa
+```
+
+O Service Worker detecta os novos arquivos automaticamente. Usuários que já instalaram o PWA recebem a atualização na próxima visita (refresh).
+
+> ⚠️ Se precisar forçar atualização imediata, incremente a versão no `CACHE_NAME` dentro de `apps/mobile/public/sw.js` (ex: `operador-v1` → `operador-v2`).
+
+---
+
+## Passo 13 — Configurar domínio e HTTPS
 
 ### 12.1 — Configurar DNS no Registro.br (modo avançado)
 
@@ -526,9 +646,10 @@ ls -la /opt/order-system/apps/web/dist/index.html
 5. Quando liberar, adicione os seguintes registros:
 
 ```
-foodtruck.app.br        A    SEU_IP
-api.foodtruck.app.br    A    SEU_IP
-web.foodtruck.app.br    A    SEU_IP
+foodtruck.app.br            A    SEU_IP
+api.foodtruck.app.br        A    SEU_IP
+web.foodtruck.app.br        A    SEU_IP
+order.foodtruck.app.br      A    SEU_IP
 ```
 
 > ⚠️ No Registro.br modo avançado, não se usa `@`. O domínio raiz é o próprio nome completo.
@@ -542,6 +663,7 @@ web.foodtruck.app.br    A    SEU_IP
 dig +short foodtruck.app.br
 dig +short api.foodtruck.app.br
 dig +short web.foodtruck.app.br
+dig +short order.foodtruck.app.br
 # Todos devem retornar: SEU_IP
 ```
 
@@ -660,7 +782,7 @@ sudo systemctl reload nginx
 Após os subdomínios estarem propagados (`dig` retornando o IP):
 
 ```bash
-sudo certbot --nginx -d foodtruck.app.br -d web.foodtruck.app.br -d api.foodtruck.app.br
+sudo certbot --nginx -d foodtruck.app.br -d web.foodtruck.app.br -d api.foodtruck.app.br -d order.foodtruck.app.br
 ```
 
 O Certbot vai pedir:
@@ -718,7 +840,7 @@ curl https://api.foodtruck.app.br/api/health
 
 ---
 
-## Passo 13 — Conectar WhatsApp
+## Passo 14 — Conectar WhatsApp
 
 A Evolution API gerencia a conexão com WhatsApp.
 
@@ -762,7 +884,7 @@ Após conectar, pode fechar o terminal do SSH — o túnel encerra e ninguém ma
 
 ---
 
-## Passo 14 — Gerar o APK do app mobile
+## Passo 15 — Gerar o APK do app mobile
 
 O app mobile é feito em Expo. A forma recomendada de gerar o APK é via **EAS Build** (build na nuvem do Expo — não precisa de Android Studio nem SDK Android instalado).
 
@@ -930,8 +1052,11 @@ cd /opt/order-system
 git pull origin main
 docker compose up -d --build backend
 
-# Se mudou o frontend:
+# Se mudou o frontend (painel admin):
 pnpm --filter @order-system/web build
+
+# Se mudou o app operador (PWA):
+pnpm build:pwa
 ```
 
 ### Reiniciar tudo

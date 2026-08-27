@@ -9,7 +9,7 @@
  *
  * Usage (from apps/backend):
  *   pnpm tsx --env-file=../../.env scripts/create-tenant.ts \
- *     --provisioning-key=key-001 \
+ *     --provisioning-key=pastel-das-meninas \
  *     --business-name="Pastel das Meninas" \
  *     --evolution-instance=pastel-das-meninas \
  *     --admin-name="Maria" \

@@ -154,7 +154,7 @@ Cada cliente é criado via onboarding — sem alteração de código nem redeplo
 
 ```bash
 pnpm create-tenant -- \
-  --provisioning-key=taco-loco-001 \
+  --provisioning-key=taco-loco \
   --business-name="Taco Loco" \
   --evolution-instance=taco-loco \
   --admin-name="Maria" \

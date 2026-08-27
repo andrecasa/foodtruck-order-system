@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Food Truck App",
-    "slug": "order-system-mobile",
-    "version": "0.4.0",
+    "slug": "food-truck-app",
+    "version": "0.5.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.foodtruck.mobile"
+      "bundleIdentifier": "br.app.foodtruck.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.ordersystem.mobile",
+      "package": "br.app.foodtruck.mobile",
       "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
@@ -36,8 +36,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "aa217e3b-0b0b-4e75-b816-f8cae701ffda"
+        "projectId": "78ba2b33-1b16-47f2-bc6f-141cb4a65fb1"
       }
-    }
+    },
+    "owner": "andrecasa"
   }
 }

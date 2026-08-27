@@ -23,7 +23,7 @@
  *     [--admin-name="Maria"] \
  *     [--business-name="Pastel das Meninas"] \
  *     [--evolution-instance=pastel-das-meninas] \
- *     [--provisioning-key=pastel-das-meninas-001] \
+ *     [--provisioning-key=pastel-das-meninas] \
  *     [--logo-url=https://...]
  *
  * Any flag may also be supplied via the corresponding TENANT_* env var.
@@ -77,7 +77,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
 
   const input: ProvisionTenantInput = {
     provisioningKey:
-      readArg(args, 'provisioning-key', 'TENANT_PROVISIONING_KEY') ?? 'pastel-das-meninas-001',
+      readArg(args, 'provisioning-key', 'TENANT_PROVISIONING_KEY') ?? 'pastel-das-meninas',
     businessName:
       readArg(args, 'business-name', 'TENANT_BUSINESS_NAME') ?? 'Pastel das Meninas',
     logoUrl: readArg(args, 'logo-url', 'TENANT_LOGO_URL') ?? null,

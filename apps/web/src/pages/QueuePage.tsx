@@ -30,7 +30,7 @@ function formatCreatedTime(createdAt: string): string {
 }
 
 /** Default selected filters — entregue hidden by default */
-const DEFAULT_FILTERS: string[] = ['aguardando', 'preparando', 'pronto'];
+const DEFAULT_FILTERS: string[] = ['aguardando', 'preparando'];
 
 /** Status icons for badges */
 const STATUS_ICONS: Record<OrderStatus, string> = {

@@ -38,7 +38,7 @@ import {
 } from '../../services/tenant-provision.service.js';
 
 const baseArgs = [
-  '--provisioning-key=key-001',
+  '--provisioning-key=pastel-das-meninas',
   '--business-name=Pastel das Meninas',
   '--evolution-instance=pastel-das-meninas',
   '--admin-name=Maria',
@@ -69,7 +69,7 @@ describe('create-tenant CLI script', () => {
     expect(mockProvisionTenant).toHaveBeenCalledOnce();
     const input = mockProvisionTenant.mock.calls[0][0];
     expect(input).toMatchObject({
-      provisioningKey: 'key-001',
+      provisioningKey: 'pastel-das-meninas',
       businessName: 'Pastel das Meninas',
       evolutionInstanceName: 'pastel-das-meninas',
       admin: { name: 'Maria', email: 'maria@pastel.com', password: 'S3nh@Forte' },

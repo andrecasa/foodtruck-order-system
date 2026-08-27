@@ -425,7 +425,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 justifyContent: 'center',
                 alignSelf: 'stretch',
               }}
-              onPress={() => router.push('/(tabs)/orders')}
+              onPress={() => router.replace('/(tabs)')}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Pular Pagamento"

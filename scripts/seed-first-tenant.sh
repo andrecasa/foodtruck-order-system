@@ -37,7 +37,7 @@ EMAIL="${1:-${ENV_ADMIN_EMAIL:-admin@example.com}}"
 PASSWORD="${2:-${ENV_ADMIN_PASSWORD:-changeme123}}"
 
 # Tenant/onboarding parameters (override via env if desired). All generic.
-PROVISIONING_KEY="${TENANT_PROVISIONING_KEY:-dev-first-tenant-001}"
+PROVISIONING_KEY="${TENANT_PROVISIONING_KEY:-dev-first-tenant}"
 BUSINESS_NAME="${TENANT_BUSINESS_NAME:-Order System}"
 EVOLUTION_INSTANCE="${TENANT_EVOLUTION_INSTANCE:-dev-first-tenant}"
 ADMIN_NAME="${TENANT_ADMIN_NAME:-Administrador}"

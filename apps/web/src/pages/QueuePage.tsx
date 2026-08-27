@@ -158,6 +158,93 @@ function ActionButton({ label, icon, color, onClick, disabled = false, fontFamil
   );
 }
 
+// ─── Payment Filter Pills Sub-component ─────────────────────────────────────
+
+interface PaymentFilterPillsProps {
+  selected: PaymentStatus[];
+  onSelectionChange: (selected: PaymentStatus[]) => void;
+  successColor: string;
+  errorColor: string;
+  surfaceColor: string;
+  fontFamily: string;
+}
+
+function PaymentFilterPills({ selected, onSelectionChange, successColor, errorColor, surfaceColor, fontFamily }: PaymentFilterPillsProps) {
+  const handleToggle = (value: PaymentStatus) => {
+    if (selected.includes(value)) {
+      onSelectionChange(selected.filter(v => v !== value));
+    } else {
+      onSelectionChange([...selected, value]);
+    }
+  };
+
+  const containerStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: '8px',
+    justifyContent: 'center',
+  };
+
+  const pills: { key: PaymentStatus; label: string; color: string }[] = [
+    { key: 'pago', label: 'Pago', color: successColor },
+    { key: 'pendente', label: 'Pendente', color: errorColor },
+  ];
+
+  return (
+    <div style={containerStyle} role="group" aria-label="Filtro de pagamento">
+      {pills.map(pill => {
+        const isActive = selected.includes(pill.key);
+
+        const pillStyle: React.CSSProperties = {
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+          width: '150px',
+          height: '32px',
+          borderRadius: '16px',
+          paddingLeft: '12px',
+          paddingRight: '14px',
+          backgroundColor: isActive ? pill.color : `${pill.color}1F`,
+          border: 'none',
+          cursor: 'pointer',
+          transition: 'background-color 0.2s ease',
+        };
+
+        const iconStyle: React.CSSProperties = {
+          fontFamily: 'Material Symbols Outlined',
+          fontSize: '16px',
+          fontWeight: 400,
+          color: isActive ? surfaceColor : pill.color,
+          lineHeight: 1,
+        };
+
+        const textStyle: React.CSSProperties = {
+          fontFamily: `"${fontFamily}", -apple-system, sans-serif`,
+          fontSize: '12px',
+          fontWeight: 500,
+          color: isActive ? surfaceColor : pill.color,
+          lineHeight: 1,
+        };
+
+        return (
+          <button
+            key={pill.key}
+            type="button"
+            style={pillStyle}
+            onClick={() => handleToggle(pill.key)}
+            aria-pressed={isActive}
+            aria-label={`Filtrar ${pill.label}`}
+          >
+            <span style={iconStyle}>currency_exchange</span>
+            <span style={textStyle}>{pill.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main QueuePage ─────────────────────────────────────────────────────────
 
 /**
@@ -171,6 +258,7 @@ export function QueuePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
+  const [paymentFilters, setPaymentFilters] = useState<PaymentStatus[]>(['pago']);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [isStale, setIsStale] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -631,6 +719,14 @@ export function QueuePage() {
                 setSelectedFilters(filters);
               }}
             />
+            <PaymentFilterPills
+              selected={paymentFilters}
+              onSelectionChange={setPaymentFilters}
+              successColor={theme.colors.success}
+              errorColor={theme.colors.error}
+              surfaceColor={theme.colors.surface}
+              fontFamily={theme.typography.fontFamily}
+            />
             {isStale && (
               <p style={staleNoteStyle}>Dados podem estar desatualizados</p>
             )}
@@ -737,7 +833,9 @@ export function QueuePage() {
               </div>
             ) : (
               <div style={gridStyle}>
-                {orders.map((order) => {
+                {orders
+                  .filter(order => paymentFilters.length === 0 || paymentFilters.length === 2 || paymentFilters.includes(order.paymentStatus))
+                  .map((order) => {
                   const statusColor = statusColors[order.status];
                   const paymentBadge = getPaymentBadge(order.paymentStatus);
                   const originBadge = getOriginBadge(order.origin);

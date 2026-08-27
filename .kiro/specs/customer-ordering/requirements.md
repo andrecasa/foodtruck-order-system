@@ -1,13 +1,13 @@
 # Requirements Document
 
-## Introdução
+## Introduction
 
 Canal de pedidos online para clientes, acessível via navegador (PWA), como alternativa gratuita ao bot WhatsApp/Evolution API. O cliente acessa um link público do estabelecimento (ex.: QR code na barraca ou link em redes sociais), visualiza o cardápio, monta o carrinho e confirma o pedido — tudo sem autenticação. O pedido entra na mesma fila do operador com origin `'web'`, e o cliente pode acompanhar o status em tempo real.
 
-## Glossário
+## Glossary
 
 - **Cardápio Público**: Página web acessível sem autenticação que exibe os itens ativos do cardápio de um tenant, agrupados por categoria.
-- **Slug**: Identificador textual URL-friendly e único de um tenant (ex.: `pastel-das-meninas`), usado para resolver o tenant em rotas públicas.
+- **Slug**: Identificador textual URL-friendly e único de um tenant (ex.: `pastel-das-meninas`), usado para resolver o tenant em rotas públicas. Corresponde à coluna `provisioning_key` da tabela `tenants`.
 - **Carrinho**: Conjunto de itens selecionados pelo cliente antes de confirmar o pedido, armazenado localmente no navegador (sessionStorage).
 - **Pedido Online**: Pedido criado pelo cliente via Cardápio Público, com origin `'web'` e status inicial `'aguardando'`.
 - **Tela de Acompanhamento**: Página pós-confirmação que exibe o status do pedido em tempo real via Supabase Realtime.
@@ -21,11 +21,13 @@ Canal de pedidos online para clientes, acessível via navegador (PWA), como alte
 
 **User Story:** Como operador, quero que meu estabelecimento tenha um identificador público (slug) na URL, para que clientes possam acessar meu cardápio online por um link amigável.
 
+**Decisão de design:** A coluna `provisioning_key` existente na tabela `tenants` é reutilizada como slug público. Esta coluna já é `TEXT UNIQUE`, contém valores URL-friendly (ex.: `dev-first-tenant`, `pastel-das-meninas`) e é definida no onboarding do tenant. Não será criada uma coluna adicional.
+
 #### Acceptance Criteria
 
-1. THE tabela `tenants` SHALL possuir uma coluna `slug TEXT UNIQUE NOT NULL` contendo um identificador URL-friendly (lowercase, alfanumérico com hífens, 3-60 caracteres).
-2. THE Sistema SHALL validar o slug no momento da criação/atualização do tenant, rejeitando valores com caracteres inválidos, duplicados ou reservados (`api`, `admin`, `health`, `webhook`, `static`).
-3. THE slug SHALL ser imutável após a primeira definição, exceto por um Platform Admin.
+1. THE coluna `tenants.provisioning_key` SHALL ser usada como slug público para resolver o tenant em rotas públicas. O valor já é UNIQUE e URL-friendly.
+2. THE Sistema SHALL validar que o `provisioning_key` informado no onboarding é URL-friendly (lowercase, alfanumérico com hífens, 3-60 caracteres), rejeitando valores com caracteres inválidos ou reservados (`api`, `admin`, `health`, `webhook`, `static`, `assets`).
+3. THE slug (provisioning_key) SHALL ser imutável após a primeira definição, exceto por um Platform Admin.
 4. WHEN um request público chega com um slug inválido ou inexistente, THE Sistema SHALL retornar HTTP 404 com mensagem amigável.
 
 ---
@@ -95,6 +97,8 @@ Canal de pedidos online para clientes, acessível via navegador (PWA), como alte
 
 **User Story:** Como cliente, quero navegar pelo cardápio, adicionar itens ao carrinho e ver o resumo antes de confirmar, para fazer meu pedido de forma intuitiva.
 
+**Diretriz de UI:** A interface do cliente (PWA) SHALL seguir a mesma linguagem visual do app do operador — mesmos componentes base (Button, Input, Card, Badge), mesmos tokens de tema (tipografia, cores, espaçamentos, bordas) e mesmo Design System. O objetivo é que ambas as interfaces sejam visualmente coerentes como partes do mesmo produto.
+
 #### Acceptance Criteria
 
 1. THE App Web SHALL exibir a tela de cardápio ao acessar `/:slug` (ou `/cardapio/:slug`).
@@ -112,6 +116,8 @@ Canal de pedidos online para clientes, acessível via navegador (PWA), como alte
 ### Requirement 7: Interface Web do Cliente — Confirmação e Acompanhamento
 
 **User Story:** Como cliente, quero confirmar meu pedido informando meu nome e depois acompanhar o status, para saber quando buscar.
+
+**Diretriz de UI:** Mesma linguagem visual do app do operador — componentes, tokens e padrões de interação consistentes (ver R6).
 
 #### Acceptance Criteria
 

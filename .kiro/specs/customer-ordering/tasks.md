@@ -1,32 +1,33 @@
-# Implementation Tasks
+# Implementation Plan
 
-## Visão Geral
+## Overview
 
-As tasks estão ordenadas por dependência. Cada task é autocontida e resulta em código testável. O total estimado é de ~10 tasks divididas em 3 fases: Backend (infra + APIs), Shared Package, e Frontend (SPA cliente).
+As tasks estão ordenadas por dependência. Cada task é autocontida e resulta em código testável. O total estimado é de 12 tasks divididas em 4 fases: Backend (infra + APIs), Shared Package, Frontend (SPA cliente), e Mobile + PWA. Estimativa total: ~7-8 dias.
 
----
+## Tasks
 
-## Fase 1: Backend — Modelo de Dados e APIs Públicas
+Fase 1: Backend — Modelo de Dados e APIs Públicas
 
-### Task 1: Migration — Adicionar coluna `slug` à tabela `tenants`
+- [ ] 1. Validação de formato do slug (provisioning_key) no onboarding
 
 **Requisitos cobertos:** R1
 
-**Arquivos a criar/modificar:**
-- `apps/backend/migrations/011_add_tenant_slug.sql`
+**Arquivos a modificar:**
+- `apps/backend/src/services/tenant-provision.service.ts`
 
 **Detalhes:**
-1. Criar migration que adiciona coluna `slug TEXT` à tabela `tenants`.
-2. Gerar slugs para tenants existentes a partir de `business_name` (lowercase, substituir espaços por hífens, remover caracteres especiais).
-3. Adicionar constraint `NOT NULL` após popular os dados existentes.
-4. Adicionar constraint `UNIQUE` na coluna.
-5. Adicionar constraint CHECK com regex: `slug ~ '^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$'`.
+1. A coluna `provisioning_key` existente (TEXT UNIQUE) será usada como slug público. **Não é necessária nova migration.**
+2. Adicionar validação de formato no serviço `provisionTenant`, antes do INSERT:
+   - Regex: `^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$` (3-60 chars, lowercase alfanumérico com hífens, não começa/termina com hífen).
+   - Rejeitar palavras reservadas: `api`, `admin`, `health`, `webhook`, `static`, `assets`, `public`, `login`, `queue`.
+   - Se inválido → incluir `'provisioningKey'` no array de campos inválidos (comportamento existente).
+3. Documentar no código que `provisioning_key` serve duplo propósito: chave de idempotência do onboarding E slug público na URL.
 
-**Critério de conclusão:** Migration executa sem erro. Tenants existentes possuem slugs válidos e únicos.
+**Critério de conclusão:** Provisioning rejeita keys com formato inválido. Keys existentes (`dev-first-tenant`, `pastel-das-meninas`) já são válidos pelo regex. Testes existentes continuam passando.
 
 ---
 
-### Task 2: Migration — Adicionar origin `'web'` à tabela `orders`
+- [ ] 2. Migration — Adicionar origin `'web'` à tabela `orders`
 
 **Requisitos cobertos:** R8
 
@@ -41,7 +42,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-### Task 3: Middleware de resolução de tenant por slug
+- [ ] 3. Middleware de resolução de tenant por slug
 
 **Requisitos cobertos:** R1, R2, R3, R4, R5
 
@@ -53,7 +54,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 2. Implementar `publicTenantMiddleware` que:
    - Extrai `slug` de `req.params.slug`.
    - Valida formato do slug (regex check rápido — rejeita antes de bater no DB).
-   - Consulta `SELECT id FROM tenants WHERE slug = $1 AND status = 'ativo'`.
+   - Consulta `SELECT id FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'`.
    - Se não encontrar → `res.status(404).json({ error: 'TENANT_NOT_FOUND', message: 'Estabelecimento não encontrado.' })`.
    - Se encontrar → seta `req.tenantId` e `req.tenantSlug`, chama `next()`.
 3. Usar o `pool` compartilhado (resolução de tenant é platform-level, não tenant-scoped).
@@ -62,7 +63,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-### Task 4: Rotas e controllers públicos — Branding e Menu
+- [ ] 4. Rotas e controllers públicos — Branding e Menu
 
 **Requisitos cobertos:** R2, R5
 
@@ -74,8 +75,8 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 **Detalhes:**
 1. Criar router Express com `publicTenantMiddleware` aplicado a todas as rotas.
 2. Implementar `GET /api/public/:slug/branding`:
-   - Consulta `SELECT business_name, logo_url, theme, slug FROM tenants WHERE id = $1`.
-   - Retorna `{ businessName, logoUrl, theme, slug }`.
+   - Consulta `SELECT business_name, logo_url, theme, provisioning_key FROM tenants WHERE id = $1`.
+   - Retorna `{ businessName, logoUrl, theme, slug: row.provisioning_key }`.
    - Adicionar campo `realtimeChannel` com valor `orders:queue:{tenantId}` para uso do client no realtime.
 3. Implementar `GET /api/public/:slug/menu`:
    - Extrair lógica de `fetchActiveMenuItems` do `whatsapp.service.ts` para um service compartilhado (ou reutilizar diretamente).
@@ -88,7 +89,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-### Task 5: Controller público — Criação de pedido
+- [ ] 5. Controller público — Criação de pedido
 
 **Requisitos cobertos:** R3, R8, R10
 
@@ -113,7 +114,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-### Task 6: Controller público — Status do pedido
+- [ ] 6. Controller público — Status do pedido
 
 **Requisitos cobertos:** R4
 
@@ -131,9 +132,9 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-## Fase 2: Shared Package — Tipos e Constantes
+Fase 2: Shared Package — Tipos e Constantes
 
-### Task 7: Atualizar tipos, constantes e validators no shared package
+- [ ] 7. Atualizar tipos, constantes e validators no shared package
 
 **Requisitos cobertos:** R8
 
@@ -155,7 +156,9 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ## Fase 3: Frontend — SPA do Cliente
 
-### Task 8: Setup de rotas, layout e API client do cliente
+**Diretriz geral:** Todas as telas do cliente (PWA) devem seguir a mesma linguagem visual do app do operador — reutilizar os mesmos componentes base (Button, Input, Card, Badge), tokens de tema (tipografia, cores, espaçamentos, bordas) e padrões de interação. A UI do cliente deve ser visualmente coerente com o app do operador como parte do mesmo produto.
+
+- [ ] 8. Setup de rotas, layout e API client do cliente
 
 **Requisitos cobertos:** R6, R5
 
@@ -181,7 +184,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-### Task 9: Tela de cardápio e carrinho
+- [ ] 9. Tela de cardápio e carrinho
 
 **Requisitos cobertos:** R6
 
@@ -216,7 +219,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-### Task 10: Tela de checkout (confirmação) e acompanhamento
+- [ ] 10. Tela de checkout (confirmação) e acompanhamento
 
 **Requisitos cobertos:** R7, R10
 
@@ -250,9 +253,9 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-## Fase 4: Mobile e Finalização
+Fase 4: Mobile e Finalização
 
-### Task 11: Badge "Online" no app mobile
+- [ ] 11. Badge "Online" no app mobile
 
 **Requisitos cobertos:** R8, R10
 
@@ -262,14 +265,18 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 **Detalhes:**
 1. Adicionar tratamento para `origin === 'web'` no mapeamento de badge:
    - Label: `"Online"`.
-   - Cor: `#2563EB` (azul).
-2. Garantir que o card exibe corretamente para pedidos vindos da web.
+   - Ícone: `'language'` (Material Symbols — globe/web).
+   - Reutilizar as constantes existentes `BADGE_BG_WHATSAPP` / `BADGE_TEXT_WHATSAPP` (mesma cor — ambos são pedidos remotos).
+2. Atualizar `ORIGIN_ICON` map em `OrderQueueScreen.tsx` para incluir `{ web: 'language' }`.
+3. Ajustar ternários de badge em `OrderQueueScreen.tsx` e `PaymentScreen.tsx` para reconhecer `'web'`.
+4. `SwipeableOriginSelector` (tela de criar pedido) **não muda** — origin `'web'` é exclusivo para clientes, operador não pode selecionar.
+5. Garantir que o card exibe corretamente para pedidos vindos da web.
 
-**Critério de conclusão:** Pedidos criados via web aparecem na fila com badge "Online" azul distinto dos outros.
+**Critério de conclusão:** Pedidos criados via web aparecem na fila com badge "Online" (mesma cor do WhatsApp, diferenciados apenas pelo label).
 
 ---
 
-### Task 12: PWA — Manifest e Service Worker
+- [ ] 12. PWA — Manifest e Service Worker
 
 **Requisitos cobertos:** R9
 
@@ -298,38 +305,58 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 ---
 
-## Ordem de Execução Recomendada
+## Task Dependency Graph
 
+```json
+{
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [1, 2, 7],
+      "description": "Validação de slug, migration web origin e shared package (podem rodar em paralelo)"
+    },
+    {
+      "wave": 2,
+      "tasks": [3],
+      "description": "Public tenant middleware (depende de task 1)"
+    },
+    {
+      "wave": 3,
+      "tasks": [4, 5, 6],
+      "description": "Endpoints públicos (dependem de task 3)"
+    },
+    {
+      "wave": 4,
+      "tasks": [8],
+      "description": "Frontend setup e layout (depende das APIs)"
+    },
+    {
+      "wave": 5,
+      "tasks": [9],
+      "description": "Cardápio e carrinho (depende de task 8)"
+    },
+    {
+      "wave": 6,
+      "tasks": [10, 11, 12],
+      "description": "Checkout, tracking, mobile badge e PWA (tasks 11 e 12 podem rodar em paralelo com 8-10)"
+    }
+  ]
+}
 ```
-Task 1 (slug migration)
-Task 2 (web origin migration)
-  ↓
-Task 7 (shared package updates)  ← pode rodar em paralelo com tasks 1-2
-  ↓
-Task 3 (public tenant middleware)
-  ↓
-Task 4 (branding + menu endpoints)
-Task 5 (create order endpoint)
-Task 6 (order status endpoint)
-  ↓
-Task 8 (frontend setup + layout)
-  ↓
-Task 9 (cardápio + carrinho)
-  ↓
-Task 10 (checkout + tracking)
-  ↓
-Task 11 (mobile badge)         ← pode rodar em paralelo com tasks 8-10
-Task 12 (PWA)                  ← pode rodar em paralelo com task 11
-```
 
----
+## Notes
 
-## Estimativa
+- **Decisão: `provisioning_key` como slug** — A coluna existente `tenants.provisioning_key` (TEXT UNIQUE) é reutilizada como slug público nas URLs. Não há migration para adicionar coluna nova. A Task 1 apenas adiciona validação de formato no onboarding.
+- **Convenção de assets** — Imagens públicas ficam em `/assets/{slug}/` (Nginx → S3). O slug no path corresponde ao `provisioning_key` do tenant.
+- **Estimativa total:** ~7-8 dias de desenvolvimento.
+- Tasks 1, 2 e 7 podem ser executadas em paralelo como ponto de partida.
+- Tasks 11 e 12 são independentes do fluxo principal do frontend e podem rodar em paralelo com tasks 8-10.
+- Todas as rotas públicas não exigem autenticação, mas aplicam rate limiting.
+- O `createOrder` existente já cuida de validação de items, snapshot de preços, transaction, daily_number e broadcast realtime.
 
 | Fase | Tasks | Estimativa |
 |------|-------|-----------|
-| Backend (Migrations + APIs) | 1-6 | 2-3 dias |
+| Backend (Validação + Migration + APIs) | 1-6 | 2-3 dias |
 | Shared Package | 7 | 0.5 dia |
 | Frontend (SPA) | 8-10 | 3-4 dias |
 | Mobile + PWA | 11-12 | 1 dia |
-| **Total** | **12 tasks** | **~7-8 dias** |

@@ -9,6 +9,7 @@ Este documento detalha a arquitetura e design técnico do canal de pedidos onlin
 - Reutilização máxima do `order.service.ts` existente.
 - O app do operador (mobile) não é modificado estruturalmente — apenas recebe badge para nova origin.
 - A SPA cliente é uma nova seção dentro de `apps/web` com rotas separadas.
+- **Consistência visual:** A PWA do cliente segue a mesma linguagem visual do app do operador — mesmos tokens de tema, mesmos componentes base (Button, Input, Card, Badge), mesma tipografia e espaçamentos. Ambas as interfaces são reconhecíveis como parte do mesmo produto.
 
 ---
 
@@ -128,8 +129,8 @@ export interface PublicTenantRequest extends Request {
 
 export async function publicTenantMiddleware(req, res, next) {
   const slug = req.params.slug;
-  // Valida formato do slug
-  // SELECT id FROM tenants WHERE slug = $1 AND status = 'ativo'
+  // Valida formato do slug (regex)
+  // SELECT id FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'
   // Se não encontrar → 404 { error: 'TENANT_NOT_FOUND' }
   // Se encontrar → req.tenantId = row.id; req.tenantSlug = slug; next()
 }
@@ -141,8 +142,8 @@ Este middleware é aplicado a todas as rotas sob `/api/public/:slug/`.
 
 **`publicBrandingController`** (R5):
 ```typescript
-// SELECT business_name, logo_url, theme, slug FROM tenants WHERE id = $1
-// Retorna: { businessName, logoUrl, theme, slug }
+// SELECT business_name, logo_url, theme, provisioning_key FROM tenants WHERE id = $1
+// Retorna: { businessName, logoUrl, theme, slug: row.provisioning_key }
 ```
 
 **`publicMenuController`** (R2):
@@ -221,7 +222,7 @@ export interface PublicBranding {
   businessName: string;
   logoUrl: string | null;
   theme: Record<string, unknown> | null;
-  slug: string;
+  slug: string;  // maps to tenants.provisioning_key
 }
 
 export interface PublicOrderResponse {
@@ -367,8 +368,8 @@ O `tenantId` necessário para montar o nome do canal é retornado junto ao brand
 No `OrderQueueScreen.tsx`, adicionar tratamento para `origin === 'web'`:
 
 ```typescript
-// Cor: azul (#2563EB) — distinta de presencial (cinza) e whatsapp (verde)
-{ origin: 'web', label: 'Online', color: '#2563EB' }
+// Reutiliza as cores do WhatsApp (ambos são pedidos remotos, diferenciados pelo label)
+{ origin: 'web', label: 'Online', bg: BADGE_BG_WHATSAPP, text: BADGE_TEXT_WHATSAPP }
 ```
 
 #### Nenhuma outra alteração
@@ -382,28 +383,26 @@ O app mobile já:
 
 ## Data Models
 
-### Tabela `tenants` — Nova coluna `slug`
+### Tabela `tenants` — `provisioning_key` como slug público
 
+**Decisão:** A coluna `provisioning_key` existente (TEXT UNIQUE) é reutilizada como slug público. Já contém valores URL-friendly definidos no onboarding (ex.: `dev-first-tenant`, `pastel-das-meninas`). Não é necessário criar coluna adicional.
+
+**Resolução pública do tenant:**
 ```sql
--- Migration 011_add_tenant_slug.sql
-ALTER TABLE tenants ADD COLUMN slug TEXT;
-
--- Gerar slugs para tenants existentes (baseado em business_name)
-UPDATE tenants SET slug = LOWER(REGEXP_REPLACE(
-  REGEXP_REPLACE(business_name, '[^a-zA-Z0-9\s-]', '', 'g'),
-  '\s+', '-', 'g'
-)) WHERE slug IS NULL;
-
-ALTER TABLE tenants ALTER COLUMN slug SET NOT NULL;
-ALTER TABLE tenants ADD CONSTRAINT tenants_slug_unique UNIQUE (slug);
-ALTER TABLE tenants ADD CONSTRAINT tenants_slug_format
-  CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$');
+SELECT id FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'
 ```
 
-**Validação em nível de aplicação:**
+**Validação de formato no onboarding** (a adicionar no `provisionTenant` service):
+- Regex: `^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$`
 - Mínimo 3, máximo 60 caracteres.
 - Somente lowercase, números e hífens. Não pode começar/terminar com hífen.
 - Palavras reservadas rejeitadas: `api`, `admin`, `health`, `webhook`, `static`, `public`, `assets`.
+
+**Convenção de assets:** O `provisioning_key` (slug) é usado como namespace no bucket S3:
+```
+/assets/{provisioning_key}/logo.png
+/assets/{provisioning_key}/menu/item-1.jpg
+```
 
 ### Tabela `orders` — Nova origin `'web'`
 
@@ -424,7 +423,7 @@ O pedido online não requer tabelas adicionais. O carrinho é client-side (sessi
 
 1. **Isolamento de tenant**: Endpoints públicos sempre resolvem o tenant via slug. O `tenantRepository` garante que nenhum dado de outro tenant seja acessado.
 2. **Snapshot de preço**: O total do pedido é calculado no backend no momento da criação (não confia no total enviado pelo cliente).
-3. **Idempotência de slug**: Slug é UNIQUE e validado por regex no DB — impossível duplicar.
+3. **Idempotência de slug**: `provisioning_key` é UNIQUE no DB — impossível duplicar. A mesma coluna serve como chave de idempotência do onboarding e como slug público.
 4. **Consistência de numeração**: `next_daily_number()` roda dentro da transação — sem gaps mesmo com pedidos concorrentes de web + presencial + whatsapp.
 5. **Sem bypass de status**: O cliente não pode mudar o status do pedido — apenas visualiza. Mudanças passam pelo middleware autenticado (operador).
 6. **Origin imutável**: O controller força `origin: 'web'` — o client não pode escolher outra origin.
@@ -487,6 +486,7 @@ O pedido online não requer tabelas adicionais. O carrinho é client-side (sessi
 
 | Decisão | Justificativa |
 |---------|---------------|
+| `provisioning_key` como slug (não coluna nova) | Já é UNIQUE, URL-friendly, e definido no onboarding. Evita migration e coluna redundante. |
 | SPA dentro de `apps/web` (não app separado) | Reutiliza o Vite config, shared theme, e deploy existentes. Rotas separadas por path. |
 | sessionStorage (não localStorage) | Carrinho desaparece ao fechar aba. Evita pedidos "fantasma" de semanas atrás. |
 | Sem autenticação do cliente | Fricção mínima. O operador é a barreira humana (vê o cliente presencialmente). |
@@ -495,6 +495,7 @@ O pedido online não requer tabelas adicionais. O carrinho é client-side (sessi
 | Campo `realtimeChannel` no branding | Evita expor UUID do tenant ao client. O client usa o nome do canal diretamente. |
 | TanStack Query para fetching | Caching automático, stale-while-revalidate, retry. Já é dependência do projeto web. |
 | Polling fallback (30s) | Resiliência caso WebSocket caia em redes instáveis de food truck. |
+| Assets em `/assets/{slug}/` | Convenção unificada. Nginx proxy pro S3 sem passar pelo Express. Slug = provisioning_key. |
 
 ## Segurança e Rate Limiting
 

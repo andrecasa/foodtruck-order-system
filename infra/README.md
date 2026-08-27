@@ -561,7 +561,7 @@ server {
     server_name web.foodtruck.app.br foodtruck.app.br;
 
     # Imagens dos tenants (proxy para S3)
-    location /tenants/ {
+    location /assets/ {
         proxy_pass https://order-system-assets-702872201713.s3.us-east-1.amazonaws.com/;
         proxy_set_header Host order-system-assets-702872201713.s3.us-east-1.amazonaws.com;
         proxy_set_header Authorization "";

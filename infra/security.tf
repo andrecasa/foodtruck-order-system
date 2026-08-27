@@ -37,6 +37,18 @@ resource "aws_security_group" "app" {
     }
   }
 
+  # PostgreSQL (restrito ao IP do operador)
+  dynamic "ingress" {
+    for_each = length(var.ssh_allowed_cidrs) > 0 ? [1] : []
+    content {
+      description = "PostgreSQL Restrito"
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      cidr_blocks = var.ssh_allowed_cidrs
+    }
+  }
+
   # Todo tráfego de saída
   egress {
     description = "All outbound"

@@ -45,6 +45,31 @@ resource "aws_iam_role_policy" "s3_backup" {
   })
 }
 
+# Permissão para gerenciar imagens dos tenants no S3
+resource "aws_iam_role_policy" "s3_tenant_assets" {
+  name = "s3-tenant-assets-access"
+  role = aws_iam_role.ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.tenant_assets.arn,
+          "${aws_s3_bucket.tenant_assets.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
 # SSM para acesso sem SSH (opcional, mais seguro)
 resource "aws_iam_role_policy_attachment" "ssm" {
   role       = aws_iam_role.ec2_role.name

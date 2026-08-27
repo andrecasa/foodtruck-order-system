@@ -559,12 +559,21 @@ sudo bash -c 'cat > /etc/nginx/conf.d/foodtruck.app.br.conf << '\''EOF'\''
 server {
     listen 80;
     server_name web.foodtruck.app.br foodtruck.app.br;
-    
-    # Assets de branding dos clientes (logos, imagens) servidos direto pelo Nginx
-    location /branding/ {
-        alias /opt/order-system/public-assets/;
-        expires 30d;
-        add_header Cache-Control "public";
+
+    # Imagens dos tenants (proxy para S3)
+    location /tenants/ {
+        proxy_pass https://order-system-assets-702872201713.s3.us-east-1.amazonaws.com/;
+        proxy_set_header Host order-system-assets-702872201713.s3.us-east-1.amazonaws.com;
+        proxy_set_header Authorization "";
+        proxy_hide_header x-amz-id-2;
+        proxy_hide_header x-amz-request-id;
+        proxy_hide_header x-amz-meta-server-side-encryption;
+        proxy_hide_header x-amz-server-side-encryption;
+        proxy_intercept_errors on;
+
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+        add_header Access-Control-Allow-Origin "*";
     }
 
     location / {

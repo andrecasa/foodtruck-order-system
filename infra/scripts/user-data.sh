@@ -24,7 +24,7 @@ chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 # sistema em /usr/libexec/docker/cli-plugins).
 echo ">>> Instalando Docker Buildx (versão compatível com o Compose)..."
 BUILDX_VERSION="v0.19.3"
-curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-amd64" \
+curl -SL "https://github.com/docker/buildx/releases/download/$${BUILDX_VERSION}/buildx-$${BUILDX_VERSION}.linux-amd64" \
   -o /usr/local/lib/docker/cli-plugins/docker-buildx
 chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
 

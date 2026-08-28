@@ -2,14 +2,37 @@
 
 ## Overview
 
-Este documento detalha a arquitetura e design técnico do canal de pedidos online para clientes (PWA). A solução adiciona rotas públicas ao backend existente, estende o modelo de dados com slug e nova origin, e entrega uma SPA React (dentro de `apps/web`) que funciona como cardápio digital + carrinho + acompanhamento de pedido em tempo real.
+Este documento detalha a arquitetura e design técnico do canal de pedidos online para clientes (PWA). A solução adiciona rotas públicas ao backend existente, estende o modelo de dados com slug e nova origin, e entrega o fluxo do cliente **dentro do app existente `apps/mobile`** (React Native + Expo), que já produz saída web/PWA via `react-native-web`. As telas do cliente vivem em um grupo de rotas públicas (`app/(public)/`), reutilizando os componentes, tema, api-client e realtime já existentes.
+
+**Por que dentro do `apps/mobile` e não numa SPA separada em `apps/web`:**
+- `apps/mobile` já tem alvo web/PWA configurado (`react-native-web`, `expo start --web`, `expo export --platform web`), biblioteca de componentes completa, sistema de tema/branding, api-client maduro (com refresh de token) e realtime pronto.
+- `apps/web` está defasado (sem router, 2 páginas, api-client e tema duplicados). Criar a feature lá reimplementaria UI, tema, realtime e api-client do zero, aprofundando a duplicação já existente entre os dois apps.
+- Hospedar no `apps/mobile` maximiza reuso e mantém um único ponto de manutenção para componentes, tema e integração com o backend.
 
 **Princípios:**
 - Nenhuma autenticação para o cliente — endpoints públicos com resolução de tenant via slug.
-- Reutilização máxima do `order.service.ts` existente.
-- O app do operador (mobile) não é modificado estruturalmente — apenas recebe badge para nova origin.
-- A SPA cliente é uma nova seção dentro de `apps/web` com rotas separadas.
-- **Consistência visual:** A PWA do cliente segue a mesma linguagem visual do app do operador — mesmos tokens de tema, mesmos componentes base (Button, Input, Card, Badge), mesma tipografia e espaçamentos. Ambas as interfaces são reconhecíveis como parte do mesmo produto.
+- Reutilização dos services de backend existentes (`order.service.ts` → `createOrder`/`getOrderById`; `menu.service.ts` → `getMenu`) e dos componentes/tema/realtime do `apps/mobile` (frontend). **Nada do `whatsapp.service.ts` é reutilizado** — o bot fica isolado do fluxo web.
+- O app do operador (telas autenticadas existentes) não é modificado estruturalmente — apenas: (a) recebe badge para a nova origin, e (b) o auth gate passa a permitir um grupo de rotas públicas.
+- **Consistência visual por construção:** como o App Cliente vive no mesmo app do operador e reutiliza os mesmos componentes base (Button, Input, Card, Badge, Typography) e tokens de tema, não há biblioteca paralela nem risco de divergência visual.
+
+**Disposição do `apps/web`:** Fora do escopo desta feature. No curto prazo permanece como está (fila web do operador). No médio prazo, dado que o `apps/mobile` já roda no navegador, recomenda-se avaliar a aposentadoria do `apps/web` para eliminar a duplicação — decisão separada, registrada aqui apenas como direção.
+
+### Modelo de Uso / Pontos de Entrada
+
+Um único `apps/mobile` (nativo + PWA) atende operador e cliente. O contexto é determinado pela **rota de entrada**, não por builds separados:
+
+```
+apps/mobile (mesmo código)
+├── Nativo (Android/iOS, lojas) ── entra em / → login ──────────── OPERADOR
+├── PWA / navegador na raiz  /  ── login (rota autenticada) ────── OPERADOR
+└── PWA / navegador em /:slug ─── grupo (public), sem login ────── CLIENTE (via QR/link)
+```
+
+- `/` (raiz) → **contexto operador** (login). O cliente nunca acessa a raiz.
+- `/:slug` → **contexto cliente** (cardápio público). Acesso exclusivo por link/QR code; o slug (= `provisioning_key`) resolve o tenant e o branding.
+- **App nativo das lojas = exclusivo do operador.** O cliente não faz pedidos pelo nativo porque não há ponto de entrada com slug no binário nativo (não há URL de entrada). O cliente usa a web/PWA e pode "instalar" via "adicionar à tela inicial" (sem loja).
+- **Auth gate:** como operador e cliente compartilham o mesmo PWA, o gate em `useAuth.tsx` distingue por rota — o grupo `(public)` passa sem login; as demais rotas continuam protegidas.
+- **Deep linking** (`/:slug` abrir o app nativo no cardápio) é possível com o expo-router, mas fica FORA do escopo desta feature.
 
 ---
 
@@ -21,7 +44,8 @@ Este documento detalha a arquitetura e design técnico do canal de pedidos onlin
 │                                                                   │
 │  /:slug → Cardápio → Carrinho → Confirmação → Acompanhamento    │
 │                                                                   │
-│  React 19 + Vite + React Router + TanStack Query                 │
+│  apps/mobile (Expo + react-native-web) — grupo app/(public)/     │
+│  expo-router (rotas públicas) + Supabase Realtime                │
 └──────────────┬───────────────────────────────┬───────────────────┘
                │ HTTP (REST)                   │ WebSocket (Realtime)
                ▼                               ▼
@@ -48,7 +72,7 @@ Este documento detalha a arquitetura e design técnico do canal de pedidos onlin
 #### Criação de Pedido
 
 ```
-Cliente              App Web              Backend               DB              Realtime
+Cliente            App Cliente            Backend               DB              Realtime
   │                    │                    │                    │                  │
   │  Abre /:slug       │                    │                    │                  │
   │───────────────────>│                    │                    │                  │
@@ -86,7 +110,7 @@ Cliente              App Web              Backend               DB              
 #### Acompanhamento em Tempo Real
 
 ```
-Operador (Mobile)     Backend             Realtime            App Web (Cliente)
+App Operador          Backend             Realtime            App Cliente
   │                     │                    │                    │
   │  PATCH /orders/:id  │                    │                    │
   │  { status: pronto } │                    │                    │
@@ -109,15 +133,21 @@ Operador (Mobile)     Backend             Realtime            App Web (Cliente)
 
 #### Novo router: `src/routes/public.routes.ts`
 
-Montado em `/api/public` no Express app. **Sem middleware de auth/tenant** — a resolução do tenant é feita pelo controller a partir do `:slug`.
+Montado em `/api/public` no Express app. **Sem auth/tenant middleware** — o tenant é resolvido pelo `publicTenantMiddleware` a partir do `:slug`.
 
 ```typescript
-// Rotas:
+// Router público (hardening — R11):
+//   rateLimit(60/min por IP)  → aplicado a todo /api/public
+//   express.json({ limit: '10kb' }) → parser LOCAL do router (não altera o global)
+//   publicTenantMiddleware    → resolve tenant por slug
+
 GET  /api/public/:slug/branding   → publicBrandingController
 GET  /api/public/:slug/menu       → publicMenuController
 POST /api/public/:slug/orders     → publicCreateOrderController
 GET  /api/public/:slug/orders/:id → publicOrderStatusController
 ```
+
+**CORS:** o `index.ts` usa `cors()` global (aberto). Para as rotas públicas, revisar para permitir o(s) domínio(s) do PWA sem abrir além do necessário. Como PWA e API convivem atrás do Nginx (mesmo domínio em produção), na prática o CORS não bloqueia o cliente; a revisão garante que uma futura restrição do CORS global não quebre o fluxo público.
 
 #### Middleware de resolução por slug: `src/middleware/public-tenant.middleware.ts`
 
@@ -129,10 +159,10 @@ export interface PublicTenantRequest extends Request {
 
 export async function publicTenantMiddleware(req, res, next) {
   const slug = req.params.slug;
-  // Valida formato do slug (regex)
-  // SELECT id FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'
-  // Se não encontrar → 404 { error: 'TENANT_NOT_FOUND' }
-  // Se encontrar → req.tenantId = row.id; req.tenantSlug = slug; next()
+  // 1. Formato inválido (regex) → 400 { error: 'INVALID_SLUG_FORMAT' } (rejeita antes do DB)
+  // 2. SELECT id FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'
+  //    - não encontrado → 404 { error: 'TENANT_NOT_FOUND' }
+  //    - encontrado → req.tenantId = row.id; req.tenantSlug = slug; next()
 }
 ```
 
@@ -143,42 +173,51 @@ Este middleware é aplicado a todas as rotas sob `/api/public/:slug/`.
 **`publicBrandingController`** (R5):
 ```typescript
 // SELECT business_name, logo_url, theme, provisioning_key FROM tenants WHERE id = $1
-// Retorna: { businessName, logoUrl, theme, slug: row.provisioning_key }
+// Retorna: { businessName, logoUrl, theme, slug: row.provisioning_key,
+//            realtimeChannel: `orders:queue:${tenantId}` }
 ```
 
 **`publicMenuController`** (R2):
 ```typescript
-// Reutiliza fetchActiveMenuItems(tenantId) de whatsapp.service.ts
-// (extrair para um service compartilhado: menu.service.ts)
-// Agrupa por categoria, retorna array de { categoryName, sortOrder, items[] }
+// Reutiliza getMenu(tenantId, false) de services/menu.service.ts (o MESMO usado
+//   pelo endpoint autenticado). NÃO usa nada do whatsapp bot.
+//   getMenu(false) já filtra itens E categorias inativas (mi.status='ativo' AND c.status='ativo').
+// Mapeia o retorno para o DTO público PublicMenuItem:
+//   price -> priceCents; descarta status/createdAt/updatedAt (campos internos)
+// Ver nota G2/G3 abaixo sobre o mapeamento e categorySortOrder.
 ```
 
 **`publicCreateOrderController`** (R3):
 ```typescript
-// Valida body com publicCreateOrderSchema (Zod)
-// Resolve primeiro admin ativo do tenant (mesma lógica do bot)
-// Chama createOrder(tenantId, { customerName, origin: 'web', items, createdBy })
+// Valida body com publicCreateOrderSchema (Zod estrito)
+// Resolve primeiro admin ativo do tenant (SELECT ... role='admin' AND status='ativo' ...);
+//   se não houver → 422 TENANT_UNAVAILABLE
+// Chama createOrder(...); createOrder lança ServiceError(422) para item inválido/inativo
+// try/catch mapeando pela propriedade .statusCode do erro (não por instanceof — cada
+//   service tem sua própria classe ServiceError; o contrato é o campo statusCode)
 // Retorna: { id, dailyNumber, totalAmountCents, status, orderDate, createdAt }
 ```
 
 **`publicOrderStatusController`** (R4):
 ```typescript
-// Chama getOrderById(tenantId, orderId)
-// Filtra campos sensíveis
+// Chama getOrderById(tenantId, orderId) — lança ServiceError com .statusCode 404 se não achar
+// try/catch: erro com .statusCode 404 → { error: 'ORDER_NOT_FOUND' }
+// Filtra campos sensíveis (created_by, payment_status, payment_method)
 // Retorna: { id, dailyNumber, customerName, status, totalAmountCents, createdAt, items }
 ```
 
 #### Validação — Schema público
 
+Definido em `packages/shared/src/validators/public-order.validator.ts` (criado na Task 7, consumido pela Task 5):
+
 ```typescript
-// packages/shared/src/validators/public-order.validator.ts
 export const publicCreateOrderSchema = z.object({
   customerName: z.string().min(1).max(100),
   items: z.array(z.object({
     menuItemId: z.string().uuid(),
     quantity: z.number().int().min(1).max(99),
   })).min(1).max(50),
-});
+}).strict();  // rejeita campos extras (R11.4)
 ```
 
 Nota: `origin` não é aceito no body — é forçado para `'web'` pelo controller.
@@ -207,14 +246,20 @@ export interface PublicMenuItem {
   id: string;
   name: string;
   priceCents: number;
-  description?: string;
   categoryName: string;
-  categorySortOrder: number;
 }
+// Notas:
+// - menu_items não possui coluna `description` no schema atual.
+// - Não há `categorySortOrder` por item: getMenu já devolve as categorias
+//   pré-ordenadas por sort_order; o cliente só precisa preservar a ordem do array.
+//   (A ordenação entre categorias é carregada em PublicMenuCategory.sortOrder.)
 
 export interface PublicMenuCategory {
   name: string;
-  sortOrder: number;
+  sortOrder: number;   // ATENÇÃO: o getMenu atual descarta o sortOrder no .map final
+                       // (retorna só { category, items }). O controller público deve
+                       // preservar o sortOrder — pequeno ajuste no service OU remapear
+                       // no controller. Não confiar apenas na ordem implícita do array.
   items: PublicMenuItem[];
 }
 
@@ -222,7 +267,8 @@ export interface PublicBranding {
   businessName: string;
   logoUrl: string | null;
   theme: Record<string, unknown> | null;
-  slug: string;  // maps to tenants.provisioning_key
+  slug: string;             // = tenants.provisioning_key
+  realtimeChannel: string;  // orders:queue:{tenantId} — evita expor o UUID
 }
 
 export interface PublicOrderResponse {
@@ -237,93 +283,100 @@ export interface PublicOrderResponse {
 }
 ```
 
-### Frontend — App Web do Cliente
+### Frontend — App Cliente (dentro de `apps/mobile`)
 
 #### Localização no monorepo
 
-A SPA do cliente vive em `apps/web` (já existe com Vite + React 19). As rotas do cliente são separadas das rotas do operador (login/queue):
+As telas do cliente vivem no `apps/mobile`, num grupo de rotas públicas do expo-router (`app/(public)/`). Elas reutilizam os componentes, tema, api-client e hooks já existentes do app; apenas os componentes/telas realmente novos são criados sob subpastas `customer/`.
 
 ```
-apps/web/src/
-├── main.tsx                    (entry point)
-├── router.tsx                  (React Router config)
-├── pages/
-│   ├── operator/              (telas existentes: Login, Queue)
-│   │   ├── LoginPage.tsx
-│   │   └── QueuePage.tsx
-│   └── customer/             (NOVAS telas)
-│       ├── MenuPage.tsx       (cardápio + carrinho)
-│       ├── CheckoutPage.tsx   (confirmação com nome)
-│       └── TrackingPage.tsx   (acompanhamento em tempo real)
-├── components/
-│   └── customer/             (componentes específicos do cliente)
-│       ├── MenuItem.tsx
-│       ├── CartDrawer.tsx
-│       ├── CartItem.tsx
-│       ├── CategorySection.tsx
-│       ├── OrderSummary.tsx
-│       └── StatusBadge.tsx
-├── hooks/
-│   └── customer/
-│       ├── usePublicMenu.ts   (TanStack Query)
-│       ├── usePublicBranding.ts
-│       ├── useCart.ts         (estado local + sessionStorage)
-│       ├── useCreateOrder.ts  (mutation)
-│       └── useOrderTracking.ts (polling + realtime)
-├── lib/
-│   └── public-api.ts         (HTTP client para rotas públicas)
-└── stores/
-    └── cart.store.ts          (Zustand ou Context — estado do carrinho)
+apps/mobile/
+├── app/                                   (expo-router — rotas)
+│   ├── _layout.tsx                        (MODIFICAR: auth gate permite grupo (public))
+│   ├── login.tsx                          (existente)
+│   ├── (tabs)/                            (existente — App Operador)
+│   └── (public)/                          (NOVO — App Cliente, sem auth)
+│       ├── _layout.tsx                    (layout público: resolve branding por slug)
+│       └── [slug]/
+│           ├── index.tsx                  (→ MenuScreen do cliente)
+│           ├── checkout.tsx               (→ CheckoutScreen)
+│           └── pedido/[orderId].tsx       (→ TrackingScreen)
+├── src/
+│   ├── screens/customer/                  (NOVO — telas do cliente)
+│   │   ├── CustomerMenuScreen.tsx         (cardápio + carrinho)
+│   │   ├── CustomerCheckoutScreen.tsx     (confirmação com nome)
+│   │   └── CustomerTrackingScreen.tsx     (acompanhamento em tempo real)
+│   ├── components/                        (REUTILIZAR: Button, Card, Badge, Input, Modal, Typography)
+│   │   └── customer/                      (NOVO — componentes específicos do cliente)
+│   │       ├── CustomerMenuItem.tsx
+│   │       ├── CartSheet.tsx              (bottom sheet do carrinho)
+│   │       ├── CartLineItem.tsx
+│   │       └── CategorySection.tsx
+│   ├── hooks/customer/                    (NOVO)
+│   │   ├── usePublicMenu.ts               (fetch do cardápio público)
+│   │   ├── usePublicBranding.ts           (branding por slug, sem token)
+│   │   ├── useCart.ts                     (estado do carrinho + persistência)
+│   │   ├── useCreateOrder.ts
+│   │   └── usePublicOrderTracking.ts      (realtime + polling, sem token)
+│   ├── services/
+│   │   ├── real-client.ts                 (REUTILIZAR + adicionar métodos públicos)
+│   │   └── public-client.ts              (NOVO — chamadas às rotas /api/public sem token)
+│   └── theme/                             (REUTILIZAR sistema de tema existente)
 ```
 
-#### Roteamento
+#### Roteamento (expo-router)
+
+O expo-router mapeia arquivos para URLs. O grupo `(public)` não aparece na URL, então as rotas públicas ficam:
+
+| Arquivo | URL no navegador |
+|---------|------------------|
+| `app/(public)/[slug]/index.tsx` | `/:slug` |
+| `app/(public)/[slug]/checkout.tsx` | `/:slug/checkout` |
+| `app/(public)/[slug]/pedido/[orderId].tsx` | `/:slug/pedido/:orderId` |
+
+O `app/(public)/_layout.tsx` resolve o branding do tenant a partir do `slug` (via rota pública, sem token) e aplica o tema com o `ThemeProvider` existente, antes de renderizar as telas filhas.
+
+#### Auth gate — permitir rotas públicas
+
+O gate atual em `src/hooks/useAuth.tsx` redireciona qualquer rota que não seja `login` para `/login` quando não há usuário. É preciso relaxá-lo para tratar o grupo `(public)` como não autenticado:
 
 ```typescript
-// React Router v6 config
-const routes = [
-  // Rotas do operador (existentes)
-  { path: '/login', element: <LoginPage /> },
-  { path: '/queue', element: <QueuePage /> },
+// Antes (bloqueia tudo exceto login):
+const inAuthGroup = segments[0] === 'login';
+if (!user && !inAuthGroup) router.replace('/login');
 
-  // Rotas do cliente (NOVAS)
-  { path: '/:slug', element: <CustomerLayout />, children: [
-    { index: true, element: <MenuPage /> },
-    { path: 'checkout', element: <CheckoutPage /> },
-    { path: 'pedido/:orderId', element: <TrackingPage /> },
-  ]},
-];
+// Depois (whitelist de grupos públicos):
+const PUBLIC_GROUPS = ['login', '(public)'];
+const inPublicRoute = PUBLIC_GROUPS.includes(segments[0]);
+if (!user && !inPublicRoute) router.replace('/login');
+else if (user && segments[0] === 'login') router.replace('/(tabs)');
 ```
 
-O `CustomerLayout` carrega branding e aplica o tema do tenant via CSS variables.
+Telas públicas simplesmente têm `user === null` e não dependem de `tenantId`/branding resolvidos pós-login — o branding do cliente vem da rota pública por slug.
 
 #### Fluxo de telas
 
 ```
-/:slug (MenuPage)
-  │
+/:slug (CustomerMenuScreen)
   │  [Adicionar itens ao carrinho]
-  │  [Abrir carrinho → Ver resumo]
+  │  [Abrir CartSheet → revisar]
   │  [Botão "Fazer Pedido"]
-  │
   ▼
-/:slug/checkout (CheckoutPage)
-  │
+/:slug/checkout (CustomerCheckoutScreen)
   │  [Digitar nome]
-  │  [Confirmar pedido]
-  │  [POST /api/public/:slug/orders]
-  │
+  │  [Confirmar pedido → POST /api/public/:slug/orders]
   ▼
-/:slug/pedido/:orderId (TrackingPage)
-  │
+/:slug/pedido/:orderId (CustomerTrackingScreen)
   │  [Exibe número, status, itens]
-  │  [Realtime: atualiza status]
-  │  [Destaque quando "pronto"]
+  │  [Realtime: atualiza status; destaque quando "pronto"]
 ```
+
+**Nota de design — por que carrinho e checkout são etapas separadas:** O carrinho (bottom sheet) é apenas revisão de itens; o checkout é uma tela dedicada onde o pedido é de fato confirmado e criado. Essa separação é **intencional** e deixa a tela de checkout como o ponto natural para acomodar evolução futura sem redesenhar o fluxo — por exemplo, campo de telefone (para identificar o cliente e ter histórico de pedidos) e pagamento pelo app. No escopo inicial o checkout pede apenas o nome, mas a estrutura de 4 etapas foi escolhida para essa margem de crescimento. Não fundir carrinho + checkout sem considerar esse contexto.
 
 #### Gerenciamento de estado do carrinho
 
 ```typescript
-// useCart.ts — hook com sessionStorage
+// useCart.ts — hook de carrinho com persistência
 interface CartState {
   items: CartItem[];
   addItem(item: PublicMenuItem, qty: number): void;
@@ -335,49 +388,56 @@ interface CartState {
 }
 ```
 
-- Armazenado em `sessionStorage` (chave: `cart:{slug}`).
-- Perdido ao fechar a aba (intencional — evita pedidos "fantasma" de sessões antigas).
+- Persistência: na web, `sessionStorage` (chave `cart:{slug}`) — perdido ao fechar a aba (intencional, evita pedidos "fantasma"). Como o alvo primário do cliente é o navegador, o storage é abstraído por uma pequena camada (`Platform.OS === 'web' ? sessionStorage : in-memory`), mantendo o hook agnóstico de plataforma.
 - Atualizado de forma síncrona (sem backend envolvido).
 
 #### Realtime — Acompanhamento
 
 ```typescript
-// useOrderTracking.ts
+// usePublicOrderTracking.ts
 // 1. GET /api/public/:slug/orders/:id para estado inicial
 // 2. Subscribe no canal Supabase: orders:queue:{tenantId}
+//    - Reutiliza o cliente Supabase singleton já existente no apps/mobile
 //    - Filtra eventos 'status_updated' onde payload.id === orderId
 //    - Atualiza status local
 // 3. Fallback: polling a cada 30s caso WebSocket falhe
 ```
 
-O `tenantId` necessário para montar o nome do canal é retornado junto ao branding (campo adicional: `channelId` ou resolve do slug no client). Alternativa: o backend retorna o `tenantId` no response de criação de pedido (campo dedicado para o realtime).
+O `apps/mobile` já tem um cliente Supabase para realtime (`src/hooks/useRealtime.ts`). O hook do cliente reutiliza essa infra, mas resolve o canal a partir do slug (rota pública) em vez do `tenantId` da sessão autenticada.
 
-**Decisão:** O endpoint de branding retorna um campo `realtimeChannel` com o nome completo do canal (`orders:queue:{tenantId}`), evitando expor o UUID do tenant diretamente.
+**Decisão:** O endpoint público de branding retorna um campo `realtimeChannel` com o nome completo do canal (`orders:queue:{tenantId}`), evitando expor o UUID do tenant diretamente ao client.
 
-#### PWA
+#### PWA (infra já existente)
 
-- `public/manifest.json` com `start_url: "/"`, `display: "standalone"`.
-- O slug do tenant é resolvido no runtime; o manifest é genérico.
-- Service Worker (Workbox via `vite-plugin-pwa`) cacheia assets estáticos e a última resposta de `/menu`.
-- Fallback offline: exibe cardápio cacheado com banner "Você está offline — preços podem estar desatualizados".
+- Manifest, ícones e service worker já existem em `apps/mobile/public/` (`manifest.json`, `icons/`, `sw.js`). Nada a recriar.
+- O manifest é único/global e hoje aponta para o operador (`start_url: "/"`, `short_name: "Food Truck App"`). Um cliente que instalar a partir de `/:slug` reabrirá em `/`. Aceitável (cliente acessa por QR/link, raramente instala); manifest por contexto é evolução futura.
+- O tema visual do tenant é aplicado em runtime após resolver o branding — o manifest permanece genérico.
+- **Offline:** o `sw.js` existente pode cachear o cardápio (best-effort, não bloqueante).
 
-### Mobile App — Alterações Mínimas
+### App Operador — Alterações Mínimas
 
-#### Badge de origin `'web'`
+Como App Cliente e App Operador vivem no mesmo `apps/mobile`, as mudanças no lado do operador são pontuais:
 
-No `OrderQueueScreen.tsx`, adicionar tratamento para `origin === 'web'`:
+#### 1. Auth gate (`src/hooks/useAuth.tsx`)
+
+Relaxar o redirect para tratar o grupo `(public)` como rota não autenticada (ver seção "Auth gate — permitir rotas públicas"). É a única mudança estrutural.
+
+#### 2. Badge de origin `'web'`
+
+No `OrderQueueScreen.tsx` (e `PaymentScreen.tsx`), tratar `origin === 'web'`:
 
 ```typescript
 // Reutiliza as cores do WhatsApp (ambos são pedidos remotos, diferenciados pelo label)
-{ origin: 'web', label: 'Online', bg: BADGE_BG_WHATSAPP, text: BADGE_TEXT_WHATSAPP }
+{ origin: 'web', label: 'Online', icon: 'language', bg: BADGE_BG_WHATSAPP, text: BADGE_TEXT_WHATSAPP }
 ```
 
-#### Nenhuma outra alteração
+#### Nada mais muda no operador
 
-O app mobile já:
+O app já:
 - Recebe eventos realtime de `new_order` independente da origin.
 - Permite avançar status de qualquer pedido.
 - Exibe todos os campos relevantes no card.
+- O `SwipeableOriginSelector` (criar pedido) **não muda** — origin `'web'` é exclusivo do cliente.
 
 ---
 
@@ -393,10 +453,9 @@ SELECT id FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'
 ```
 
 **Validação de formato no onboarding** (a adicionar no `provisionTenant` service):
-- Regex: `^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$`
-- Mínimo 3, máximo 60 caracteres.
-- Somente lowercase, números e hífens. Não pode começar/terminar com hífen.
-- Palavras reservadas rejeitadas: `api`, `admin`, `health`, `webhook`, `static`, `public`, `assets`.
+- Regex: `^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$` (3-60 chars, lowercase/dígitos/hífens, não começa/termina com hífen).
+- Palavras reservadas rejeitadas: `api`, `admin`, `health`, `webhook`, `static`, `public`, `assets`, `login`, `queue`.
+- **Idempotência preservada:** a validação de formato roda apenas na **criação de tenant novo**. Uma reprovisão idempotente (mesmo `provisioning_key` já existente) NÃO revalida o formato — caso contrário, tenants antigos com keys fora do novo padrão quebrariam. Ou seja, validar após o lookup `findExistingByKey` retornar nulo (tenant inexistente), não antes.
 
 **Convenção de assets:** O `provisioning_key` (slug) é usado como namespace no bucket S3:
 ```
@@ -438,15 +497,16 @@ O pedido online não requer tabelas adicionais. O carrinho é client-side (sessi
 |---------|--------|-------|
 | Slug não encontrado ou tenant inativo | 404 | `{ error: 'TENANT_NOT_FOUND' }` |
 | Slug com formato inválido | 400 | `{ error: 'INVALID_SLUG_FORMAT' }` |
-| Body do pedido inválido (Zod) | 400 | `{ error: 'VALIDATION_ERROR', details: [...] }` |
-| Item do menu não encontrado ou inativo | 400 | `{ error: 'INVALID_MENU_ITEM', menuItemId: '...' }` |
+| Body do pedido inválido (Zod estrito) | 400 | `{ error: 'VALIDATION_ERROR', details: [...] }` |
+| Item do menu não encontrado ou inativo | 422 | `{ error: 'VALIDATION_ERROR' }` (do `createOrder`) |
+| Tenant sem admin ativo | 422 | `{ error: 'TENANT_UNAVAILABLE' }` |
 | Pedido não encontrado (GET status) | 404 | `{ error: 'ORDER_NOT_FOUND' }` |
 | Rate limit excedido | 429 | `{ error: 'TOO_MANY_REQUESTS' }` |
 | Erro interno inesperado | 500 | `{ error: 'INTERNAL_ERROR' }` |
 
 ### Frontend — Tratamento de Erros
 
-- **Falha de rede ao carregar cardápio**: Exibe cardápio do cache (Service Worker) com banner de aviso. Se não há cache, mostra tela de erro com botão "Tentar novamente".
+- **Falha de rede ao carregar cardápio**: Mostra tela de erro com botão "Tentar novamente". Se houver cache do cardápio disponível (offline best-effort — ver PWA), exibe a versão cacheada com banner de aviso; o cache é oportunista e não garantido no export web do Expo.
 - **Falha ao criar pedido**: Toast com mensagem amigável + botão de retry. Não limpa o carrinho.
 - **WebSocket desconectado**: Fallback para polling a cada 30s. Indicador visual discreto ("Atualizando...").
 - **Tenant não encontrado (404)**: Tela dedicada "Estabelecimento não encontrado" com sugestão de verificar o link.
@@ -467,18 +527,20 @@ O pedido online não requer tabelas adicionais. O carrinho é client-side (sessi
 - **Rate limiting**: Enviar requisições acima do limite e verificar resposta 429.
 - **Itens inválidos**: Enviar pedido com `menuItemId` inexistente e verificar rejeição.
 
-### Testes de Frontend (Vitest + Testing Library)
+### Testes de Frontend (Jest + Testing Library React Native)
 
-- **useCart hook**: Adicionar, remover, atualizar quantidade, limpar. Verificar persistência no sessionStorage.
-- **MenuPage**: Mock da API, renderizar categorias e itens corretamente.
-- **CheckoutPage**: Submissão do formulário, loading state, tratamento de erro.
-- **TrackingPage**: Atualização de status via mock de WebSocket.
+Usar o stack de testes já configurado no `apps/mobile` (`jest-expo` + `@testing-library/react-native`), consistente com os testes de tela existentes.
 
-### Testes E2E (Playwright)
+- **useCart hook**: Adicionar, remover, atualizar quantidade, limpar. Verificar persistência (mock do storage web).
+- **CustomerMenuScreen**: Mock da API pública, renderizar categorias e itens corretamente.
+- **CustomerCheckoutScreen**: Submissão do formulário, loading state, tratamento de erro.
+- **CustomerTrackingScreen**: Atualização de status via mock de evento realtime.
+- **Auth gate**: Verificar que rotas do grupo `(public)` NÃO redirecionam para `/login` quando não autenticado, e que rotas do operador continuam protegidas.
 
-- Fluxo completo do cliente: acessar slug → navegar cardápio → montar carrinho → checkout → ver tracking.
+### Testes E2E (opcional)
+
+- Fluxo completo do cliente no export web: acessar slug → navegar cardápio → montar carrinho → checkout → ver tracking. Ferramenta a definir conforme o pipeline web do Expo export.
 - Verificar responsividade mobile (viewport 375px).
-- Verificar offline fallback (interceptar rede).
 
 ---
 
@@ -487,23 +549,23 @@ O pedido online não requer tabelas adicionais. O carrinho é client-side (sessi
 | Decisão | Justificativa |
 |---------|---------------|
 | `provisioning_key` como slug (não coluna nova) | Já é UNIQUE, URL-friendly, e definido no onboarding. Evita migration e coluna redundante. |
-| SPA dentro de `apps/web` (não app separado) | Reutiliza o Vite config, shared theme, e deploy existentes. Rotas separadas por path. |
-| sessionStorage (não localStorage) | Carrinho desaparece ao fechar aba. Evita pedidos "fantasma" de semanas atrás. |
+| Feature no `apps/mobile` (não SPA nova em `apps/web`) | Reutiliza componentes, tema, api-client e realtime existentes. Evita aprofundar a duplicação mobile/web. Um único ponto de manutenção. |
+| Grupo de rotas `app/(public)/` (expo-router) | Separa o fluxo público do autenticado sem app novo. Auth gate passa a permitir esse grupo. |
+| Storage do carrinho abstraído por plataforma | `sessionStorage` na web (perde ao fechar aba, evita pedidos "fantasma"); in-memory fora da web. Hook agnóstico. |
 | Sem autenticação do cliente | Fricção mínima. O operador é a barreira humana (vê o cliente presencialmente). |
 | Slug no tenant (não subdomain) | Mais simples de deploy (um único domínio). Subdomínios adicionam complexidade de DNS/SSL. |
 | Rate limit leve (60/min por IP) | Padrão de higiene. Sem captcha ou SMS. |
 | Campo `realtimeChannel` no branding | Evita expor UUID do tenant ao client. O client usa o nome do canal diretamente. |
-| TanStack Query para fetching | Caching automático, stale-while-revalidate, retry. Já é dependência do projeto web. |
+| Reutilizar api-client/realtime do `apps/mobile` | Client maduro (refresh de token para o operador; chamadas públicas sem token para o cliente) e cliente Supabase singleton já existentes. |
 | Polling fallback (30s) | Resiliência caso WebSocket caia em redes instáveis de food truck. |
 | Assets em `/assets/{slug}/` | Convenção unificada. Nginx proxy pro S3 sem passar pelo Express. Slug = provisioning_key. |
+| Trade-off aceito: bundle web via react-native-web | Mais pesado e menos idiomático (SEO/semântica) que Vite puro. Irrelevante para cardápio acessado por QR code; o ganho de reuso compensa. |
 
-## Segurança e Rate Limiting
+## Segurança e Hardening (R11)
 
-Mesmo sem camadas de proteção anti-abuso por agora (conforme decisão do usuário), aplicamos o mínimo de higiene:
+Sem camadas anti-abuso pesadas (decisão do usuário), apenas higiene básica nas rotas públicas — sem fricção ao cliente:
 
-- **Rate limit global** nas rotas públicas: 60 requests/minuto por IP (Express `express-rate-limit`).
-- **Limite de tamanho do body**: 10KB para POST de pedido.
-- **Validação estrita** do schema Zod — rejeita campos extras (`z.strict()`).
-- **Sem CORS aberto para tudo**: configurar `Access-Control-Allow-Origin` para o domínio do app web em produção.
-
-Essas medidas são padrão e não adicionam fricção ao cliente.
+- **Rate limit** 60 req/min por IP. Requer adicionar a dependência de rate limiting ao backend (não instalada hoje).
+- **Body 10KB** no POST de pedido, via parser local do router público (`express.json({ limit })`) — não altera o `express.json()` global.
+- **Zod estrito** (`.strict()`) — rejeita campos extras → 400.
+- **CORS**: o `index.ts` usa `cors()` global aberto. Revisar para permitir o(s) domínio(s) do PWA. PWA e API convivem atrás do Nginx (mesmo domínio), então na prática não bloqueia; a revisão evita que uma futura restrição do CORS global quebre o fluxo público.

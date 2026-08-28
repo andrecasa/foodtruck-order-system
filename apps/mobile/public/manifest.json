@@ -1,7 +1,7 @@
 {
   "name": "Food Truck App",
-  "short_name": "Operador",
-  "description": "Painel do operador para gerenciar pedidos, cardápio e pagamentos",
+  "short_name": "Food Truck App",
+  "description": "Faça e acompanhe pedidos",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

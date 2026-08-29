@@ -490,7 +490,9 @@ VITE_SUPABASE_URL=https://api.foodtruck.app.br
 VITE_SUPABASE_ANON_KEY=<a mesma ANON_KEY gerada pelo generate-keys>
 ```
 
-> 💡 O `vite.config.ts` do web usa `envDir` apontando para a raiz do monorepo, então as variáveis ficam no `.env` raiz (não em `apps/web/.env`).
+> 💡 O `vite.config.ts` do web usa `envDir` apontando para a raiz do monorepo (`envDir: '../..'`), então as variáveis `VITE_*` ficam no `.env` **raiz** (NÃO em `apps/web/.env` — um arquivo lá é ignorado pelo Vite).
+
+> ⚠️ **NÃO remova as `VITE_*` do `.env` raiz.** Mesmo parecendo "não usadas" (não há `import` direto delas fora do web), o painel web depende delas via `envDir`. Sem `VITE_SUPABASE_ANON_KEY`, o `useRealtime` cai no fallback vazio, o Realtime não conecta e o painel mostra o banner **"Sem conexão com a internet"** (tanto em produção quanto em dev). O mesmo vale para as `EXPO_PUBLIC_*`, que ficam em `apps/mobile/.env`.
 
 > ⚠️ Se deixar `VITE_SUPABASE_URL=http://localhost:8000`, o WebSocket do Realtime falha com `ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`. E `VITE_API_URL=localhost` causa erro de CORS no login.
 
@@ -522,7 +524,10 @@ O app do operador (feito em Expo/React Native Web) pode ser exportado como PWA e
 
 ### 12.1 — Configurar variáveis de ambiente
 
-As variáveis `EXPO_PUBLIC_*` são embutidas no build. Garanta que estejam corretas no `.env` raiz:
+As variáveis `EXPO_PUBLIC_*` são embutidas no build. Ao contrário das `VITE_*`
+(que o web lê do `.env` raiz via `envDir`), o Expo lê de **`apps/mobile/.env`** —
+o `generate-keys.sh` atualiza o `EXPO_PUBLIC_SUPABASE_ANON_KEY` lá. Garanta que
+estejam corretas em `apps/mobile/.env`:
 
 ```env
 EXPO_PUBLIC_API_URL=https://api.foodtruck.app.br

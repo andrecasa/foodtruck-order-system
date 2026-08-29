@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS orders (
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
   daily_number INT NOT NULL,
   customer_name TEXT NOT NULL,
-  origin TEXT NOT NULL CHECK (origin IN ('presencial', 'whatsapp')),
+  origin TEXT NOT NULL CHECK (origin IN ('presencial', 'whatsapp', 'web')),
   status TEXT NOT NULL DEFAULT 'aguardando' CHECK (status IN ('aguardando', 'preparando', 'pronto', 'entregue')),
   payment_status TEXT NOT NULL DEFAULT 'pendente' CHECK (payment_status IN ('pendente', 'pago')),
   payment_method TEXT CHECK (payment_method IN ('dinheiro', 'pix', 'cartão débito', 'cartão crédito') OR payment_method IS NULL),

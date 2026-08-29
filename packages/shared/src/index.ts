@@ -25,6 +25,10 @@ export type {
   TenantStatus,
   Tenant,
   TenantBrandingResponse,
+  PublicMenuItem,
+  PublicMenuCategory,
+  PublicBranding,
+  PublicOrderResponse,
 } from './types/index';
 
 export {
@@ -32,6 +36,8 @@ export {
   updateOrderStatusRequestSchema,
   updateOrderItemsRequestSchema,
 } from './validators/order.validator';
+
+export { publicCreateOrderSchema } from './validators/public-order.validator';
 
 export {
   createMenuItemRequestSchema,

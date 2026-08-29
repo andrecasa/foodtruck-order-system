@@ -35,3 +35,10 @@ export type {
   Tenant,
   TenantBrandingResponse,
 } from './tenant';
+
+export type {
+  PublicMenuItem,
+  PublicMenuCategory,
+  PublicBranding,
+  PublicOrderResponse,
+} from './public';

@@ -32,6 +32,19 @@ let realtimeClient: SupabaseClient | null = null;
 function getRealtimeClient(): SupabaseClient {
   if (!realtimeClient) {
     realtimeClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      // This client is used ONLY for Realtime broadcast channels. It must not
+      // spin up a GoTrue (auth) subsystem: doing so creates a second
+      // GoTrueClient sharing the default `sb-<ref>-auth-token` storage key,
+      // which triggers the "Multiple GoTrueClient instances" warning and can
+      // leave channels stuck (never reaching SUBSCRIBED) in the public customer
+      // flow. Disabling session persistence/refresh and giving it an isolated
+      // storage key keeps this client purely a Realtime transport.
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        storageKey: 'sb-realtime-only',
+      },
       realtime: {
         params: {
           apikey: SUPABASE_ANON_KEY,
@@ -161,7 +174,7 @@ export function useRealtime({ channels, onEvent, onReconnect, enabled = true }: 
       return;
     }
 
-    const supabase = getRealtimeClient();
+      const supabase = getRealtimeClient();
     const subscribed = doSubscribe(supabase, channels, false);
     channelsRef.current = subscribed;
 

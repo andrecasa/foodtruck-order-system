@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createOrderRequestSchema = z.object({
   customerName: z.string().min(1).max(100),
-  origin: z.enum(['presencial', 'whatsapp']),
+  origin: z.enum(['presencial', 'whatsapp', 'web']),
   items: z
     .array(
       z.object({

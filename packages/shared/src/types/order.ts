@@ -1,6 +1,6 @@
 export type OrderStatus = 'aguardando' | 'preparando' | 'pronto' | 'entregue';
 export type PaymentStatus = 'pendente' | 'pago';
-export type OrderOrigin = 'presencial' | 'whatsapp';
+export type OrderOrigin = 'presencial' | 'whatsapp' | 'web';
 export type PaymentMethod = 'dinheiro' | 'pix' | 'cartão débito' | 'cartão crédito';
 
 export interface OrderItem {

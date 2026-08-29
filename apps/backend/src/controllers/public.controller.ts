@@ -1,0 +1,320 @@
+import { Response } from 'express';
+import { publicCreateOrderSchema } from '@order-system/shared';
+import { pool } from '../config/database.js';
+import * as menuService from '../services/menu.service.js';
+import { createOrder, getOrderById } from '../services/order.service.js';
+import type { PublicTenantRequest } from '../middleware/public-tenant.middleware.js';
+
+/**
+ * Public (unauthenticated) controllers for the customer ordering flow.
+ *
+ * These handlers back the routes mounted under `/api/public/:slug/*`. The
+ * tenant is already resolved by `publicTenantMiddleware`, which sets
+ * `req.tenantId` / `req.tenantSlug` — the handlers below never re-derive the
+ * tenant from user auth (there is none) and never leak internal tenant fields.
+ *
+ * Design: `.kiro/specs/customer-ordering/design.md`
+ *   → "Controller: src/controllers/public.controller.ts".
+ *
+ * NOTE ON DTO TYPES: the shared public types (`PublicMenuItem`,
+ * `PublicMenuCategory`, `PublicBranding`) are introduced by Task 7 in
+ * `@order-system/shared`. Until that lands, the equivalent shapes are declared
+ * locally here so the response contract matches the design exactly. When Task 7
+ * ships, these can be replaced by the shared imports without changing behavior.
+ */
+
+// --- Public DTO shapes (mirror @order-system/shared → types/public.ts) ---
+
+interface PublicMenuItem {
+  id: string;
+  name: string;
+  priceCents: number;
+  categoryName: string;
+}
+
+interface PublicMenuCategory {
+  name: string;
+  sortOrder: number;
+  items: PublicMenuItem[];
+}
+
+interface PublicBranding {
+  businessName: string;
+  logoUrl: string | null;
+  theme: Record<string, unknown> | null;
+  slug: string;
+  realtimeChannel: string;
+}
+
+interface BrandingRow {
+  business_name: string;
+  logo_url: string | null;
+  theme: Record<string, unknown> | null;
+  provisioning_key: string;
+}
+
+// Public order-status DTO (mirror @order-system/shared → types/public.ts →
+// PublicOrderResponse). `orderDate` is intentionally omitted here: Task 6's
+// field list for the status response does not include it.
+interface PublicOrderStatusItem {
+  itemName: string;
+  quantity: number;
+  unitPriceCents: number;
+}
+
+interface PublicOrderStatus {
+  id: string;
+  dailyNumber: number;
+  customerName: string;
+  status: string;
+  paymentStatus: string;
+  totalAmountCents: number;
+  createdAt: string;
+  items: PublicOrderStatusItem[];
+}
+
+/**
+ * GET /api/public/:slug/branding (R5)
+ *
+ * Returns only the public-facing identity of the tenant. Uses the shared
+ * `pool` because the lookup is by tenant id (platform-level, matching the
+ * resolution middleware) rather than tenant-scoped domain data.
+ *
+ * Does NOT expose the raw UUID, `evolution_instance_name` or `whatsapp_config`
+ * (R5.3). The `slug` is the `provisioning_key`, and the realtime channel is
+ * returned pre-built so the client never has to construct it from the tenant
+ * UUID.
+ */
+export async function publicBrandingController(
+  req: PublicTenantRequest,
+  res: Response,
+): Promise<void> {
+  const tenantId = req.tenantId as string;
+
+  try {
+    const result = await pool.query(
+      `SELECT business_name, logo_url, theme, provisioning_key
+       FROM tenants
+       WHERE id = $1`,
+      [tenantId],
+    );
+
+    const row = result.rows[0] as BrandingRow | undefined;
+
+    // The middleware already confirmed the tenant is active; a miss here would
+    // only happen on a race (tenant deleted mid-request). Treat as not found.
+    if (!row) {
+      res.status(404).json({
+        error: 'TENANT_NOT_FOUND',
+        message: 'Estabelecimento não encontrado.',
+      });
+      return;
+    }
+
+    const branding: PublicBranding = {
+      businessName: row.business_name,
+      logoUrl: row.logo_url,
+      theme: row.theme,
+      slug: row.provisioning_key,
+      realtimeChannel: `orders:queue:${tenantId}`,
+    };
+
+    res.status(200).json(branding);
+  } catch (err) {
+    console.error('[public][branding]', err);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+/**
+ * GET /api/public/:slug/menu (R2)
+ *
+ * Reuses `menuService.getMenu(tenantId, false)` — the SAME service the
+ * authenticated menu endpoint uses. `getMenu(false)` already filters out
+ * inactive items AND inactive categories, and returns categories pre-sorted by
+ * `sortOrder`. Nothing from the WhatsApp bot is involved.
+ *
+ * The internal `MenuGroup`/`MenuItemRecord` shape is mapped to the public DTO:
+ *   - `price` → `priceCents`
+ *   - internal fields (`status`, `createdAt`, `updatedAt`) are dropped
+ *   - `sortOrder` is preserved per category (R2.4)
+ * `description` is intentionally absent (no such column in the schema).
+ */
+export async function publicMenuController(
+  req: PublicTenantRequest,
+  res: Response,
+): Promise<void> {
+  const tenantId = req.tenantId as string;
+
+  try {
+    const groups = await menuService.getMenu(tenantId, false);
+
+    const categories: PublicMenuCategory[] = groups.map((group) => ({
+      name: group.category,
+      sortOrder: group.sortOrder,
+      items: group.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        priceCents: item.price,
+        categoryName: item.category,
+      })),
+    }));
+
+    res.status(200).json(categories);
+  } catch (err) {
+    console.error('[public][menu]', err);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+/**
+ * POST /api/public/:slug/orders (R3, R8, R10, R11)
+ *
+ * Creates an online order (origin `'web'`) on behalf of an unauthenticated
+ * customer. The tenant is already resolved by `publicTenantMiddleware`.
+ *
+ * Flow:
+ *   1. Validate the body with `publicCreateOrderSchema` (`.strict()`): unknown
+ *      fields or malformed shapes are rejected with 400 (R11.4). The client
+ *      never sends `origin` or the total — both are enforced server-side.
+ *   2. Resolve the tenant's first active admin as `created_by` (R3.7). Orders
+ *      require an owner; if the tenant has no active admin, the storefront is
+ *      not operational → 422 `TENANT_UNAVAILABLE`.
+ *   3. Delegate to the shared `createOrder(tenantId, ...)` service — the SAME
+ *      one the authenticated app uses. It validates items against the tenant,
+ *      snapshots prices, runs the insert in a transaction, allocates the daily
+ *      number and broadcasts the `new_order` realtime event so the operator
+ *      sees it immediately.
+ *   4. Return only the customer-facing fields of the created order.
+ *
+ * Errors from the service surface a numeric `.statusCode` (e.g. 422 for an
+ * invalid/inactive item, 409 for a daily-number conflict). We map by that code
+ * rather than `instanceof` so a 500 never leaks (design.md).
+ */
+export async function publicCreateOrderController(
+  req: PublicTenantRequest,
+  res: Response,
+): Promise<void> {
+  const tenantId = req.tenantId as string;
+
+  // 1. Strict body validation (R11.4). Reject early with 400 on any deviation.
+  const parsed = publicCreateOrderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: 'INVALID_REQUEST',
+      details: parsed.error.flatten(),
+    });
+    return;
+  }
+
+  const { customerName, items } = parsed.data;
+
+  try {
+    // 2. The order needs an owner. Use the tenant's oldest active admin.
+    const adminResult = await pool.query(
+      `SELECT id FROM users
+       WHERE tenant_id = $1 AND role = 'admin' AND status = 'ativo'
+       ORDER BY created_at ASC
+       LIMIT 1`,
+      [tenantId],
+    );
+
+    const admin = adminResult.rows[0] as { id: string } | undefined;
+    if (!admin) {
+      res.status(422).json({ error: 'TENANT_UNAVAILABLE' });
+      return;
+    }
+
+    // 3. Reuse the shared order service — origin is forced to 'web' here.
+    const created = await createOrder(tenantId, {
+      customerName,
+      origin: 'web',
+      items,
+      createdBy: admin.id,
+    });
+
+    // 4. Return only the fields the customer needs (R3.8).
+    res.status(201).json({
+      id: created.id,
+      dailyNumber: created.dailyNumber,
+      totalAmountCents: created.totalAmountCents,
+      status: created.status,
+      orderDate: created.orderDate,
+      createdAt: created.createdAt,
+    });
+  } catch (err) {
+    // Map service errors by their numeric status code (see doc comment).
+    if (
+      err &&
+      typeof err === 'object' &&
+      'statusCode' in err &&
+      typeof (err as { statusCode: unknown }).statusCode === 'number'
+    ) {
+      const statusCode = (err as { statusCode: number }).statusCode;
+      const code = (err as { code?: string }).code ?? 'VALIDATION_ERROR';
+      res.status(statusCode).json({ error: code });
+      return;
+    }
+
+    console.error('[public][create-order]', err);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+/**
+ * GET /api/public/:slug/orders/:orderId (R4)
+ *
+ * Returns the current status of a single order so the customer can track it
+ * without authentication. The tenant is already resolved by
+ * `publicTenantMiddleware`, and `getOrderById(tenantId, orderId)` is scoped to
+ * that tenant — an order from another tenant is treated as not existing.
+ *
+ * `getOrderById` throws a `ServiceError` whose `.statusCode` is 404 when the
+ * order does not exist (or belongs to another tenant). We map by inspecting
+ * `.statusCode` (NOT `instanceof`), because each service defines its own
+ * `ServiceError` class and the shared contract is the numeric status code
+ * (design.md → "try/catch mapeando pela propriedade .statusCode do erro").
+ *
+ * The response exposes only customer-facing fields. `paymentStatus`
+ * ('pendente' | 'pago') IS included so the tracking screen can show whether the
+ * order is paid — this is information the customer already knows. Truly internal
+ * fields (`created_by`, `payment_method`, and per-item internal ids) are never
+ * included.
+ */
+export async function publicOrderStatusController(
+  req: PublicTenantRequest,
+  res: Response,
+): Promise<void> {
+  const tenantId = req.tenantId as string;
+  const orderId = req.params.orderId as string;
+
+  try {
+    const order = await getOrderById(tenantId, orderId);
+
+    const payload: PublicOrderStatus = {
+      id: order.id,
+      dailyNumber: order.dailyNumber,
+      customerName: order.customerName,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      totalAmountCents: order.totalAmountCents,
+      createdAt: order.createdAt,
+      items: (order.items ?? []).map((item) => ({
+        itemName: item.itemName,
+        quantity: item.quantity,
+        unitPriceCents: item.unitPriceCents,
+      })),
+    };
+
+    res.status(200).json(payload);
+  } catch (err) {
+    // Map by numeric status code, not instanceof (see doc comment above).
+    if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: unknown }).statusCode === 404) {
+      res.status(404).json({ error: 'ORDER_NOT_FOUND' });
+      return;
+    }
+
+    console.error('[public][order-status]', err);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}

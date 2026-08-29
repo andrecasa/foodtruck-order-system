@@ -98,13 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === 'login';
+    // Public route groups the customer can reach without authentication. The
+    // customer-ordering flow lives in the `(public)` group (accessed via
+    // `/:slug`), so it must NOT be redirected to /login when there is no user.
+    // Operator routes remain protected.
+    const PUBLIC_GROUPS = ['login', '(public)'];
+    const inPublicRoute = PUBLIC_GROUPS.includes(segments[0]);
 
-    if (!user && !inAuthGroup) {
-      // Not authenticated, redirect to login
+    if (!user && !inPublicRoute) {
+      // Not authenticated on a protected (operator) route → go to login.
       router.replace('/login');
-    } else if (user && inAuthGroup) {
-      // Authenticated, redirect away from login
+    } else if (user && segments[0] === 'login') {
+      // Authenticated operator on the login page → send to the app.
       router.replace('/(tabs)');
     }
   }, [user, segments, isLoading, router]);

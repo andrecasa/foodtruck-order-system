@@ -7,6 +7,13 @@
     <title>%WEB_TITLE%</title>
 
     <!-- PWA -->
+    <!--
+      Limitação conhecida (R9): o manifest é único e global, com start_url "/" e
+      short_name do operador. Um cliente que "instalar" a partir de /:slug reabrirá
+      em / (login do operador), não no cardápio. Aceitável no escopo inicial, pois o
+      cliente acessa por QR/link e raramente instala. Evolução futura: manifest
+      dinâmico ou start_url por contexto (fora de escopo).
+    -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#2C6E9B" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -43,13 +50,44 @@
 
     <!-- Service Worker registration -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').then(function (reg) {
-            console.log('SW registered:', reg.scope);
-          });
-        });
-      }
+      (function () {
+        // In development (Expo dev server / Metro on port 8081), do NOT register
+        // the service worker: its cache-first strategy serves a stale JS bundle
+        // and hides code changes. Also proactively unregister any SW already
+        // installed from a previous session and drop its caches, so developers
+        // are not stuck on an old bundle.
+        var host = window.location.hostname;
+        var port = window.location.port;
+        var isDev =
+          port === '8081' ||
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          /^192\.168\./.test(host) ||
+          /^10\./.test(host);
+
+        if ('serviceWorker' in navigator) {
+          if (isDev) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              regs.forEach(function (reg) {
+                reg.unregister();
+              });
+            });
+            if (window.caches && caches.keys) {
+              caches.keys().then(function (keys) {
+                keys.forEach(function (key) {
+                  caches.delete(key);
+                });
+              });
+            }
+          } else {
+            window.addEventListener('load', function () {
+              navigator.serviceWorker.register('/sw.js').then(function (reg) {
+                console.log('SW registered:', reg.scope);
+              });
+            });
+          }
+        }
+      })();
     </script>
   </body>
 </html>

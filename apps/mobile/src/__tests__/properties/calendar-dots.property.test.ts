@@ -61,15 +61,23 @@ describe('Property 4: Order indicator circles match per-day breakdown', () => {
         );
 
         const ordersSet = new Set(daysWithOrders);
+        // CalendarCard always makes "today" tappable, but only when the grid is
+        // showing the current real month/year. Account for that so the property
+        // isn't flaky depending on the system date (see CalendarCard.todayDay).
+        const now = new Date();
+        const todayDay =
+          year === now.getFullYear() && month === now.getMonth() + 1
+            ? now.getDate()
+            : -1;
 
         // For each day in the month, check accessibility role for tappable days
         for (let day = 1; day <= daysInMonth; day++) {
           const cell = getByTestId(`calendar-day-${day}`);
-          if (ordersSet.has(day)) {
-            // Day with orders should have button role (TouchableOpacity)
+          if (ordersSet.has(day) || day === todayDay) {
+            // Day with orders (or today) should have button role (TouchableOpacity)
             expect(cell.props.accessibilityRole).toBe('button');
           } else {
-            // Day without orders should NOT be a button
+            // Day without orders (and not today) should NOT be a button
             expect(cell.props.accessibilityRole).not.toBe('button');
           }
         }
@@ -103,12 +111,19 @@ describe('Property 4: Order indicator circles match per-day breakdown', () => {
         expect(selectedCell.props.accessibilityRole).toBe('button');
         expect(selectedCell.props.accessibilityLabel).toContain('selecionado');
 
-        // Other days with orders should still be tappable buttons
+        // Other days with orders should still be tappable buttons. "Today" is
+        // also always tappable when the grid shows the current real month/year,
+        // so account for it to keep the property date-independent.
         const ordersSet = new Set(daysWithOrders);
+        const now = new Date();
+        const todayDay =
+          year === now.getFullYear() && month === now.getMonth() + 1
+            ? now.getDate()
+            : -1;
         for (let day = 1; day <= daysInMonth; day++) {
           if (day === selectedDay) continue;
           const cell = getByTestId(`calendar-day-${day}`);
-          if (ordersSet.has(day)) {
+          if (ordersSet.has(day) || day === todayDay) {
             expect(cell.props.accessibilityRole).toBe('button');
           } else {
             expect(cell.props.accessibilityRole).not.toBe('button');

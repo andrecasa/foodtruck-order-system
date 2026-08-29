@@ -463,6 +463,16 @@ export async function registerPayment(tenantId: string, orderId: string, payment
   // Publish event to the tenant-namespaced payment channel (R12.7, R12.8).
   broadcast(tenantChannel(REALTIME_CHANNEL_PAYMENT, tenantId), 'payment_registered', { ...responsePayload, tenantId });
 
+  // Also publish a lightweight payment update on the QUEUE channel. Public
+  // customer clients subscribe to the queue channel (not the payment channel),
+  // so this lets the tracking screen reflect "Pago" in real time without
+  // granting public clients access to the operator's payment channel.
+  broadcast(tenantChannel(REALTIME_CHANNEL_QUEUE, tenantId), 'payment_registered', {
+    id: responsePayload.id,
+    paymentStatus: responsePayload.paymentStatus,
+    tenantId,
+  });
+
   return responsePayload;
 }
 

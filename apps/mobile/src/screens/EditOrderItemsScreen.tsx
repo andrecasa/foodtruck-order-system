@@ -15,7 +15,7 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
-import type { MenuItem, Order } from '@order-system/shared';
+import type { MenuItem, Order, OrderOrigin } from '@order-system/shared';
 import { formatPrice } from '../utils/format';
 import { withOpacity } from '../utils/color';
 
@@ -76,7 +76,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
 
   // Form state
   const [customerName, setCustomerName] = useState(order.customerName);
-  const [origin, setOrigin] = useState<'presencial' | 'whatsapp'>(order.origin);
+  const [origin, setOrigin] = useState<OrderOrigin>(order.origin);
   const [selectedItems, setSelectedItems] = useState<SelectedItems>({});
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 

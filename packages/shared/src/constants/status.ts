@@ -15,6 +15,7 @@ export const PAYMENT_STATUSES: readonly PaymentStatus[] = [
 export const ORDER_ORIGINS: readonly OrderOrigin[] = [
   'presencial',
   'whatsapp',
+  'web',
 ] as const;
 
 export const PAYMENT_METHODS: readonly PaymentMethod[] = [

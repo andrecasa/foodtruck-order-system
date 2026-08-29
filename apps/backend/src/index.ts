@@ -10,6 +10,7 @@ import userRoutes from './routes/user.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import tenantRoutes from './routes/tenant.routes.js';
 import platformRoutes from './routes/platform.routes.js';
+import publicRoutes from './routes/public.routes.js';
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 4000;
@@ -31,6 +32,9 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/tenant', tenantRoutes);
 // Platform routes: authMiddleware + platformAdminMiddleware, WITHOUT tenantMiddleware (R10.2).
 app.use('/api/platform', platformRoutes);
+// Public customer-ordering routes: NO auth. Tenant resolved from :slug, with
+// router-local hardening (rate limit + 10kb body parser) — see public.routes.ts (R11).
+app.use('/api/public', publicRoutes);
 
 async function start() {
   try {

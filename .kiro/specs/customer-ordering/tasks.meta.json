@@ -1,0 +1,167 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Validação de formato do slug (provisioning_key) no onboarding": [
+      {
+        "executionId": "1c8b3b45-f3c3-452a-a541-2dfffa85c63a",
+        "chatSessionId": "sess_7f7bebe2-fdab-49e4-9b81-944e13bba6ed",
+        "timestamp": 1787941811309
+      },
+      {
+        "executionId": "1c8b3b45-f3c3-452a-a541-2dfffa85c63a",
+        "chatSessionId": "sess_7f7bebe2-fdab-49e4-9b81-944e13bba6ed",
+        "timestamp": 1787945349653
+      }
+    ],
+    "2. Migration — Adicionar origin `'web'` à tabela `orders`": [
+      {
+        "executionId": "62a31da5-f48b-426f-9449-09ed24095f9e",
+        "chatSessionId": "sess_43695bcd-455c-46bc-a260-69c2d01ef341",
+        "timestamp": 1787945747761
+      },
+      {
+        "executionId": "62a31da5-f48b-426f-9449-09ed24095f9e",
+        "chatSessionId": "sess_43695bcd-455c-46bc-a260-69c2d01ef341",
+        "timestamp": 1787945934147
+      }
+    ],
+    "3. Middleware de resolução de tenant por slug": [
+      {
+        "executionId": "6ce15b1c-6597-47a1-8599-a36dce6390df",
+        "chatSessionId": "sess_7e7e5fbb-4a37-460b-a75b-bac65f12bd59",
+        "timestamp": 1787945953488
+      },
+      {
+        "executionId": "6ce15b1c-6597-47a1-8599-a36dce6390df",
+        "chatSessionId": "sess_7e7e5fbb-4a37-460b-a75b-bac65f12bd59",
+        "timestamp": 1787946184261
+      }
+    ],
+    "4. Rotas e controllers públicos — Branding e Menu (+ hardening do router)": [
+      {
+        "executionId": "3848c039-f43b-4a42-a417-cdbe5de7a4d0",
+        "chatSessionId": "sess_76fff2a1-2d61-4c2e-bed8-6d06df5714f9",
+        "timestamp": 1787946215892
+      },
+      {
+        "executionId": "3848c039-f43b-4a42-a417-cdbe5de7a4d0",
+        "chatSessionId": "sess_76fff2a1-2d61-4c2e-bed8-6d06df5714f9",
+        "timestamp": 1787946737759
+      }
+    ],
+    "6. Controller público — Status do pedido": [
+      {
+        "executionId": "2037935c-2056-4168-9989-b004c7347df3",
+        "chatSessionId": "sess_75e99875-988c-4912-89eb-168457615001",
+        "timestamp": 1787947108952
+      },
+      {
+        "executionId": "2037935c-2056-4168-9989-b004c7347df3",
+        "chatSessionId": "sess_75e99875-988c-4912-89eb-168457615001",
+        "timestamp": 1787947429587
+      }
+    ],
+    "7. Atualizar tipos, constantes e validators no shared package": [
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787947457086
+      },
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787947466993
+      },
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787948071023
+      }
+    ],
+    "8. Grupo de rotas público, auth gate, layout e client público": [
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787947457138
+      },
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787948082990
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787948623386
+      }
+    ],
+    "9. Tela de cardápio e carrinho": [
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787947457189
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787948627778
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787949078551
+      }
+    ],
+    "10. Tela de checkout (confirmação) e acompanhamento": [
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787947457241
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787949097168
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787949509553
+      }
+    ],
+    "11. Badge \"Online\" no App Operador": [
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787947457303
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787949518301
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787949659085
+      }
+    ],
+    "12. PWA — Verificação (infra já existente) — OPCIONAL": [
+      {
+        "executionId": "874b1e18-2de7-45ba-9d47-68f06f98e14b",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787947457356
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787949519356
+      },
+      {
+        "executionId": "7ee6f263-b4d7-467b-a5e7-b10385ae8572",
+        "chatSessionId": "sess_4f4d5004-1081-4276-9aa3-63ec8dbcdd8a",
+        "timestamp": 1787949659957
+      }
+    ]
+  }
+}

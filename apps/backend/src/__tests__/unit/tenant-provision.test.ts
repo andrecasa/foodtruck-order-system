@@ -190,6 +190,113 @@ describe('provisionTenant — input validation (R9.8)', () => {
   });
 });
 
+describe('provisionTenant — slug format validation on NEW tenant (customer-ordering R1)', () => {
+  it('accepts a well-formed slug when creating a new tenant', async () => {
+    const bundle = makeFakeClient();
+    const { deps } = makeDeps(bundle);
+
+    const result = await provisionTenant(validInput({ provisioningKey: 'pastel-das-meninas' }), deps);
+
+    expect(result.idempotentHit).toBe(false);
+    expect(bundle.queries.some((q) => /INSERT INTO tenants/.test(q.text))).toBe(true);
+  });
+
+  it('accepts existing keys (dev-first-tenant, pastel-das-meninas) on new-tenant creation', async () => {
+    for (const key of ['dev-first-tenant', 'pastel-das-meninas']) {
+      const bundle = makeFakeClient();
+      const { deps } = makeDeps(bundle);
+      const result = await provisionTenant(validInput({ provisioningKey: key }), deps);
+      expect(result.idempotentHit).toBe(false);
+    }
+  });
+
+  it('rejects invalid-format keys with provisioningKey in the invalid fields', async () => {
+    const invalidKeys = [
+      'ab', // too short (< 3)
+      '-leading', // starts with hyphen
+      'trailing-', // ends with hyphen
+      'Upper-Case', // uppercase not allowed
+      'has space', // space not allowed
+      'under_score', // underscore not allowed
+      'a'.repeat(61), // too long (> 60)
+    ];
+
+    for (const key of invalidKeys) {
+      const bundle = makeFakeClient();
+      const { deps } = makeDeps(bundle);
+      try {
+        await provisionTenant(validInput({ provisioningKey: key }), deps);
+        throw new Error(`should have rejected key: ${key}`);
+      } catch (err) {
+        expect(err).toBeInstanceOf(ProvisioningValidationError);
+        expect((err as ProvisioningValidationError).fields).toContain('provisioningKey');
+      }
+      // No tenant was inserted.
+      expect(bundle.queries.some((q) => /INSERT INTO tenants/.test(q.text))).toBe(false);
+    }
+  });
+
+  it('rejects reserved words as slugs', async () => {
+    const reserved = ['api', 'admin', 'health', 'webhook', 'static', 'assets', 'public', 'login', 'queue'];
+
+    for (const key of reserved) {
+      const bundle = makeFakeClient();
+      const { deps } = makeDeps(bundle);
+      await expect(
+        provisionTenant(validInput({ provisioningKey: key }), deps),
+      ).rejects.toBeInstanceOf(ProvisioningValidationError);
+      expect(bundle.queries.some((q) => /INSERT INTO tenants/.test(q.text))).toBe(false);
+    }
+  });
+
+  it('does NOT re-validate slug format on idempotent reprovision of an existing tenant', async () => {
+    // A legacy tenant whose key would fail the new slug rules (reserved word)
+    // must still be returned idempotently without a format check.
+    const bundle = makeFakeClient({
+      existingTenantRows: [{ id: 'tenant-legacy', business_name: 'Legado', status: 'ativo' }],
+      existingAdminRows: [{ id: 'admin-legacy' }],
+    });
+    const { deps } = makeDeps(bundle);
+
+    const result = await provisionTenant(validInput({ provisioningKey: 'admin' }), deps);
+
+    expect(result.idempotentHit).toBe(true);
+    expect(result.tenantId).toBe('tenant-legacy');
+    // Idempotent path commits and never inserts a new tenant.
+    expect(bundle.queries.some((q) => /INSERT INTO tenants/.test(q.text))).toBe(false);
+  });
+
+  it('property: only slugs matching the format+reserved rules are accepted for new tenants', async () => {
+    const SLUG_FORMAT = /^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/;
+    const RESERVED = new Set([
+      'api', 'admin', 'health', 'webhook', 'static', 'assets', 'public', 'login', 'queue',
+    ]);
+
+    await fc.assert(
+      fc.asyncProperty(
+        fc.string({ minLength: 0, maxLength: 65 }),
+        async (key) => {
+          const bundle = makeFakeClient();
+          const { deps } = makeDeps(bundle);
+
+          const shouldAccept = SLUG_FORMAT.test(key) && !RESERVED.has(key);
+
+          if (shouldAccept) {
+            const result = await provisionTenant(validInput({ provisioningKey: key }), deps);
+            expect(result.idempotentHit).toBe(false);
+          } else {
+            await expect(
+              provisionTenant(validInput({ provisioningKey: key }), deps),
+            ).rejects.toBeInstanceOf(ProvisioningValidationError);
+            expect(bundle.queries.some((q) => /INSERT INTO tenants/.test(q.text))).toBe(false);
+          }
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+});
+
 describe('provisionTenant — happy path', () => {
   it('creates tenant, seeds menu, creates admin, and provisions Evolution', async () => {
     const bundle = makeFakeClient();

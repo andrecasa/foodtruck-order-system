@@ -58,8 +58,14 @@ export interface ProvisionAdminInput {
 /** Input to `provisionTenant`. */
 export interface ProvisionTenantInput {
   /**
-   * Idempotency key for the whole provisioning request (R9.9 — Property 5).
-   * Re-sending the same key never creates a second tenant.
+   * Dual-purpose value (customer-ordering R1):
+   *  1. Idempotency key for the whole provisioning request (R9.9 — Property 5):
+   *     re-sending the same key never creates a second tenant.
+   *  2. Public URL slug: `tenants.provisioning_key` doubles as the URL-friendly
+   *     identifier used to resolve the tenant on public routes (`/:slug`). For
+   *     that reason its format is validated on NEW-tenant creation (see
+   *     `validateSlugFormat`). Existing tenants are never re-validated, so
+   *     idempotent reprovision of legacy keys keeps working.
    */
   provisioningKey: string;
   /** Business name (1–120 chars, R1.1). */
@@ -189,6 +195,44 @@ function validateInput(input: ProvisionTenantInput): void {
   }
 }
 
+// --- Slug format validation (customer-ordering R1) ---
+
+/**
+ * URL-friendly slug format: 3–60 chars, lowercase letters/digits/hyphens, and
+ * must neither start nor end with a hyphen. `provisioning_key` doubles as the
+ * public slug (`/:slug`), so a NEW tenant's key must be a valid slug.
+ */
+const SLUG_FORMAT = /^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/;
+
+/**
+ * Reserved words that collide with platform/public route prefixes and therefore
+ * cannot be used as a tenant slug (customer-ordering R1.2).
+ */
+const RESERVED_SLUGS = new Set([
+  'api',
+  'admin',
+  'health',
+  'webhook',
+  'static',
+  'assets',
+  'public',
+  'login',
+  'queue',
+]);
+
+/**
+ * Validates that `provisioningKey` is a well-formed, non-reserved public slug.
+ *
+ * IMPORTANT: this runs ONLY for NEW tenants (after `findExistingByKey` returns
+ * null). Reprovisioning an existing tenant must NOT re-validate the format, so
+ * legacy tenants whose keys predate this rule keep working (idempotency, R9.9).
+ */
+function validateSlugFormat(provisioningKey: string): void {
+  if (!SLUG_FORMAT.test(provisioningKey) || RESERVED_SLUGS.has(provisioningKey)) {
+    throw new ProvisioningValidationError(['provisioningKey']);
+  }
+}
+
 // --- Idempotency lookup (R9.9 — Property 5) ---
 
 async function findExistingByKey(
@@ -223,6 +267,8 @@ async function findExistingByKey(
  *   1. validate input, rejecting BEFORE any write if invalid (R9.8);
  *   2. idempotency: return the existing tenant for a known `provisioning_key`
  *      without creating a duplicate (R9.9 — Property 5);
+ *   2b. for a NEW tenant only, validate the `provisioning_key` slug format
+ *      (customer-ordering R1) — skipped on idempotent reprovision;
  *   3. insert `tenants` (branding, theme, timezone, evolution_instance_name);
  *   4. seed the parameterized initial menu (categories + items) (R9.2, R9.6);
  *   5. create the admin (auth user + `users` row, role='admin') (R9.3);
@@ -257,6 +303,11 @@ export async function provisionTenant(
       await client.query('COMMIT');
       return existing;
     }
+
+    // 2b. NEW tenant only: the provisioning_key becomes this tenant's public
+    //     URL slug, so enforce the slug format here — AFTER the idempotency
+    //     lookup — so existing/legacy keys are never re-validated (R1, R9.9).
+    validateSlugFormat(input.provisioningKey);
 
     // 3. Insert the tenant (branding, theme, timezone, evolution instance).
     const tenantRes = await client.query(

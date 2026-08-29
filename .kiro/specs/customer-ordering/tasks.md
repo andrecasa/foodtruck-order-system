@@ -10,7 +10,7 @@ As tasks estão ordenadas por dependência. Cada task é autocontida e resulta e
 
 Fase 1: Backend — Modelo de Dados e APIs Públicas
 
-- [ ] 1. Validação de formato do slug (provisioning_key) no onboarding
+- [x] 1. Validação de formato do slug (provisioning_key) no onboarding
 
 **Requisitos cobertos:** R1
 
@@ -30,7 +30,7 @@ Fase 1: Backend — Modelo de Dados e APIs Públicas
 
 ---
 
-- [ ] 2. Migration — Adicionar origin `'web'` à tabela `orders`
+- [x] 2. Migration — Adicionar origin `'web'` à tabela `orders`
 
 **Requisitos cobertos:** R8
 
@@ -45,7 +45,7 @@ Fase 1: Backend — Modelo de Dados e APIs Públicas
 
 ---
 
-- [ ] 3. Middleware de resolução de tenant por slug
+- [x] 3. Middleware de resolução de tenant por slug
 
 **Requisitos cobertos:** R1, R2, R3, R4, R5
 
@@ -66,7 +66,7 @@ Fase 1: Backend — Modelo de Dados e APIs Públicas
 
 ---
 
-- [ ] 4. Rotas e controllers públicos — Branding e Menu (+ hardening do router)
+- [x] 4. Rotas e controllers públicos — Branding e Menu (+ hardening do router)
 
 **Requisitos cobertos:** R2, R5, R11
 
@@ -90,7 +90,7 @@ Fase 1: Backend — Modelo de Dados e APIs Públicas
 
 ---
 
-- [ ] 5. Controller público — Criação de pedido
+- [x] 5. Controller público — Criação de pedido
 
 **Requisitos cobertos:** R3, R8, R10, R11
 **Depende de:** Task 7 (consome `publicCreateOrderSchema` do shared package)
@@ -111,7 +111,7 @@ Fase 1: Backend — Modelo de Dados e APIs Públicas
 
 ---
 
-- [ ] 6. Controller público — Status do pedido
+- [x] 6. Controller público — Status do pedido
 
 **Requisitos cobertos:** R4
 
@@ -130,7 +130,7 @@ Fase 1: Backend — Modelo de Dados e APIs Públicas
 
 Fase 2: Shared Package — Tipos e Constantes
 
-- [ ] 7. Atualizar tipos, constantes e validators no shared package
+- [x] 7. Atualizar tipos, constantes e validators no shared package
 
 **Requisitos cobertos:** R8
 
@@ -158,7 +158,7 @@ Fase 2: Shared Package — Tipos e Constantes
 
 **Diretriz geral:** As telas do cliente vivem no `apps/mobile` (grupo de rotas `app/(public)/`) e devem REUTILIZAR os componentes base existentes (Button, Input, Card, Badge, Typography, Modal) e o sistema de tema. Criar apenas os componentes/telas realmente novos, sob subpastas `customer/`. Como vivem no mesmo app do operador, a coerência visual é garantida por construção.
 
-- [ ] 8. Grupo de rotas público, auth gate, layout e client público
+- [x] 8. Grupo de rotas público, auth gate, layout e client público
 
 **Requisitos cobertos:** R5, R6
 
@@ -185,7 +185,7 @@ Fase 2: Shared Package — Tipos e Constantes
 
 ---
 
-- [ ] 9. Tela de cardápio e carrinho
+- [x] 9. Tela de cardápio e carrinho
 
 **Requisitos cobertos:** R6
 
@@ -220,7 +220,7 @@ Fase 2: Shared Package — Tipos e Constantes
 
 ---
 
-- [ ] 10. Tela de checkout (confirmação) e acompanhamento
+- [x] 10. Tela de checkout (confirmação) e acompanhamento
 
 **Requisitos cobertos:** R7, R10
 
@@ -255,7 +255,7 @@ Fase 2: Shared Package — Tipos e Constantes
 
 ## Fase 4: App Operador e Finalização
 
-- [ ] 11. Badge "Online" no App Operador
+- [x] 11. Badge "Online" no App Operador
 
 **Requisitos cobertos:** R8, R10
 
@@ -276,7 +276,7 @@ Fase 2: Shared Package — Tipos e Constantes
 
 ---
 
-- [ ] 12. PWA — Verificação (infra já existente) — OPCIONAL
+- [x] 12. PWA — Verificação (infra já existente) — OPCIONAL
 
 **Requisitos cobertos:** R9
 

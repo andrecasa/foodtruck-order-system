@@ -80,6 +80,39 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
     return order.paymentStatus === 'pago' ? theme.colors.success : theme.colors.error;
   };
 
+  const getOriginIcon = (): string => {
+    switch (order.origin) {
+      case 'whatsapp': return 'chat';
+      case 'web': return 'language';
+      case 'presencial':
+      default: return 'storefront';
+    }
+  };
+
+  const getOriginLabel = (): string => {
+    switch (order.origin) {
+      case 'whatsapp': return 'WhatsApp';
+      case 'web': return 'Online';
+      case 'presencial':
+      default: return 'Presencial';
+    }
+  };
+
+  /**
+   * Remote orders (whatsapp + web) share the same sage-green tint; they are
+   * differentiated only by label/icon. Presencial uses the "preparando" tone.
+   */
+  const getOriginColor = (): string => {
+    switch (order.origin) {
+      case 'whatsapp':
+      case 'web':
+        return theme.colors.success;
+      case 'presencial':
+      default:
+        return theme.colors.preparando;
+    }
+  };
+
   const getTimeLabel = (): string => {
     const createdAt = new Date(order.createdAt);
     const totalMinutes = Math.floor((Date.now() - createdAt.getTime()) / 60000);
@@ -219,9 +252,9 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 color={getPayColor()}
               />
               <Badge
-                icon={order.origin === 'whatsapp' ? 'chat' : 'storefront'}
-                label={order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
-                color={order.origin === 'whatsapp' ? theme.colors.success : theme.colors.preparando}
+                icon={getOriginIcon()}
+                label={getOriginLabel()}
+                color={getOriginColor()}
                 opacitySuffix="14"
               />
               <Badge

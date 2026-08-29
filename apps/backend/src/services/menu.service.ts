@@ -14,6 +14,13 @@ export interface MenuItemRecord {
 
 export interface MenuGroup {
   category: string;
+  /**
+   * Category `sort_order` (ascending). Preserved so downstream consumers (e.g.
+   * the public menu DTO — customer-ordering R2.4) can expose the ordering
+   * explicitly instead of relying on the implicit array order. Groups are
+   * already returned pre-sorted by this value.
+   */
+  sortOrder: number;
   items: MenuItemRecord[];
 }
 
@@ -94,8 +101,9 @@ export async function getMenu(tenantId: string, showAll: boolean): Promise<MenuG
 
   return Object.values(grouped)
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map(({ category, items }) => ({
+    .map(({ category, sortOrder, items }) => ({
       category,
+      sortOrder,
       items,
     }));
 }

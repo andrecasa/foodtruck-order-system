@@ -57,6 +57,14 @@ const STATUS_ICON: Record<OrderStatus, string> = {
 const ORIGIN_ICON: Record<string, string> = {
   presencial: 'storefront',
   whatsapp: 'chat',
+  web: 'language',
+};
+
+/** Label for origin badge (web = pedido online do cliente) */
+const ORIGIN_LABEL: Record<string, string> = {
+  presencial: 'Presencial',
+  whatsapp: 'WhatsApp',
+  web: 'Online',
 };
 
 /**
@@ -327,6 +335,22 @@ export function OrderQueueScreen() {
     return payStatus === 'pago' ? theme.colors.success : theme.colors.error;
   };
 
+  /**
+   * Color for the origin badge. Remote orders (whatsapp + web) share the same
+   * sage-green tint (BADGE_TEXT_WHATSAPP / theme.colors.success) — they are
+   * differentiated only by label/icon. Presencial uses the "preparando" tone.
+   */
+  const getOriginColor = (origin: string): string => {
+    switch (origin) {
+      case 'whatsapp':
+      case 'web':
+        return theme.colors.success;
+      case 'presencial':
+      default:
+        return theme.colors.preparando;
+    }
+  };
+
   const renderOrderCard = (order: Order) => {
     const statusColor = getStatusColor(order.status);
     const payColor = getPaymentColor(order.paymentStatus);
@@ -382,8 +406,8 @@ export function OrderQueueScreen() {
               />
               <Badge
                 icon={ORIGIN_ICON[order.origin] || 'storefront'}
-                label={order.origin === 'whatsapp' ? 'WhatsApp' : 'Presencial'}
-                color={order.origin === 'whatsapp' ? theme.colors.success : theme.colors.preparando}
+                label={ORIGIN_LABEL[order.origin] || 'Presencial'}
+                color={getOriginColor(order.origin)}
                 opacitySuffix="14"
               />
               <Badge

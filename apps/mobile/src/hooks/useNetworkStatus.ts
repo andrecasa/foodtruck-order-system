@@ -13,6 +13,7 @@ let listeners = new Set<() => void>();
 let initialized = false;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let appStateSubscription: { remove: () => void } | null = null;
 
 function notify() {
   for (const listener of listeners) {
@@ -22,6 +23,9 @@ function notify() {
 
 function setOffline(value: boolean) {
   if (value === isOfflineState) return;
+  // Monitoring may have been torn down while an async check was in flight;
+  // don't schedule new timers in that case.
+  if (!initialized) return;
 
   // Debounce: only commit the change after 2s of stable state
   if (debounceTimer) {
@@ -39,6 +43,8 @@ function setOffline(value: boolean) {
 async function checkNetwork() {
   try {
     const state = await Network.getNetworkStateAsync();
+    // The interval may have been cleared while awaiting; ignore late results.
+    if (!initialized) return;
     const offline = !state.isConnected || !state.isInternetReachable;
     setOffline(offline);
   } catch {
@@ -52,6 +58,8 @@ function startMonitoring() {
 
   // Initial check (immediate, no debounce for first check)
   Network.getNetworkStateAsync().then((state) => {
+    // Ignore if monitoring was torn down before this resolved.
+    if (!initialized) return;
     const offline = !state.isConnected || !state.isInternetReachable;
     if (offline !== isOfflineState) {
       isOfflineState = offline;
@@ -63,11 +71,32 @@ function startMonitoring() {
   intervalId = setInterval(checkNetwork, 15000);
 
   // Check on app foreground
-  AppState.addEventListener('change', (state: AppStateStatus) => {
+  appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
     if (state === 'active') {
       checkNetwork();
     }
   });
+}
+
+/**
+ * Tears down all monitoring side effects. Called when the last subscriber
+ * unsubscribes so the singleton leaves no timers or listeners running (avoids
+ * leaks in tests and when the app fully unmounts).
+ */
+function stopMonitoring() {
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+  }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  if (appStateSubscription) {
+    appStateSubscription.remove();
+    appStateSubscription = null;
+  }
+  initialized = false;
 }
 
 function subscribe(listener: () => void) {
@@ -75,6 +104,9 @@ function subscribe(listener: () => void) {
   startMonitoring();
   return () => {
     listeners.delete(listener);
+    if (listeners.size === 0) {
+      stopMonitoring();
+    }
   };
 }
 

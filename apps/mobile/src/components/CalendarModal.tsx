@@ -57,9 +57,18 @@ export function CalendarModal({
 
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  // The sheet is mounted hidden; skip the animation on the first effect run so
+  // we don't kick off a JS-driven (useNativeDriver: false) animation that keeps
+  // scheduling timers after the component/test tears down.
+  const hasMounted = useRef(false);
 
   // Reset internal state when opening
   useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      // Nothing to animate on mount: closed = already at rest values.
+      if (!visible) return;
+    }
     if (visible) {
       setModalYear(year);
       setModalMonth(month);
@@ -83,6 +92,15 @@ export function CalendarModal({
       animateOut();
     }
   }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Stop any in-flight JS-driven animation on unmount so it doesn't keep
+  // scheduling frame timers after the component (or test env) is torn down.
+  useEffect(() => {
+    return () => {
+      translateY.stopAnimation();
+      backdropOpacity.stopAnimation();
+    };
+  }, [translateY, backdropOpacity]);
 
   const animateOut = () => {
     Animated.parallel([

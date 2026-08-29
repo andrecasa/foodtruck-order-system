@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -61,6 +61,23 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
 
   const handleAddItem = (item: PublicMenuItem) => {
     cart.addItem(item, 1);
+  };
+
+  // Quantity per item currently in the cart, for the inline − qtd + stepper.
+  const quantities = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const line of cart.items) map[line.menuItemId] = line.quantity;
+    return map;
+  }, [cart.items]);
+
+  const handleIncrementItem = (item: PublicMenuItem) => {
+    const current = quantities[item.id] ?? 0;
+    cart.updateQuantity(item.id, current + 1);
+  };
+
+  const handleDecrementItem = (item: PublicMenuItem) => {
+    const current = quantities[item.id] ?? 0;
+    cart.updateQuantity(item.id, current - 1); // qty <= 0 removes the line
   };
 
   const handleCheckout = () => {
@@ -247,7 +264,10 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
             <CategorySection
               key={`${category.name}-${category.sortOrder}`}
               category={category}
+              quantities={quantities}
               onAddItem={handleAddItem}
+              onIncrementItem={handleIncrementItem}
+              onDecrementItem={handleDecrementItem}
             />
           ))
         )}

@@ -6,8 +6,14 @@ import { CustomerMenuItem } from './CustomerMenuItem';
 
 export interface CategorySectionProps {
   category: PublicMenuCategory;
+  /** Map of menuItemId → quantity currently in the cart (0 when absent). */
+  quantities: Record<string, number>;
   /** Called when an item's "Adicionar" button is pressed. */
   onAddItem: (item: PublicMenuItem) => void;
+  /** Increments an item's quantity by one. */
+  onIncrementItem: (item: PublicMenuItem) => void;
+  /** Decrements an item's quantity by one. */
+  onDecrementItem: (item: PublicMenuItem) => void;
 }
 
 /**
@@ -15,7 +21,13 @@ export interface CategorySectionProps {
  * items (each rendered with `CustomerMenuItem`). Used by CustomerMenuScreen to
  * visually separate categories.
  */
-export function CategorySection({ category, onAddItem }: CategorySectionProps) {
+export function CategorySection({
+  category,
+  quantities,
+  onAddItem,
+  onIncrementItem,
+  onDecrementItem,
+}: CategorySectionProps) {
   const theme = useTheme();
 
   const headerStyle: ViewStyle = {
@@ -38,7 +50,14 @@ export function CategorySection({ category, onAddItem }: CategorySectionProps) {
         </RNText>
       </View>
       {category.items.map((item) => (
-        <CustomerMenuItem key={item.id} item={item} onAdd={onAddItem} />
+        <CustomerMenuItem
+          key={item.id}
+          item={item}
+          quantity={quantities[item.id] ?? 0}
+          onAdd={onAddItem}
+          onIncrement={onIncrementItem}
+          onDecrement={onDecrementItem}
+        />
       ))}
     </View>
   );

@@ -20,6 +20,8 @@ import { CategorySection } from '../../components/customer/CategorySection';
 import { CartSheet } from '../../components/customer/CartSheet';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
+import { usePublicBranding } from '../../hooks/customer/usePublicBranding';
+import { useRealtime, type RealtimeEvent } from '../../hooks/useRealtime';
 
 export interface CustomerMenuScreenProps {
   /** Tenant slug from the route (`/:slug`). */
@@ -41,8 +43,32 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
   const router = useRouter();
   const { categories, isLoading, error, refetch } = usePublicMenu(slug);
   const cart = useCart(slug);
-  const { orders: sessionOrders, refresh: refreshSessionOrders } = useSessionOrders(slug);
+  const {
+    orders: sessionOrders,
+    refresh: refreshSessionOrders,
+    updateStatus: updateSessionOrderStatus,
+  } = useSessionOrders(slug);
+  const { realtimeChannel } = usePublicBranding(slug);
   const [cartOpen, setCartOpen] = useState(false);
+
+  // Live-update the "Meus pedidos" list: subscribe to the tenant's realtime
+  // channel and apply `status_updated` events to any order in this session.
+  const handleRealtimeEvent = useCallback(
+    (event: RealtimeEvent) => {
+      if (event.event !== 'status_updated') return;
+      const payload = event.payload as { id?: string; status?: string } | undefined;
+      if (payload?.id && typeof payload.status === 'string') {
+        updateSessionOrderStatus(payload.id, payload.status);
+      }
+    },
+    [updateSessionOrderStatus],
+  );
+
+  useRealtime({
+    channels: realtimeChannel ? [realtimeChannel] : [],
+    onEvent: handleRealtimeEvent,
+    enabled: !!realtimeChannel && sessionOrders.length > 0,
+  });
 
   // The cardápio can stay mounted while the customer places orders elsewhere,
   // so re-read the persisted session orders whenever this screen regains focus
@@ -57,6 +83,40 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
     router.push(
       `/${encodeURIComponent(slug)}/pedido/${encodeURIComponent(orderId)}`,
     );
+  };
+
+  // Color for a session order in the "Meus pedidos" list, by status. Falls back
+  // to primary for orders persisted before status was tracked, or unknown ones.
+  const orderStatusColor = (status?: string): string => {
+    switch (status) {
+      case 'aguardando':
+        return theme.colors.aguardando;
+      case 'preparando':
+        return theme.colors.preparando;
+      case 'pronto':
+        return theme.colors.pronto;
+      case 'entregue':
+        return theme.colors.textSecondary;
+      default:
+        return theme.colors.primary;
+    }
+  };
+
+  // Material Symbols icon per status (same as the tracking screen). Falls back
+  // to a generic receipt icon when the status is unknown.
+  const orderStatusIcon = (status?: string): string => {
+    switch (status) {
+      case 'aguardando':
+        return 'schedule';
+      case 'preparando':
+        return 'local_fire_department';
+      case 'pronto':
+        return 'notifications';
+      case 'entregue':
+        return 'check_circle';
+      default:
+        return 'receipt_long';
+    }
   };
 
   const handleAddItem = (item: PublicMenuItem) => {
@@ -205,50 +265,53 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
           }}
           testID="my-orders-section"
         >
-          {sessionOrders.map((o) => (
-            <Pressable
-              key={o.id}
-              onPress={() => handleOpenOrder(o.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`Pedido número ${o.dailyNumber}, ${o.customerName}`}
-              testID={`track-order-${o.id}`}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingHorizontal: theme.spacing.md,
-                paddingVertical: theme.spacing.sm,
-                borderRadius: theme.borderRadius.md,
-                backgroundColor: theme.colors.primary + '1F',
-              }}
-            >
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flex: 1 }}
+          {sessionOrders.map((o) => {
+            const c = orderStatusColor(o.status);
+            return (
+              <Pressable
+                key={o.id}
+                onPress={() => handleOpenOrder(o.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Pedido número ${o.dailyNumber}, ${o.customerName}`}
+                testID={`track-order-${o.id}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                  borderRadius: theme.borderRadius.md,
+                  backgroundColor: c + '1F',
+                }}
               >
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flex: 1 }}
+                >
+                  <RNText
+                    style={{
+                      fontFamily: 'Material Symbols Outlined',
+                      fontSize: theme.typography.sizes.xl,
+                      color: c,
+                    }}
+                  >
+                    {orderStatusIcon(o.status)}
+                  </RNText>
+                  <Text weight="medium" color={c}>
+                    Pedido #{o.dailyNumber} - {o.customerName}
+                  </Text>
+                </View>
                 <RNText
                   style={{
                     fontFamily: 'Material Symbols Outlined',
                     fontSize: theme.typography.sizes.xl,
-                    color: theme.colors.primary,
+                    color: c,
                   }}
                 >
-                  receipt_long
+                  chevron_right
                 </RNText>
-                <Text weight="medium" color={theme.colors.primary}>
-                  Pedido #{o.dailyNumber} - {o.customerName}
-                </Text>
-              </View>
-              <RNText
-                style={{
-                  fontFamily: 'Material Symbols Outlined',
-                  fontSize: theme.typography.sizes.xl,
-                  color: theme.colors.primary,
-                }}
-              >
-                chevron_right
-              </RNText>
-            </Pressable>
-          ))}
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
 

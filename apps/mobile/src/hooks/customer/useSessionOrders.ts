@@ -6,6 +6,12 @@ export interface SessionOrder {
   id: string;
   dailyNumber: number;
   customerName: string;
+  /**
+   * Last known order status ('aguardando' | 'preparando' | 'pronto' |
+   * 'entregue'). Optional for backward compat with entries persisted before
+   * this field existed. Used to color the "Meus pedidos" list.
+   */
+  status?: string;
 }
 
 /**
@@ -79,6 +85,12 @@ export interface UseSessionOrdersResult {
    * moved to the top so the newest is always first).
    */
   addOrder: (order: SessionOrder) => void;
+  /**
+   * Updates the cached status of a single order (by id) if it is in the list.
+   * No-op when the order is not part of this session. Used to reflect realtime
+   * `status_updated` events on the cardápio list.
+   */
+  updateStatus: (orderId: string, status: string) => void;
   /** Clears the session order list for this tenant. */
   clearOrders: () => void;
   /**
@@ -133,6 +145,19 @@ export function useSessionOrders(slug: string | undefined): UseSessionOrdersResu
     [persist, slug],
   );
 
+  const updateStatus = useCallback(
+    (orderId: string, status: string) => {
+      // Merge against the current persisted list (shared source of truth).
+      const current = readOrders(slug);
+      const existing = current.find((o) => o.id === orderId);
+      if (!existing || existing.status === status) return; // not ours / unchanged
+      const next = current.map((o) => (o.id === orderId ? { ...o, status } : o));
+      persist(next);
+      setOrders(next);
+    },
+    [persist, slug],
+  );
+
   const clearOrders = useCallback(() => {
     persist([]);
     setOrders([]);
@@ -142,5 +167,5 @@ export function useSessionOrders(slug: string | undefined): UseSessionOrdersResu
     setOrders(readOrders(slug));
   }, [slug]);
 
-  return { orders, addOrder, clearOrders, refresh };
+  return { orders, addOrder, updateStatus, clearOrders, refresh };
 }

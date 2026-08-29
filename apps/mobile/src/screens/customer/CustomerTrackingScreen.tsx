@@ -88,6 +88,7 @@ export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreen
         id: order.id,
         dailyNumber: order.dailyNumber,
         customerName: order.customerName,
+        status: order.status,
       });
     }
   }, [order, addOrder]);

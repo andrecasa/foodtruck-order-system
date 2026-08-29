@@ -425,6 +425,7 @@ export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreen
           </View>
           <OrderSummary
             testID="tracking-summary"
+            showTotal={false}
             lines={order.items.map((item, index) => ({
               key: `${item.itemName}-${index}`,
               name: item.itemName,

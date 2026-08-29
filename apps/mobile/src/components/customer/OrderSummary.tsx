@@ -18,6 +18,12 @@ export interface OrderSummaryProps {
   lines: OrderSummaryLine[];
   /** Grand total in centavos. */
   totalCents: number;
+  /**
+   * Whether to render the divider + "Total" footer row. Defaults to true.
+   * Set false where the total is shown elsewhere (e.g. tracking screen's
+   * bottom bar) to avoid a redundant total.
+   */
+  showTotal?: boolean;
   testID?: string;
 }
 
@@ -29,7 +35,7 @@ export interface OrderSummaryProps {
  * the footer shows the grand total. Prices are formatted with `formatPrice`
  * (expects centavos).
  */
-export function OrderSummary({ lines, totalCents, testID }: OrderSummaryProps) {
+export function OrderSummary({ lines, totalCents, showTotal = true, testID }: OrderSummaryProps) {
   const theme = useTheme();
 
   const containerStyle: ViewStyle = {
@@ -101,14 +107,18 @@ export function OrderSummary({ lines, totalCents, testID }: OrderSummaryProps) {
         </View>
       ))}
 
-      <View style={dividerStyle} />
+      {showTotal ? (
+        <>
+          <View style={dividerStyle} />
 
-      <View style={totalRowStyle}>
-        <RNText style={totalLabelStyle}>Total</RNText>
-        <RNText style={totalValueStyle} testID="order-summary-total">
-          {formatPrice(totalCents)}
-        </RNText>
-      </View>
+          <View style={totalRowStyle}>
+            <RNText style={totalLabelStyle}>Total</RNText>
+            <RNText style={totalValueStyle} testID="order-summary-total">
+              {formatPrice(totalCents)}
+            </RNText>
+          </View>
+        </>
+      ) : null}
     </View>
   );
 }

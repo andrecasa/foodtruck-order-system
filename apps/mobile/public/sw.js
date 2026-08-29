@@ -14,7 +14,7 @@
  * descarte automaticamente os caches de versões anteriores.
  */
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v5.1';
 const CACHE_NAME = `foodtruck-${CACHE_VERSION}`;
 
 // Assets essenciais para o shell do app funcionar offline

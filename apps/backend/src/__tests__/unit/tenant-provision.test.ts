@@ -201,8 +201,8 @@ describe('provisionTenant — slug format validation on NEW tenant (customer-ord
     expect(bundle.queries.some((q) => /INSERT INTO tenants/.test(q.text))).toBe(true);
   });
 
-  it('accepts existing keys (dev-first-tenant, pastel-das-meninas) on new-tenant creation', async () => {
-    for (const key of ['dev-first-tenant', 'pastel-das-meninas']) {
+  it('accepts existing keys (food-truck-demo, pastel-das-meninas) on new-tenant creation', async () => {
+    for (const key of ['food-truck-demo', 'pastel-das-meninas']) {
       const bundle = makeFakeClient();
       const { deps } = makeDeps(bundle);
       const result = await provisionTenant(validInput({ provisioningKey: key }), deps);

@@ -26,7 +26,7 @@ Fase 1: Backend — Modelo de Dados e APIs Públicas
 3. **Idempotência preservada:** a validação de formato roda SÓ quando `findExistingByKey` retorna nulo (tenant novo). Reprovisão de tenant já existente NÃO revalida o formato — evita quebrar tenants antigos com keys fora do novo padrão.
 4. Documentar no código que `provisioning_key` serve duplo propósito: chave de idempotência do onboarding E slug público na URL.
 
-**Critério de conclusão:** Criação de tenant rejeita keys com formato inválido; reprovisão idempotente de tenant existente não revalida. Keys existentes (`dev-first-tenant`, `pastel-das-meninas`) são válidas. Testes existentes continuam passando.
+**Critério de conclusão:** Criação de tenant rejeita keys com formato inválido; reprovisão idempotente de tenant existente não revalida. Keys existentes (`food-truck-demo`, `pastel-das-meninas`) são válidas. Testes existentes continuam passando.
 
 ---
 

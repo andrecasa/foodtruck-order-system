@@ -445,7 +445,7 @@ O app já:
 
 ### Tabela `tenants` — `provisioning_key` como slug público
 
-**Decisão:** A coluna `provisioning_key` existente (TEXT UNIQUE) é reutilizada como slug público. Já contém valores URL-friendly definidos no onboarding (ex.: `dev-first-tenant`, `pastel-das-meninas`). Não é necessário criar coluna adicional.
+**Decisão:** A coluna `provisioning_key` existente (TEXT UNIQUE) é reutilizada como slug público. Já contém valores URL-friendly definidos no onboarding (ex.: `food-truck-demo`, `pastel-das-meninas`). Não é necessário criar coluna adicional.
 
 **Resolução pública do tenant:**
 ```sql

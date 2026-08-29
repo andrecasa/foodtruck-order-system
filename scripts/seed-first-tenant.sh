@@ -37,9 +37,9 @@ EMAIL="${1:-${ENV_ADMIN_EMAIL:-admin@example.com}}"
 PASSWORD="${2:-${ENV_ADMIN_PASSWORD:-changeme123}}"
 
 # Tenant/onboarding parameters (override via env if desired). All generic.
-PROVISIONING_KEY="${TENANT_PROVISIONING_KEY:-dev-first-tenant}"
-BUSINESS_NAME="${TENANT_BUSINESS_NAME:-Order System}"
-EVOLUTION_INSTANCE="${TENANT_EVOLUTION_INSTANCE:-dev-first-tenant}"
+PROVISIONING_KEY="${TENANT_PROVISIONING_KEY:-food-truck-demo}"
+BUSINESS_NAME="${TENANT_BUSINESS_NAME:-Food Truck Demo}"
+EVOLUTION_INSTANCE="${TENANT_EVOLUTION_INSTANCE:-food-truck-demo}"
 ADMIN_NAME="${TENANT_ADMIN_NAME:-Administrador}"
 
 # Minimal generic starter menu (inline JSON). Customize per client via the

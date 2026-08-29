@@ -41,7 +41,7 @@ Regras do modelo:
 
 **User Story:** Como operador, quero que meu estabelecimento tenha um identificador público (slug) na URL, para que clientes possam acessar meu cardápio online por um link amigável.
 
-**Decisão de design:** A coluna `provisioning_key` existente na tabela `tenants` é reutilizada como slug público. Esta coluna já é `TEXT UNIQUE`, contém valores URL-friendly (ex.: `dev-first-tenant`, `pastel-das-meninas`) e é definida no onboarding do tenant. Não será criada uma coluna adicional.
+**Decisão de design:** A coluna `provisioning_key` existente na tabela `tenants` é reutilizada como slug público. Esta coluna já é `TEXT UNIQUE`, contém valores URL-friendly (ex.: `food-truck-demo`, `pastel-das-meninas`) e é definida no onboarding do tenant. Não será criada uma coluna adicional.
 
 #### Acceptance Criteria
 

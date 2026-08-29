@@ -52,10 +52,13 @@
     <script>
       (function () {
         // In development (Expo dev server / Metro on port 8081), do NOT register
-        // the service worker: its cache-first strategy serves a stale JS bundle
-        // and hides code changes. Also proactively unregister any SW already
-        // installed from a previous session and drop its caches, so developers
-        // are not stuck on an old bundle.
+        // the service worker: Metro's HMR must serve the freshest bundle
+        // directly, so any SW (even stale-while-revalidate, which still serves
+        // the previous bundle on the first load) gets in the way. Also
+        // proactively unregister any SW already installed from a previous
+        // session and drop its caches (including the legacy "operador-v1"), so
+        // developers are never stuck on an old bundle. In production the SW is
+        // registered and uses stale-while-revalidate (see sw.js).
         var host = window.location.hostname;
         var port = window.location.port;
         var isDev =

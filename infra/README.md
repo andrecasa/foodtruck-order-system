@@ -626,12 +626,23 @@ Para fazer deploy de uma nova versão:
 ```bash
 cd /opt/order-system
 git pull origin main
+# Bumpe a versão do cache do Service Worker A CADA RELEASE (ver nota abaixo):
+#   apps/mobile/public/sw.js → const CACHE_VERSION = 'v3'  (v2 → v3, etc.)
 pnpm build:pwa
 ```
 
-O Service Worker detecta os novos arquivos automaticamente. Usuários que já instalaram o PWA recebem a atualização na próxima visita (refresh).
+O Service Worker usa **stale-while-revalidate** para os assets estáticos:
+responde do cache na hora e, em paralelo, busca a versão nova da rede e
+atualiza o cache. Assim o usuário nunca fica mais de **um refresh** atrás da
+versão publicada — o próximo carregamento já traz o bundle novo.
 
-> ⚠️ Se precisar forçar atualização imediata, incremente a versão no `CACHE_NAME` dentro de `apps/mobile/public/sw.js` (ex: `operador-v1` → `operador-v2`).
+> ⚠️ **Bumpe `CACHE_VERSION` a cada release.** Em `apps/mobile/public/sw.js`,
+> o cache é versionado (`const CACHE_VERSION = 'v2'` → `foodtruck-v2`). Ao
+> subir a versão (`v2` → `v3`), o handler `activate` do SW **descarta
+> automaticamente** todos os caches das versões anteriores no próximo
+> carregamento, garantindo que nenhum asset antigo fique preso. Não é preciso
+> apagar pastas no servidor nem pedir para o usuário limpar o cache — o cache
+> problemático vive no navegador (Cache Storage do SW), não no servidor.
 
 ---
 

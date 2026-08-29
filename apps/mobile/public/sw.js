@@ -1,13 +1,21 @@
 /**
- * Service Worker — Food Truck Operador PWA
+ * Service Worker — Food Truck PWA
  *
  * Estratégia:
- * - Assets estáticos (JS, CSS, fontes, imagens): cache-first
- * - Navegação (HTML): network-first com fallback offline
- * - API calls: network-only (dados em tempo real, não faz sentido cachear)
+ * - Assets estáticos (JS, CSS, fontes, imagens): stale-while-revalidate
+ *   (responde do cache imediatamente E busca a versão nova em background,
+ *   atualizando o cache — o usuário nunca fica mais de um reload atrás da
+ *   versão publicada; substitui a antiga estratégia cache-first, que prendia
+ *   o usuário no bundle antigo).
+ * - Navegação (HTML): network-first com fallback offline.
+ * - API/Realtime: network-only (dados em tempo real, não faz sentido cachear).
+ *
+ * CACHE_NAME é versionado: bump a cada release para que o handler `activate`
+ * descarte automaticamente os caches de versões anteriores.
  */
 
-const CACHE_NAME = 'operador-v1';
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `foodtruck-${CACHE_VERSION}`;
 
 // Assets essenciais para o shell do app funcionar offline
 const PRECACHE_URLS = [
@@ -55,18 +63,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets estáticos: cache-first
+  // Assets estáticos: stale-while-revalidate.
+  // Responde do cache de imediato (se houver) enquanto busca a versão nova da
+  // rede em paralelo e atualiza o cache para o próximo carregamento. Se não há
+  // cache ainda, aguarda a rede.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        // Só cacheia responses válidas de mesma origem
-        if (response.ok && url.origin === self.location.origin) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      });
-    })
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(request).then((cached) => {
+        const networkFetch = fetch(request)
+          .then((response) => {
+            // Só cacheia responses válidas de mesma origem.
+            if (response && response.ok && url.origin === self.location.origin) {
+              cache.put(request, response.clone());
+            }
+            return response;
+          })
+          .catch(() => cached); // offline: cai no cache, se existir
+
+        return cached || networkFetch;
+      })
+    )
   );
 });

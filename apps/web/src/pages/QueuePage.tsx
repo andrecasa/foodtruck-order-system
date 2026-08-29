@@ -638,9 +638,17 @@ export function QueuePage() {
   };
 
   const getOriginBadge = (origin: string) => {
-    return origin === 'whatsapp'
-      ? { icon: 'chat', label: 'WhatsApp', color: theme.colors.pronto }
-      : { icon: 'storefront', label: 'Presencial', color: theme.colors.preparando };
+    // Mirrors the operator mobile queue: web = "Online" (globe), whatsapp =
+    // "WhatsApp" (chat), presencial = "Presencial" (storefront). Remote orders
+    // (web/whatsapp) share the sage-green tint; presencial uses the amber tone.
+    switch (origin) {
+      case 'web':
+        return { icon: 'language', label: 'Online', color: theme.colors.pronto };
+      case 'whatsapp':
+        return { icon: 'chat', label: 'WhatsApp', color: theme.colors.pronto };
+      default:
+        return { icon: 'storefront', label: 'Presencial', color: theme.colors.preparando };
+    }
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────

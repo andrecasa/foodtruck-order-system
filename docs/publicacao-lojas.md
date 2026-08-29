@@ -1,6 +1,6 @@
 # Guia de Publicação nas Lojas — Food Truck App
 
-**Versão:** 0.4.0  
+**Versão:** 0.5.0  
 **Package Android:** `br.app.foodtruck.mobile`  
 **Bundle ID iOS:** `br.app.foodtruck.mobile`  
 **EAS Project ID:** _(a ser gerado com `eas init`)_

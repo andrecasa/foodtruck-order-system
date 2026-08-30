@@ -699,7 +699,10 @@ server {
     server_name web.foodtruck.app.br foodtruck.app.br;
 
     # Imagens dos tenants (proxy para S3)
-    location /assets/ {
+    # NOTA: usa /tenant-assets/ e NÃO /assets/. O build do Vite gera os bundles
+    # do painel (JS/CSS) em /assets/*; um proxy em /assets/ sequestraria esses
+    # arquivos e o S3 responderia 403 (XML), quebrando o painel web.
+    location /tenant-assets/ {
         proxy_pass https://order-system-assets-702872201713.s3.us-east-1.amazonaws.com/;
         proxy_set_header Host order-system-assets-702872201713.s3.us-east-1.amazonaws.com;
         proxy_set_header Authorization "";

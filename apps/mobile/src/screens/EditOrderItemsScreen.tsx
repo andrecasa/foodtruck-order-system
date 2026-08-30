@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text as RNText,
-  TouchableOpacity,
   ActivityIndicator,
   type ViewStyle,
   type TextStyle,
@@ -13,6 +12,7 @@ import { Screen, ScrollContainer, Header } from '../components/Layout';
 import { Text } from '../components/Typography';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { MenuItemsCard } from '../components/MenuItemsCard';
 import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
 import type { MenuItem, Order, OrderOrigin } from '@order-system/shared';
@@ -236,99 +236,6 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     color: selected ? theme.colors.surface : theme.colors.textSecondary,
   });
 
-  const categoryLabelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 13,
-    fontWeight: '400',
-    color: theme.colors.text,
-    marginBottom: 8,
-    marginTop: 12,
-  };
-
-  const itemsCardStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 10,
-    paddingHorizontal: 14,
-    gap: 10,
-    borderWidth: 0,
-  };
-
-  const menuItemRowStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 40,
-  };
-
-  const menuItemInfoStyle: ViewStyle = {
-    flex: 1,
-    marginRight: 8,
-  };
-
-  const itemNameStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const itemPriceStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const stepperContainerStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  };
-
-  const stepperMinusStyle: ViewStyle = {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.background,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const stepperMinusTextStyle = (qty: number): TextStyle => ({
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: qty <= 0 ? theme.colors.textDisabled : theme.colors.text,
-  });
-
-  const stepperPlusStyle: ViewStyle = {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const stepperPlusTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: theme.colors.surface,
-  };
-
-  const quantityTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    minWidth: 20,
-    textAlign: 'center',
-  };
-
   const totalContainerStyle: ViewStyle = {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -437,45 +344,19 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
           <RNText style={sectionTitleStyle}>Itens do Pedido</RNText>
 
           {categories.map((category) => (
-            <View key={category}>
-              <RNText style={categoryLabelStyle}>{category}</RNText>
-              <View style={itemsCardStyle}>
-                {groupedItems[category]!.map((item) => {
-                  const qty = selectedItems[item.id] ?? 0;
-                  return (
-                    <View key={item.id} style={menuItemRowStyle}>
-                      <View style={menuItemInfoStyle}>
-                        <RNText style={itemNameStyle}>{item.name}</RNText>
-                        <RNText style={itemPriceStyle}>{formatPrice(item.price)}</RNText>
-                      </View>
-                      <View style={stepperContainerStyle}>
-                        <TouchableOpacity
-                          style={stepperMinusStyle}
-                          onPress={() => decrementItem(item.id)}
-                          disabled={qty <= 0 || loading}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Diminuir quantidade de ${item.name}`}
-                          testID={`decrement-${item.id}`}
-                        >
-                          <RNText style={stepperMinusTextStyle(qty)}>−</RNText>
-                        </TouchableOpacity>
-                        <RNText style={quantityTextStyle}>{qty}</RNText>
-                        <TouchableOpacity
-                          style={stepperPlusStyle}
-                          onPress={() => incrementItem(item.id)}
-                          disabled={qty >= 99 || loading}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Aumentar quantidade de ${item.name}`}
-                          testID={`increment-${item.id}`}
-                        >
-                          <RNText style={stepperPlusTextStyle}>+</RNText>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
+            <MenuItemsCard
+              key={category}
+              category={category}
+              items={groupedItems[category]!.map((item) => ({
+                id: item.id,
+                name: item.name,
+                priceCents: item.price,
+              }))}
+              quantities={selectedItems}
+              onIncrement={incrementItem}
+              onDecrement={decrementItem}
+              showAddButton
+            />
           ))}
 
           {itemsError ? (

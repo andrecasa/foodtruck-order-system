@@ -7,7 +7,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme';
 import { Button, Heading, Text } from '../../components';
@@ -65,6 +65,7 @@ const PAYMENT_ICON = 'currency_exchange';
  */
 export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreenProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { realtimeChannel } = usePublicBranding(slug);
   const { order, isLoading, error, refetch } = usePublicOrderTracking(
@@ -236,7 +237,10 @@ export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreen
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    // Extend the bar into the device's bottom safe area (home indicator) so no
+    // white strip shows below it.
+    paddingBottom: theme.spacing.md + insets.bottom,
   };
 
   const bottomBarLeftStyle: ViewStyle = {

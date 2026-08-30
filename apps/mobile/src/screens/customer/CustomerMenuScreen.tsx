@@ -8,7 +8,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { PublicMenuItem } from '@order-system/shared';
 import { useTheme } from '../../theme';
@@ -40,7 +40,6 @@ export interface CustomerMenuScreenProps {
  */
 export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenProps) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { categories, isLoading, error, refetch } = usePublicMenu(slug);
   const cart = useCart(slug);
@@ -174,10 +173,7 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
-    // Extend the bar into the device's bottom safe area (home indicator) so no
-    // white strip shows below it.
-    paddingBottom: theme.spacing.md + insets.bottom,
+    paddingVertical: theme.spacing.md,
   };
 
   const bottomBarLeftStyle: ViewStyle = {

@@ -6,7 +6,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme';
 import { Button, Heading, Input, Text } from '../../components';
@@ -31,7 +31,6 @@ export interface CustomerCheckoutScreenProps {
  */
 export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const cart = useCart(slug);
   const { submit, isSubmitting, error, reset } = useCreateOrder(slug);
@@ -96,10 +95,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
-    // Extend the bar into the device's bottom safe area (home indicator) so no
-    // white strip shows below it.
-    paddingBottom: theme.spacing.md + insets.bottom,
+    paddingVertical: theme.spacing.md,
   };
 
   const bottomBarLeftStyle: ViewStyle = {

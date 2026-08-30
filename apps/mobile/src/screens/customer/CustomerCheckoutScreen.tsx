@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -7,14 +7,16 @@ import {
   type TextStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../theme';
-import { Button, Heading, Input, Text } from '../../components';
-import { OrderSummary } from '../../components/customer/OrderSummary';
-import { CustomerHeader } from '../../components/customer/CustomerHeader';
+import { Button, Heading, Input, Text, MenuItemsCard, FloatingButton } from '../../components';
 import { formatPrice } from '../../utils/format';
+import { CustomerHeader } from '../../components/customer/CustomerHeader';
+import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { useCart } from '../../hooks/customer/useCart';
 import { useCreateOrder } from '../../hooks/customer/useCreateOrder';
+import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
+import { ordersHref } from '../../components/customer/customerNavHref';
 
 export interface CustomerCheckoutScreenProps {
   /** Tenant slug from the route (`/:slug/checkout`). */
@@ -22,23 +24,39 @@ export interface CustomerCheckoutScreenProps {
 }
 
 /**
- * Checkout / confirmation screen (`/:slug/checkout`).
+ * Checkout / confirmation screen (`/:slug/checkout`) — "Confirmar Pedido".
  *
- * Reviews the cart via `OrderSummary`, collects the customer's name (required,
- * client-side validated), and confirms the order through `useCreateOrder`. On
- * success it clears the cart and navigates to the tracking screen. On error it
- * shows a friendly message and keeps the cart intact so the customer can retry.
+ * Matches the Penpot "Clientes - Carrinho" board: a back app bar, a "Resumo"
+ * card (payment-style text with a colored left stripe), an "Itens do Pedido"
+ * card sharing the "Novo Pedido" stepper (via `MenuItemsCard`; decrementing to
+ * 0 removes the line), a Total row, and a floating "Confirmar Pedido" CTA. The
+ * customer name is
+ * required (client-side validated) and may be prefilled from the menu screen
+ * via the `name` route param. On success it clears the cart and navigates to
+ * tracking; on error it keeps the cart intact so the customer can retry.
+ * A customer bottom nav (Novo / Pedidos) is pinned at the bottom.
  */
 export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
   const theme = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ name?: string }>();
   const cart = useCart(slug);
   const { submit, isSubmitting, error, reset } = useCreateOrder(slug);
+  const { addOrder } = useSessionOrders(slug);
 
-  const [customerName, setCustomerName] = useState('');
+  const [customerName, setCustomerName] = useState(
+    typeof params.name === 'string' ? params.name : '',
+  );
   const [nameError, setNameError] = useState<string | null>(null);
 
   const isEmpty = cart.items.length === 0;
+
+  // itemId → quantity, for the shared MenuItemsCard stepper.
+  const cartQuantities = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const line of cart.items) map[line.menuItemId] = line.quantity;
+    return map;
+  }, [cart.items]);
 
   const handleConfirm = async () => {
     const trimmed = customerName.trim();
@@ -59,9 +77,16 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     });
 
     if (order) {
+      // Record the placed order into the session list at creation time so
+      // "Meus Pedidos" accumulates EVERY order — not just the last one the
+      // customer happened to open on the tracking screen.
+      addOrder({
+        id: order.id,
+        dailyNumber: order.dailyNumber,
+        customerName: order.customerName,
+        status: order.status,
+      });
       cart.clear();
-      // The order is recorded into the session "Meus pedidos" list by the
-      // tracking screen (it has the full order), so we just navigate there.
       router.replace(
         `/${encodeURIComponent(slug)}/pedido/${encodeURIComponent(order.id)}`,
       );
@@ -73,72 +98,32 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     backgroundColor: theme.colors.background,
   };
 
-
   const contentStyle: ViewStyle = {
-    padding: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    // Top padding handled by the fixed name bar above; keep a small gap here.
+    paddingTop: theme.spacing.xs,
     gap: theme.spacing.lg,
-    // Leave room for the fixed informative bottom bar, matching the tracking
-    // screen's bottom bar clearance.
-    paddingBottom: theme.spacing.xl * 3,
+    // Room so the last content clears the floating "Confirmar Pedido" CTA.
+    paddingBottom: 16 + 44 + 16,
   };
 
-  // ─── Bottom bar (total + confirm) — mirrors the tracking screen's bar. ──────
-  const itemCount = cart.items.reduce((sum, i) => sum + i.quantity, 0);
+  // Fixed name bar below the header — matches the content horizontal padding.
+  const nameBarStyle: ViewStyle = {
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.background,
+  };
 
-  const bottomBarStyle: ViewStyle = {
+  // Full-width solid panel behind the floating CTA so no scrolled content
+  // shows through. Uses the screen background, matching the fixed name bar.
+  const floatingBackdropStyle: ViewStyle = {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: theme.colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-  };
-
-  const bottomBarLeftStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  };
-
-  const barIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: theme.typography.sizes.xl,
-    color: theme.colors.surface,
-  };
-
-  const barCountBadgeStyle: ViewStyle = {
-    minWidth: theme.spacing.lg,
-    height: theme.spacing.lg,
-    borderRadius: theme.borderRadius.full,
-    paddingHorizontal: theme.spacing.xs,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const barCountTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.sizes.xs,
-    fontWeight: String(theme.typography.weights.bold) as TextStyle['fontWeight'],
-    color: theme.colors.primary,
-  };
-
-  const barLabelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.sizes.md,
-    fontWeight: String(theme.typography.weights.medium) as TextStyle['fontWeight'],
-    color: theme.colors.surface,
-  };
-
-  const barTotalStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: String(theme.typography.weights.bold) as TextStyle['fontWeight'],
-    color: theme.colors.surface,
+    height: 16 + 44 + 8,
+    backgroundColor: theme.colors.background,
   };
 
   const centeredStyle: ViewStyle = {
@@ -167,6 +152,48 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     );
   }
 
+  // "Resumo" card: payment-card text (bold name line + compact items block),
+  // framed with a status-colored left stripe (primary), matching the operator
+  // PaymentScreen card. The grand total lives in the Total row below, not here.
+  const resumoFrameStyle: ViewStyle = {
+    flexDirection: 'row',
+    borderRadius: theme.borderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+  };
+
+  const resumoStripeStyle: ViewStyle = {
+    width: 5,
+    backgroundColor: theme.colors.primary,
+  };
+
+  // Payment-card text styles (operator PaymentScreen): bold name line + a
+  // compact single-block items list.
+  const resumoNameStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+  };
+
+  const resumoItemsStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.text,
+    lineHeight: 18,
+  };
+
+  // Total line inside the Resumo card — bold, matching the operator payment card.
+  const resumoTotalStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+  };
+
   return (
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
       <CustomerHeader
@@ -174,10 +201,12 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
         onBack={() => router.replace(`/${encodeURIComponent(slug)}`)}
       />
 
-      <ScrollView contentContainerStyle={contentStyle} showsVerticalScrollIndicator>
-        
+      <View style={{ flex: 1 }}>
+      {/* Fixed name bar — stays visible above the scrollable resumo/items. */}
+      <View style={nameBarStyle}>
         <Input
-          label="Seu nome"
+          icon="person"
+          accessibilityLabel="Seu nome"
           placeholder="Como devemos chamar você?"
           value={customerName}
           onChangeText={(text) => {
@@ -187,26 +216,79 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
           error={nameError ?? undefined}
           autoCapitalize="words"
           testID="checkout-name-input"
-        />        
-        
+        />
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={contentStyle}
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Resumo — name + items + total, framed with a colored left stripe. */}
         <View>
           <View style={{ marginBottom: theme.spacing.sm }}>
-            <Heading level={3}>Itens</Heading>
+            <Heading level={3}>Resumo</Heading>
           </View>
-          <OrderSummary
-            testID="checkout-summary"
-            showTotal={false}
-            lines={cart.items.map((i) => ({
-              key: i.menuItemId,
-              name: i.name,
-              quantity: i.quantity,
-              unitPriceCents: i.priceCents,
-            }))}
-            totalCents={cart.total}
-          />
+          <View style={resumoFrameStyle} testID="checkout-resumo">
+            <View style={resumoStripeStyle} />
+            <View
+              style={{
+                flex: 1,
+                padding: theme.spacing.md,
+                gap: theme.spacing.sm,
+              }}
+              testID="checkout-summary"
+            >
+              {/* Name line — matches the operator payment card (16px / 600). */}
+              {customerName.trim().length > 0 ? (
+                <RNText style={resumoNameStyle}>{customerName.trim()}</RNText>
+              ) : null}
+
+              {/* Items — one text block, "Nx Name (line total)" per line,
+                  identical to the payment card (12px / 400). No total here;
+                  the Total row below owns the grand total. */}
+              <RNText style={resumoItemsStyle}>
+                {cart.items
+                  .map((i) => `${i.quantity}x ${i.name} (${formatPrice(i.priceCents * i.quantity)})`)
+                  .join('\n')}
+              </RNText>
+
+              {/* Total inside the card — bold line, matching the operator
+                  payment card. */}
+              <RNText style={resumoTotalStyle} testID="checkout-total">
+                {formatPrice(cart.total)}
+              </RNText>
+            </View>
+          </View>
         </View>
 
-
+        {/* Editable items — standardized with the "Novo Pedido" card: shared
+            steppers (same colors), no per-line total, no remove icon.
+            Decrementing to 0 removes the line. */}
+        <View>
+          <View style={{ marginBottom: theme.spacing.sm }}>
+            <Heading level={3}>Itens do Pedido</Heading>
+          </View>
+          <MenuItemsCard
+            category="Itens do Pedido"
+            hideCategoryLabel
+            items={cart.items.map((i) => ({
+              id: i.menuItemId,
+              name: i.name,
+              priceCents: i.priceCents,
+            }))}
+            quantities={cartQuantities}
+            onIncrement={(id) => {
+              const line = cart.items.find((i) => i.menuItemId === id);
+              if (line) cart.updateQuantity(id, line.quantity + 1);
+            }}
+            onDecrement={(id) => {
+              const line = cart.items.find((i) => i.menuItemId === id);
+              if (line) cart.updateQuantity(id, line.quantity - 1); // 0 removes the line
+            }}
+          />
+        </View>
 
         {error ? (
           <View testID="checkout-error" style={{ gap: theme.spacing.sm }}>
@@ -216,37 +298,26 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
           </View>
         ) : null}
 
-        <Button
-          title={isSubmitting ? 'Enviando...' : 'Confirmar Pedido'}
-          variant="primary"
-          size="lg"
-          fullWidth
-          loading={isSubmitting}
-          disabled={isSubmitting}
-          onPress={handleConfirm}
-          testID="checkout-confirm-button"
-        />
       </ScrollView>
 
-      {/* Fixed informative bottom bar — total only, mirroring the tracking screen. */}
-      <View
-        style={bottomBarStyle}
-        accessibilityLabel={`Pedido com ${itemCount} ${
-          itemCount === 1 ? 'item' : 'itens'
-        }, total ${formatPrice(cart.total)}`}
-        testID="checkout-total-bar"
-      >
-        <View style={bottomBarLeftStyle}>
-          <RNText style={barIconStyle}>shopping_cart</RNText>
-          <View style={barCountBadgeStyle}>
-            <RNText style={barCountTextStyle}>{itemCount}</RNText>
-          </View>
-          <RNText style={barLabelStyle}>Total do pedido</RNText>
-        </View>
-        <RNText style={barTotalStyle} testID="checkout-total">
-          {formatPrice(cart.total)}
-        </RNText>
+      {/* Solid backing panel behind the floating CTA. */}
+      <View style={floatingBackdropStyle} pointerEvents="none" />
+
+      {/* Floating CTA — pinned above the bottom nav. */}
+      <FloatingButton
+        label={isSubmitting ? 'Enviando...' : 'Confirmar Pedido'}
+        onPress={handleConfirm}
+        disabled={isSubmitting}
+        bottomOffset={16}
+        testID="checkout-confirm-button"
+      />
       </View>
+
+      <CustomerBottomNav
+        slug={slug}
+        active="novo"
+        pedidosHref={ordersHref(slug)}
+      />
     </SafeAreaView>
   );
 }

@@ -27,3 +27,23 @@ export function getPortugueseMonthName(month: number): string {
 export function formatSelectedDate(day: number, month: number, year: number): string {
   return `${day} de ${getPortugueseMonthName(month)}, ${year}`;
 }
+
+/**
+ * "Pedido criado há X" label from an ISO createdAt, relative to now.
+ * Mirrors the operator PaymentScreen wording:
+ *   < 1 min  → "Pedido criado agora"
+ *   < 60 min → "Pedido criado há {m} min"
+ *   otherwise → "Pedido criado há {h}h {m}min" (omits minutes when 0)
+ *
+ * @param createdAt ISO timestamp string
+ * @param now epoch ms to compare against (defaults to Date.now(); injectable for tests)
+ */
+export function formatOrderAge(createdAt: string, now: number = Date.now()): string {
+  const createdMs = new Date(createdAt).getTime();
+  const totalMinutes = Math.floor((now - createdMs) / 60000);
+  if (!Number.isFinite(totalMinutes) || totalMinutes < 1) return 'Pedido criado agora';
+  if (totalMinutes < 60) return `Pedido criado há ${totalMinutes} min`;
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return mins > 0 ? `Pedido criado há ${hours}h ${mins}min` : `Pedido criado há ${hours}h`;
+}

@@ -31,3 +31,7 @@ export { FloatingButton } from './FloatingButton';
 export type { FloatingButtonProps } from './FloatingButton';
 export { Badge } from './Badge';
 export type { BadgeProps, BadgeSize } from './Badge';
+export { MenuItemsCard } from './MenuItemsCard';
+export type { MenuItemsCardProps, MenuItemsCardItem } from './MenuItemsCard';
+export { TotalRow } from './TotalRow';
+export type { TotalRowProps } from './TotalRow';

@@ -1,11 +1,12 @@
 import type { ThemeConfig, TenantBrandingResponse } from '@order-system/shared';
+import { NEUTRAL_PLATFORM_THEME, deepMergeTheme } from '@order-system/shared/theme/platform-theme';
 import { themeCache } from '../services/theme-cache';
 
 /**
  * Neutral platform default theme for the white-label mobile app.
  *
- * This theme contains NO tenant-specific branding (no "Pastel das Meninas",
- * no burgundy brand colors). It is a generic, brand-agnostic design system used:
+ * This theme contains NO tenant-specific branding. It is a generic,
+ * brand-agnostic design system used:
  * - Before login / while no tenant is authenticated.
  * - As a safe fallback when tenant branding cannot be fetched (Requirement 7.8, 11.7).
  *
@@ -13,140 +14,16 @@ import { themeCache } from '../services/theme-cache';
  * the backend after login via `fetchTenantTheme`, without requiring a new build
  * (Requirements 7.4, 7.5, 11.1, 11.5).
  *
- * WCAG AA compliance (neutral palette):
- * - Text (#1F2933) on Background (#F5F7FA): high contrast (~13:1)
- * - Primary (#2C6E9B) on white: contrast ratio ~4.6:1
+ * It is the SAME `NEUTRAL_PLATFORM_THEME` the backend merges tenant overrides
+ * over (single source of truth in `@order-system/shared`), so the operator and
+ * customer apps render identical colors on the default theme.
  */
-export const defaultTheme: ThemeConfig = {
-  businessName: 'Food Truck App',
-  logo: '',
-  colors: {
-    // Neutral platform primary — desaturated blue
-    primary: '#2C6E9B',
-    // Neutral platform secondary — slate
-    secondary: '#5A6B7B',
-    // Light neutral background
-    background: '#F5F7FA',
-    // Dark neutral text
-    text: '#1F2933',
-    // Status: success/pronto — neutral green
-    success: '#3E8E5A',
-    // Status: warning/aguardando — neutral amber
-    warning: '#B8860B',
-    // Error — neutral red
-    error: '#B23A3A',
-    // Order status: aguardando (waiting) — neutral amber
-    aguardando: '#B8860B',
-    // Order status: preparando (preparing) — neutral blue
-    preparando: '#3B6EA5',
-    // Order status: pronto (ready) — neutral green
-    pronto: '#3E8E5A',
-    // Order status: entregue (delivered) — neutral gray
-    entregue: '#6B7280',
-    // Secondary text — muted gray
-    textSecondary: '#6B7280',
-    // Card/surface background
-    surface: '#FFFFFF',
-    // Thin separator/divider line — light gray
-    divider: '#E2E8F0',
-    // Default outline/border for inputs, cards, chips
-    border: '#E2E8F0',
-    // Background of disabled controls
-    surfaceDisabled: '#E2E8F0',
-    // Text/icon color for disabled or inactive content
-    textDisabled: '#9AA5B1',
-    // Financial: received — neutral green
-    received: '#2E7D32',
-    // Financial: pending — neutral red
-    pending: '#C62828',
-    // Financial: faturamento — neutral blue
-    revenue: '#2C6E9B',
-    // Sub-card backgrounds (tinted, neutral)
-    surfacePrimary: '#EEF3F7',
-    surfaceRevenue: '#EEF3F7',
-    surfaceReceived: '#EEF6EF',
-    surfacePending: '#FBEEEE',
-  },
-  typography: {
-    fontFamily: 'Inter',
-    sizes: {
-      xs: 10,
-      sm: 12,
-      md: 14,
-      lg: 16,
-      xl: 20,
-      xxl: 32,
-    },
-    weights: {
-      regular: 400,
-      medium: 500,
-      bold: 600,
-    },
-  },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
-  },
-  borderRadius: {
-    sm: 8,
-    md: 12,
-    lg: 24,
-    full: 9999,
-  },
-};
+export const defaultTheme: ThemeConfig = NEUTRAL_PLATFORM_THEME;
 
-/**
- * Deep merges a partial theme override into a base ThemeConfig.
- * Handles up to 2 levels of nesting (e.g., colors.primary, typography.sizes.md).
- * Only overrides fields that are present in the override object.
- */
-export function deepMergeTheme(
-  base: ThemeConfig,
-  override: Partial<ThemeConfig>,
-): ThemeConfig {
-  const result = { ...base };
-
-  for (const key of Object.keys(override) as Array<keyof ThemeConfig>) {
-    const baseValue = base[key];
-    const overrideValue = override[key];
-
-    if (
-      overrideValue !== undefined &&
-      overrideValue !== null &&
-      typeof baseValue === 'object' &&
-      typeof overrideValue === 'object' &&
-      !Array.isArray(baseValue)
-    ) {
-      // Second level merge (e.g., colors, typography, spacing, borderRadius)
-      const mergedSection: Record<string, unknown> = { ...(baseValue as Record<string, unknown>) };
-      for (const subKey of Object.keys(overrideValue as Record<string, unknown>)) {
-        const baseSubValue = (baseValue as Record<string, unknown>)[subKey];
-        const overrideSubValue = (overrideValue as Record<string, unknown>)[subKey];
-
-        if (
-          overrideSubValue !== undefined &&
-          overrideSubValue !== null &&
-          typeof baseSubValue === 'object' &&
-          typeof overrideSubValue === 'object' &&
-          !Array.isArray(baseSubValue)
-        ) {
-          // Third level merge (e.g., typography.sizes, typography.weights)
-          mergedSection[subKey] = { ...(baseSubValue as Record<string, unknown>), ...(overrideSubValue as Record<string, unknown>) };
-        } else if (overrideSubValue !== undefined) {
-          mergedSection[subKey] = overrideSubValue;
-        }
-      }
-      (result as Record<string, unknown>)[key] = mergedSection;
-    } else if (overrideValue !== undefined) {
-      (result as Record<string, unknown>)[key] = overrideValue;
-    }
-  }
-
-  return result;
-}
+// `deepMergeTheme` now lives in `@order-system/shared` (single source of truth
+// shared with the backend). Re-exported here so existing importers of it from
+// this module keep working unchanged.
+export { deepMergeTheme };
 
 /**
  * Builds the applied ThemeConfig for a tenant branding response by merging the

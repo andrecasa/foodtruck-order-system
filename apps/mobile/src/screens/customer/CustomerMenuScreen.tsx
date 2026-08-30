@@ -1,127 +1,57 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   View,
-  Text as RNText,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import type { PublicMenuItem } from '@order-system/shared';
 import { useTheme } from '../../theme';
-import { Button, Heading, Text } from '../../components';
-import { formatPrice } from '../../utils/format';
+import { Button, Text, MenuItemsCard, TotalRow, FloatingButton } from '../../components';
 import { usePublicMenu } from '../../hooks/customer/usePublicMenu';
 import { useCart } from '../../hooks/customer/useCart';
-import { CategorySection } from '../../components/customer/CategorySection';
-import { CartSheet } from '../../components/customer/CartSheet';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
-import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
-import { usePublicBranding } from '../../hooks/customer/usePublicBranding';
-import { useRealtime, type RealtimeEvent } from '../../hooks/useRealtime';
+import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
+import { ordersHref } from '../../components/customer/customerNavHref';
 
 export interface CustomerMenuScreenProps {
   /** Tenant slug from the route (`/:slug`). */
   slug: string;
-  /** Business name resolved from branding, shown at the top. */
+  /** Business name resolved from branding (kept for API compatibility). */
   businessName?: string;
 }
 
 /**
- * Public customer menu screen (`/:slug`).
+ * Public customer menu screen (`/:slug`) — "Novo Pedido".
  *
- * Fetches the tenant's public menu, renders each category with its items, and
- * shows a fixed bottom bar summarizing the cart (item count + total). Tapping
- * the bar opens the cart bottom sheet (`CartSheet`), from which the customer can
- * adjust quantities, remove items and proceed to checkout.
+ * Matches the Penpot "Clientes - Novo Pedido" board: a centered "Novo Pedido"
+ * app bar, the customer name field, the menu grouped by category (each item
+ * with an inline `− qtd +` stepper via the shared `MenuItemsCard`), a Total
+ * row, and a primary "Criar Pedido" button that carries the typed name into
+ * checkout. A customer-specific bottom nav (Novo / Pedidos) is pinned at the
+ * bottom.
+ *
+ * The list of orders placed this session lives on the "Pedidos" screen, so this
+ * screen has no order list and no realtime subscription.
  */
-export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenProps) {
+export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
   const theme = useTheme();
   const router = useRouter();
   const { categories, isLoading, error, refetch } = usePublicMenu(slug);
   const cart = useCart(slug);
-  const {
-    orders: sessionOrders,
-    refresh: refreshSessionOrders,
-    updateStatus: updateSessionOrderStatus,
-  } = useSessionOrders(slug);
-  const { realtimeChannel } = usePublicBranding(slug);
-  const [cartOpen, setCartOpen] = useState(false);
 
-  // Live-update the "Meus pedidos" list: subscribe to the tenant's realtime
-  // channel and apply `status_updated` events to any order in this session.
-  const handleRealtimeEvent = useCallback(
-    (event: RealtimeEvent) => {
-      if (event.event !== 'status_updated') return;
-      const payload = event.payload as { id?: string; status?: string } | undefined;
-      if (payload?.id && typeof payload.status === 'string') {
-        updateSessionOrderStatus(payload.id, payload.status);
-      }
-    },
-    [updateSessionOrderStatus],
-  );
-
-  useRealtime({
-    channels: realtimeChannel ? [realtimeChannel] : [],
-    onEvent: handleRealtimeEvent,
-    enabled: !!realtimeChannel && sessionOrders.length > 0,
-  });
-
-  // The cardápio can stay mounted while the customer places orders elsewhere,
-  // so re-read the persisted session orders whenever this screen regains focus
-  // (e.g. after returning from checkout/tracking).
-  useFocusEffect(
-    useCallback(() => {
-      refreshSessionOrders();
-    }, [refreshSessionOrders]),
-  );
-
-  const handleOpenOrder = (orderId: string) => {
-    router.push(
-      `/${encodeURIComponent(slug)}/pedido/${encodeURIComponent(orderId)}`,
-    );
-  };
-
-  // Color for a session order in the "Meus pedidos" list, by status. Falls back
-  // to primary for orders persisted before status was tracked, or unknown ones.
-  const orderStatusColor = (status?: string): string => {
-    switch (status) {
-      case 'aguardando':
-        return theme.colors.aguardando;
-      case 'preparando':
-        return theme.colors.preparando;
-      case 'pronto':
-        return theme.colors.pronto;
-      case 'entregue':
-        return theme.colors.textSecondary;
-      default:
-        return theme.colors.primary;
+  // Flat lookup of every menu item by id, so the id-based stepper handlers
+  // (from the shared MenuItemsCard) can resolve the full item for the cart.
+  const itemsById = useMemo(() => {
+    const map: Record<string, PublicMenuItem> = {};
+    for (const category of categories) {
+      for (const item of category.items) map[item.id] = item;
     }
-  };
-
-  // Material Symbols icon per status (same as the tracking screen). Falls back
-  // to a generic receipt icon when the status is unknown.
-  const orderStatusIcon = (status?: string): string => {
-    switch (status) {
-      case 'aguardando':
-        return 'schedule';
-      case 'preparando':
-        return 'local_fire_department';
-      case 'pronto':
-        return 'notifications';
-      case 'entregue':
-        return 'check_circle';
-      default:
-        return 'receipt_long';
-    }
-  };
-
-  const handleAddItem = (item: PublicMenuItem) => {
-    cart.addItem(item, 1);
-  };
+    return map;
+  }, [categories]);
 
   // Quantity per item currently in the cart, for the inline − qtd + stepper.
   const quantities = useMemo(() => {
@@ -130,18 +60,25 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
     return map;
   }, [cart.items]);
 
-  const handleIncrementItem = (item: PublicMenuItem) => {
-    const current = quantities[item.id] ?? 0;
-    cart.updateQuantity(item.id, current + 1);
+  const handleIncrementItem = (id: string) => {
+    const current = quantities[id] ?? 0;
+    if (current === 0) {
+      const item = itemsById[id];
+      if (item) cart.addItem(item, 1);
+      return;
+    }
+    cart.updateQuantity(id, current + 1);
   };
 
-  const handleDecrementItem = (item: PublicMenuItem) => {
-    const current = quantities[item.id] ?? 0;
-    cart.updateQuantity(item.id, current - 1); // qty <= 0 removes the line
+  const handleDecrementItem = (id: string) => {
+    const current = quantities[id] ?? 0;
+    cart.updateQuantity(id, current - 1); // qty <= 0 removes the line
   };
 
-  const handleCheckout = () => {
-    setCartOpen(false);
+  // Proceed to checkout, carrying the typed name so checkout can prefill it.
+  // The customer name is collected on the checkout screen, so this just
+  // proceeds to confirmation.
+  const handleCreateOrder = () => {
     router.push(`/${encodeURIComponent(slug)}/checkout`);
   };
 
@@ -158,65 +95,45 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
   };
 
   const scrollContentStyle: ViewStyle = {
-    padding: theme.spacing.md,
-    // leave room for the fixed bottom bar (xl spacing token × 3)
-    paddingBottom: theme.spacing.xl * 3,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    gap: theme.spacing.lg,
+    // Room so the last content clears the floating Total (48) + CTA (44) stack.
+    paddingBottom: 16 + 44 + 8 + 48 + 16,
   };
 
-  const bottomBarStyle: ViewStyle = {
+  // Floating Total container — pinned just above the CTA (which sits at
+  // bottom:16, height 44), so the total floats at 16 + 44 + 8. Uses the opaque
+  // `surfacePrimary` tint (matches the TotalRow look) so scrolled content does
+  // not bleed through the translucent row.
+  const floatingTotalStyle: ViewStyle = {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16 + 44 + 8,
+    backgroundColor: theme.colors.surfacePrimary,
+    borderRadius: 8,
+  };
+
+  // Full-width solid panel behind the floating Total + CTA so no scrolled
+  // content shows through the gaps. Uses the screen background, matching the
+  // fixed name bar. Covers from the bottom up past the Total (top ≈ 116).
+  const floatingBackdropStyle: ViewStyle = {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: theme.colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    height: 16 + 44 + 8 + 48 + 8,
+    backgroundColor: theme.colors.background,
   };
 
-  const bottomBarLeftStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  };
-
-  const cartIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: theme.typography.sizes.xl,
-    color: theme.colors.surface,
-  };
-
-  const countBadgeStyle: ViewStyle = {
-    minWidth: theme.spacing.lg,
-    height: theme.spacing.lg,
-    borderRadius: theme.borderRadius.full,
-    paddingHorizontal: theme.spacing.xs,
-    backgroundColor: theme.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const countTextStyle: TextStyle = {
+  // "Itens do Pedido" section title — matches operator Novo Pedido
+  // (14px / weight 400 / color text).
+  const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.sizes.xs,
-    fontWeight: String(theme.typography.weights.bold) as TextStyle['fontWeight'],
-    color: theme.colors.primary,
-  };
-
-  const bottomBarTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.sizes.md,
-    fontWeight: String(theme.typography.weights.medium) as TextStyle['fontWeight'],
-    color: theme.colors.surface,
-  };
-
-  const bottomBarTotalStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: String(theme.typography.weights.bold) as TextStyle['fontWeight'],
-    color: theme.colors.surface,
+    fontSize: 14,
+    fontWeight: '400',
+    color: theme.colors.text,
   };
 
   // ─── Loading / error states ────────────────────────────────────────────────
@@ -253,69 +170,15 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
 
   return (
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
-      <CustomerHeader title={businessName ?? 'Cardápio'} />
+      <CustomerHeader title="Novo Pedido" />
 
-      {/* "Meus pedidos" — orders placed this session (session-scoped). */}
-      {sessionOrders.length > 0 ? (
-        <View
-          style={{
-            marginHorizontal: theme.spacing.md,
-            marginTop: theme.spacing.md,
-            gap: theme.spacing.sm,
-          }}
-          testID="my-orders-section"
-        >
-          {sessionOrders.map((o) => {
-            const c = orderStatusColor(o.status);
-            return (
-              <Pressable
-                key={o.id}
-                onPress={() => handleOpenOrder(o.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Pedido número ${o.dailyNumber}, ${o.customerName}`}
-                testID={`track-order-${o.id}`}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                  borderRadius: theme.borderRadius.md,
-                  backgroundColor: c + '1F',
-                }}
-              >
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flex: 1 }}
-                >
-                  <RNText
-                    style={{
-                      fontFamily: 'Material Symbols Outlined',
-                      fontSize: theme.typography.sizes.xl,
-                      color: c,
-                    }}
-                  >
-                    {orderStatusIcon(o.status)}
-                  </RNText>
-                  <Text weight="medium" color={c}>
-                    Pedido #{o.dailyNumber} - {o.customerName}
-                  </Text>
-                </View>
-                <RNText
-                  style={{
-                    fontFamily: 'Material Symbols Outlined',
-                    fontSize: theme.typography.sizes.xl,
-                    color: c,
-                  }}
-                >
-                  chevron_right
-                </RNText>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
-
-      <ScrollView contentContainerStyle={scrollContentStyle} showsVerticalScrollIndicator>
+      <View style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={scrollContentStyle}
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
         {isEmptyMenu ? (
           <View style={{ paddingVertical: theme.spacing.lg * 2, alignItems: 'center' }}>
             <Text color={theme.colors.textSecondary}>
@@ -323,61 +186,52 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
             </Text>
           </View>
         ) : (
-          categories.map((category) => (
-            <CategorySection
-              key={`${category.name}-${category.sortOrder}`}
-              category={category}
-              quantities={quantities}
-              onAddItem={handleAddItem}
-              onIncrementItem={handleIncrementItem}
-              onDecrementItem={handleDecrementItem}
-            />
-          ))
+          <View>
+            {/* Section title above categories — matches operator Novo Pedido. */}
+            <Text style={sectionTitleStyle}>Itens do Pedido</Text>
+            {categories.map((category) => (
+              <MenuItemsCard
+                key={`${category.name}-${category.sortOrder}`}
+                category={category.name}
+                items={category.items.map((item) => ({
+                  id: item.id,
+                  name: item.name,
+                  priceCents: item.priceCents,
+                }))}
+                quantities={quantities}
+                onIncrement={handleIncrementItem}
+                onDecrement={handleDecrementItem}
+                showAddButton
+              />
+            ))}
+          </View>
         )}
+
       </ScrollView>
 
-      {/* Cart bar is ALWAYS visible at the bottom. When empty it shows a zeroed
-          total and is not tappable (opening an empty cart adds no value). */}
-      <Pressable
-        style={bottomBarStyle}
-        onPress={cart.count > 0 ? () => setCartOpen(true) : undefined}
-        disabled={cart.count === 0}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: cart.count === 0 }}
-        accessibilityLabel={
-          cart.count > 0
-            ? `Abrir carrinho, ${cart.count} ${
-                cart.count === 1 ? 'item' : 'itens'
-              }, total ${formatPrice(cart.total)}`
-            : 'Carrinho vazio'
-        }
-        testID="cart-bar"
-      >
-        <View style={bottomBarLeftStyle}>
-          <RNText style={cartIconStyle}>shopping_cart</RNText>
-          <View style={countBadgeStyle}>
-            <RNText style={countTextStyle}>{cart.count}</RNText>
-          </View>
-          <RNText style={bottomBarTextStyle}>Ver carrinho</RNText>
-        </View>
-        <RNText style={bottomBarTotalStyle}>{formatPrice(cart.total)}</RNText>
-      </Pressable>
+      {/* Solid backing panel behind the floating Total + CTA so scrolled
+          content never shows through the gaps. */}
+      <View style={floatingBackdropStyle} pointerEvents="none" />
 
-      <CartSheet
-        visible={cartOpen}
-        onClose={() => setCartOpen(false)}
-        items={cart.items}
-        total={cart.total}
-        onIncrement={(id) => {
-          const line = cart.items.find((i) => i.menuItemId === id);
-          if (line) cart.updateQuantity(id, line.quantity + 1);
-        }}
-        onDecrement={(id) => {
-          const line = cart.items.find((i) => i.menuItemId === id);
-          if (line) cart.updateQuantity(id, line.quantity - 1);
-        }}
-        onRemove={cart.removeItem}
-        onCheckout={handleCheckout}
+      {/* Floating Total — pinned just above the CTA. */}
+      <View style={floatingTotalStyle}>
+        <TotalRow totalCents={cart.total} testID="menu-total-row" />
+      </View>
+
+      {/* Floating CTA — pinned above the bottom nav. */}
+      <FloatingButton
+        label="Criar Pedido"
+        onPress={handleCreateOrder}
+        disabled={cart.count === 0}
+        bottomOffset={16}
+        testID="menu-create-order-button"
+      />
+      </View>
+
+      <CustomerBottomNav
+        slug={slug}
+        active="novo"
+        pedidosHref={ordersHref(slug)}
       />
     </SafeAreaView>
   );

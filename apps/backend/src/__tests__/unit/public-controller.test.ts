@@ -64,13 +64,14 @@ function queryResult(rows: any[]) {
 describe('Public Branding Controller', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returns only public branding fields and a pre-built realtime channel', async () => {
+  it('returns public branding with a fully-merged theme and a pre-built realtime channel', async () => {
     vi.mocked(pool.query).mockResolvedValueOnce(
       queryResult([
         {
           business_name: 'Pastel das Meninas',
           logo_url: 'https://cdn/logo.png',
-          theme: { primary: '#f00' },
+          // Partial tenant override — only the primary color is customized.
+          theme: { colors: { primary: '#7B2D2D' } },
           provisioning_key: 'pastel-das-meninas',
         },
       ]),
@@ -82,13 +83,19 @@ describe('Public Branding Controller', () => {
     await publicBrandingController(req as PublicTenantRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({
-      businessName: 'Pastel das Meninas',
-      logoUrl: 'https://cdn/logo.png',
-      theme: { primary: '#f00' },
-      slug: 'pastel-das-meninas',
-      realtimeChannel: `orders:queue:${TENANT}`,
-    });
+    expect(res.body.businessName).toBe('Pastel das Meninas');
+    expect(res.body.logoUrl).toBe('https://cdn/logo.png');
+    expect(res.body.slug).toBe('pastel-das-meninas');
+    expect(res.body.realtimeChannel).toBe(`orders:queue:${TENANT}`);
+
+    // Theme is the tenant override merged over the neutral platform theme:
+    // primary is customized, other tokens fall back to platform values, and
+    // non-color sections (typography/spacing) are present — same contract as
+    // the authenticated branding endpoint.
+    expect(res.body.theme.colors.primary).toBe('#7B2D2D');
+    expect(res.body.theme.colors.background).toBe('#F5F6F7');
+    expect(res.body.theme.typography).toBeDefined();
+    expect(res.body.theme.spacing).toBeDefined();
 
     // Must not select or expose the raw UUID / evolution / whatsapp fields (R5.3).
     const [sql] = vi.mocked(pool.query).mock.calls[0];
@@ -99,6 +106,29 @@ describe('Public Branding Controller', () => {
     expect(res.body).not.toHaveProperty('id');
     // The query is by tenant id resolved upstream by the middleware.
     expect(vi.mocked(pool.query).mock.calls[0][1]).toEqual([TENANT]);
+  });
+
+  it('falls back to the neutral platform theme when the tenant theme is null', async () => {
+    vi.mocked(pool.query).mockResolvedValueOnce(
+      queryResult([
+        {
+          business_name: 'Loja X',
+          logo_url: null,
+          theme: null,
+          provisioning_key: 'loja-x',
+        },
+      ]),
+    );
+
+    const req = mockRequest();
+    const res = mockResponse();
+
+    await publicBrandingController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(200);
+    // Null override → full neutral platform theme.
+    expect(res.body.theme.colors.primary).toBe('#3B5568');
+    expect(res.body.theme.colors.surface).toBe('#FFFFFF');
   });
 
   it('returns 500 when the branding query throws', async () => {

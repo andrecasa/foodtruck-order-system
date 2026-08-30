@@ -1,75 +1,42 @@
 import React from 'react';
-import { render, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { CustomerMenuScreen } from '../../screens/customer/CustomerMenuScreen';
-import type { RealtimeEvent } from '../../hooks/useRealtime';
-import type { SessionOrder } from '../../hooks/customer/useSessionOrders';
+import type { PublicMenuCategory } from '@order-system/shared';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ replace: jest.fn(), push: jest.fn(), back: jest.fn() }),
-  // Run the focus callback once on mount (like a real focus), without effects.
-  useFocusEffect: (cb: () => void) => {
-    const React2 = require('react');
-    React2.useEffect(() => {
-      const cleanup = cb();
-      return cleanup;
-    }, []);
-  },
+  useRouter: () => ({ replace: jest.fn(), push: mockPush, back: jest.fn() }),
 }));
 
-// Empty menu (not loading) — we only care about the "Meus pedidos" list here.
+// Controllable menu mock.
+let mockMenu: {
+  categories: PublicMenuCategory[];
+  isLoading: boolean;
+  error: { message: string } | null;
+} = { categories: [], isLoading: false, error: null };
+const mockRefetch = jest.fn();
 jest.mock('../../hooks/customer/usePublicMenu', () => ({
-  usePublicMenu: () => ({ categories: [], isLoading: false, error: null, refetch: jest.fn() }),
+  usePublicMenu: () => ({ ...mockMenu, refetch: mockRefetch }),
 }));
 
-// Empty cart.
+// Controllable cart mock.
+const mockAddItem = jest.fn();
+const mockUpdateQuantity = jest.fn();
+let mockCart = {
+  items: [] as Array<{ menuItemId: string; name: string; priceCents: number; quantity: number }>,
+  total: 0,
+  count: 0,
+};
 jest.mock('../../hooks/customer/useCart', () => ({
   useCart: () => ({
-    items: [],
-    addItem: jest.fn(),
+    ...mockCart,
+    addItem: mockAddItem,
     removeItem: jest.fn(),
-    updateQuantity: jest.fn(),
+    updateQuantity: mockUpdateQuantity,
     clear: jest.fn(),
-    total: 0,
-    count: 0,
   }),
-}));
-
-jest.mock('../../hooks/customer/usePublicBranding', () => ({
-  usePublicBranding: () => ({ realtimeChannel: 'orders:queue:tenant-1' }),
-}));
-
-// Controllable session-orders mock: holds the list in React state so
-// updateStatus re-renders the screen with the new status. Prefixed with `mock`
-// so jest allows referencing it inside the mock factory.
-let mockSeededOrders: SessionOrder[] = [];
-jest.mock('../../hooks/customer/useSessionOrders', () => ({
-  useSessionOrders: () => {
-    const React2 = require('react');
-    const [orders, setOrders] = React2.useState(mockSeededOrders);
-    const updateStatus = React2.useCallback((orderId: string, status: string) => {
-      setOrders((prev: SessionOrder[]) =>
-        prev.map((o: SessionOrder) => (o.id === orderId ? { ...o, status } : o)),
-      );
-    }, []);
-    return {
-      orders,
-      addOrder: jest.fn(),
-      updateStatus,
-      clearOrders: jest.fn(),
-      refresh: jest.fn(),
-    };
-  },
-}));
-
-// Capture the onEvent handler passed to useRealtime so tests can fire events.
-let capturedOnEvent: ((e: RealtimeEvent) => void) | null = null;
-jest.mock('../../hooks/useRealtime', () => ({
-  useRealtime: ({ onEvent }: { onEvent: (e: RealtimeEvent) => void }) => {
-    capturedOnEvent = onEvent;
-    return { status: 'connected' };
-  },
 }));
 
 jest.mock('../../theme', () => require('../helpers/mockTheme').themeMocks);
@@ -77,63 +44,106 @@ jest.mock('../../theme/ThemeProvider', () => require('../helpers/mockTheme').the
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+function makeCategories(): PublicMenuCategory[] {
+  return [
+    {
+      name: 'Comidas',
+      sortOrder: 0,
+      items: [
+        { id: 'item-1', name: 'Hamburguer', priceCents: 1000 },
+        { id: 'item-2', name: 'Pastel de Queijo', priceCents: 1500 },
+      ],
+    },
+    {
+      name: 'Bebidas',
+      sortOrder: 1,
+      items: [{ id: 'item-3', name: 'Café Puro', priceCents: 700 }],
+    },
+  ] as unknown as PublicMenuCategory[];
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
-  capturedOnEvent = null;
-  mockSeededOrders = [];
+  mockMenu = { categories: [], isLoading: false, error: null };
+  mockCart = { items: [], total: 0, count: 0 };
 });
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
-describe('CustomerMenuScreen — "Meus pedidos" list', () => {
-  it('renders a session order with the status icon (aguardando → schedule)', async () => {
-    mockSeededOrders = [{ id: 'order-1', dailyNumber: 3, customerName: 'Jeremias', status: 'aguardando' }];
+describe('CustomerMenuScreen — "Novo Pedido"', () => {
+  it('renders categories and total (no name field, no order list)', () => {
+    mockMenu = { categories: makeCategories(), isLoading: false, error: null };
 
-    const { getByTestId, getByText, queryByText } = render(<CustomerMenuScreen slug="pastel" />);
+    const { getByTestId, queryByTestId, getByText } = render(<CustomerMenuScreen slug="pastel" />);
 
-    await waitFor(() => expect(getByTestId('track-order-order-1')).toBeTruthy());
-    expect(getByText('Pedido #3 - Jeremias')).toBeTruthy();
-    // Status icon glyph for 'aguardando'.
-    expect(queryByText('schedule')).toBeTruthy();
+    // The customer name is collected on the checkout screen, not here.
+    expect(queryByTestId('menu-name-input')).toBeNull();
+    expect(getByText('Comidas')).toBeTruthy();
+    expect(getByText('Bebidas')).toBeTruthy();
+    expect(getByTestId('menu-total-row')).toBeTruthy();
+    expect(getByTestId('menu-create-order-button')).toBeTruthy();
+    // The session-order list was moved to the "Pedidos" screen.
+    expect(queryByTestId('my-orders-section')).toBeNull();
   });
 
-  it('updates the item icon live on a matching status_updated event', async () => {
-    mockSeededOrders = [{ id: 'order-1', dailyNumber: 3, customerName: 'Jeremias', status: 'aguardando' }];
+  it('adds an item to the cart when its "Adicionar" button is pressed', () => {
+    mockMenu = { categories: makeCategories(), isLoading: false, error: null };
 
-    const { getByTestId, queryByText } = render(<CustomerMenuScreen slug="pastel" />);
-    await waitFor(() => expect(getByTestId('track-order-order-1')).toBeTruthy());
-    expect(queryByText('schedule')).toBeTruthy(); // aguardando
-    expect(queryByText('local_fire_department')).toBeNull(); // not preparando yet
+    // At quantity 0 the item shows an "Adicionar" pill (not the stepper).
+    const { getByTestId } = render(<CustomerMenuScreen slug="pastel" />);
+    fireEvent.press(getByTestId('add-item-1'));
 
-    act(() => {
-      capturedOnEvent?.({
-        channel: 'orders:queue:tenant-1',
-        event: 'status_updated',
-        payload: { id: 'order-1', status: 'preparando' },
-      });
-    });
-
-    // Icon switches to 'preparando' (local_fire_department) and 'schedule' is gone.
-    await waitFor(() => expect(queryByText('local_fire_department')).toBeTruthy());
-    expect(queryByText('schedule')).toBeNull();
+    expect(mockAddItem).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'item-1' }),
+      1,
+    );
   });
 
-  it('ignores status_updated events for an order not in the session', async () => {
-    mockSeededOrders = [{ id: 'order-1', dailyNumber: 3, customerName: 'Jeremias', status: 'aguardando' }];
+  it('shows the stepper (not "Adicionar") for items already in the cart', () => {
+    mockMenu = { categories: makeCategories(), isLoading: false, error: null };
+    mockCart = {
+      items: [{ menuItemId: 'item-1', name: 'Hamburguer', priceCents: 1000, quantity: 2 }],
+      total: 2000,
+      count: 2,
+    };
 
-    const { getByTestId, queryByText } = render(<CustomerMenuScreen slug="pastel" />);
-    await waitFor(() => expect(getByTestId('track-order-order-1')).toBeTruthy());
+    const { getByTestId, queryByTestId } = render(<CustomerMenuScreen slug="pastel" />);
 
-    act(() => {
-      capturedOnEvent?.({
-        channel: 'orders:queue:tenant-1',
-        event: 'status_updated',
-        payload: { id: 'other-order', status: 'pronto' },
-      });
-    });
+    // item-1 has qty 2 → stepper visible, no "Adicionar" pill.
+    expect(getByTestId('increment-item-1')).toBeTruthy();
+    expect(getByTestId('decrement-item-1')).toBeTruthy();
+    expect(queryByTestId('add-item-1')).toBeNull();
+    // item-2 still at 0 → shows "Adicionar".
+    expect(getByTestId('add-item-2')).toBeTruthy();
+  });
 
-    // Unchanged — still 'aguardando'.
-    expect(queryByText('schedule')).toBeTruthy();
-    expect(queryByText('notifications')).toBeNull();
+  it('navigates to checkout on "Criar Pedido" (name is collected there)', () => {
+    mockMenu = { categories: makeCategories(), isLoading: false, error: null };
+    mockCart = {
+      items: [{ menuItemId: 'item-1', name: 'Hamburguer', priceCents: 1000, quantity: 1 }],
+      total: 1000,
+      count: 1,
+    };
+
+    const { getByTestId } = render(<CustomerMenuScreen slug="pastel" />);
+    fireEvent.press(getByTestId('menu-create-order-button'));
+
+    expect(mockPush).toHaveBeenCalledWith('/pastel/checkout');
+  });
+
+  it('shows an empty-menu message when there are no categories', () => {
+    mockMenu = { categories: [], isLoading: false, error: null };
+
+    const { getByText } = render(<CustomerMenuScreen slug="pastel" />);
+    expect(getByText('Nenhum item disponível no momento.')).toBeTruthy();
+  });
+
+  it('shows an error state with a retry action', () => {
+    mockMenu = { categories: [], isLoading: false, error: { message: 'Falhou' } };
+
+    const { getByTestId, getByText } = render(<CustomerMenuScreen slug="pastel" />);
+    expect(getByTestId('menu-error')).toBeTruthy();
+    fireEvent.press(getByText('Tentar novamente'));
+    expect(mockRefetch).toHaveBeenCalled();
   });
 });

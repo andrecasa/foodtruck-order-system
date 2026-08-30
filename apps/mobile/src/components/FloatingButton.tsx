@@ -11,6 +11,8 @@ export interface FloatingButtonProps {
   icon?: string;
   /** Distance from the bottom edge (default: 16). Use 72 when above BottomNav. */
   bottomOffset?: number;
+  /** When true, dims the button and blocks presses (matches Button disabled). */
+  disabled?: boolean;
   /** Optional test ID */
   testID?: string;
   /** Optional accessibility label override */
@@ -36,18 +38,21 @@ export function FloatingButton({
   onPress,
   icon,
   bottomOffset = 16,
+  disabled = false,
   testID,
   accessibilityLabel,
   accessibilityHint,
 }: FloatingButtonProps) {
   const theme = useTheme();
 
+  const contentColor = disabled ? theme.colors.textDisabled : theme.colors.surface;
+
   const containerStyle: ViewStyle = {
     position: 'absolute',
     bottom: bottomOffset,
     left: 16,
     right: 16,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.primary,
     borderRadius: 22,
     height: 44,
     flexDirection: 'row',
@@ -60,7 +65,9 @@ export function FloatingButton({
     <Pressable
       style={containerStyle}
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
       testID={testID}
@@ -70,7 +77,7 @@ export function FloatingButton({
           style={{
             fontFamily: 'Material Symbols Outlined',
             fontSize: 18,
-            color: theme.colors.surface,
+            color: contentColor,
           }}
         >
           {icon}
@@ -81,7 +88,7 @@ export function FloatingButton({
           fontFamily: theme.typography.fontFamily,
           fontSize: 14,
           fontWeight: '400',
-          color: theme.colors.surface,
+          color: contentColor,
         }}
       >
         {label}

@@ -12,12 +12,12 @@ import { useTheme } from '../theme/ThemeProvider';
 import { FormScreen } from '../components/FormScreen';
 import { Text } from '../components/Typography';
 import { Input } from '../components/Input';
-import { Button } from '../components/Button';
+import { FloatingButton } from '../components/FloatingButton';
+import { MenuItemsCard } from '../components/MenuItemsCard';
+import { TotalRow } from '../components/TotalRow';
 import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
-import { formatPrice } from '../utils/format';
-import { withOpacity } from '../utils/color';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;
@@ -207,8 +207,44 @@ export function CreateOrderScreen() {
 
   const contentStyle: ViewStyle = {
     flexGrow: 1,
-    padding: 16,
+    paddingHorizontal: 16,
+    // Top padding handled by the fixed name bar above.
+    paddingTop: 8,
     gap: 20,
+    // Room so the last content clears the floating Total (48) + CTA (44) stack.
+    paddingBottom: 16 + 44 + 8 + 48 + 16,
+  };
+
+  // Fixed name bar below the header (matches content horizontal padding).
+  const nameBarStyle: ViewStyle = {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: theme.colors.background,
+  };
+
+  // Floating Total container — pinned just above the CTA (bottom:16, height 44),
+  // so the total floats at 16 + 44 + 8. Uses the opaque `surfacePrimary` tint
+  // (matches the TotalRow look) so scrolled content does not bleed through.
+  const floatingTotalStyle: ViewStyle = {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16 + 44 + 8,
+    backgroundColor: theme.colors.surfacePrimary,
+    borderRadius: 8,
+  };
+
+  // Full-width solid panel behind the floating Total + CTA so no scrolled
+  // content shows through the gaps. Uses the screen background, matching the
+  // fixed name bar.
+  const floatingBackdropStyle: ViewStyle = {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 16 + 44 + 8 + 48 + 8,
+    backgroundColor: theme.colors.background,
   };
 
   const originLabelStyle: TextStyle = {
@@ -254,123 +290,6 @@ export function CreateOrderScreen() {
     color: theme.colors.text,
   };
 
-  const categoryLabelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 13,
-    fontWeight: '400',
-    color: theme.colors.text,
-    marginBottom: 8,
-    marginTop: 12,
-  };
-
-  const itemsCardStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 10,
-    paddingHorizontal: 14,
-    gap: 10,
-    borderWidth: 0,
-  };
-
-  const menuItemRowStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 40,
-  };
-
-  const menuItemInfoStyle: ViewStyle = {
-    flex: 1,
-    marginRight: 8,
-  };
-
-  const itemNameStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const itemPriceStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const stepperContainerStyle: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  };
-
-  const stepperMinusStyle: ViewStyle = {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.background,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const stepperMinusTextStyle = (qty: number): TextStyle => ({
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: qty <= 0 ? theme.colors.textDisabled : theme.colors.text,
-  });
-
-  const stepperPlusStyle: ViewStyle = {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const stepperPlusTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: theme.colors.surface,
-  };
-
-  const quantityTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    minWidth: 20,
-    textAlign: 'center',
-  };
-
-  const totalContainerStyle: ViewStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 48,
-    paddingHorizontal: 16,
-    backgroundColor: withOpacity(theme.colors.primary, 0.06),
-    borderRadius: 8,
-  };
-
-  const totalLabelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const totalAmountStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 20,
-    fontWeight: '400',
-    color: theme.colors.primary,
-  };
-
   const errorTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
@@ -382,23 +301,47 @@ export function CreateOrderScreen() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <FormScreen title="Pedido" onBack={() => router.back()} contentContainerStyle={contentStyle}>
-        {/* Customer Name */}
-        <Input
-          accessibilityLabel="Nome do Cliente"
-          value={customerName}
-          onChangeText={(text) => {
-            setCustomerName(text.slice(0, 100));
-            if (customerNameError) setCustomerNameError('');
-          }}
-          placeholder="Nome do cliente..."
-          icon="person"
-          iconColor={theme.colors.textSecondary}
-          error={customerNameError}
-          testID="input-customer-name"
-          inputRef={customerNameRef}
-        />
-
+    <FormScreen
+      title="Pedido"
+      onBack={() => router.back()}
+      contentContainerStyle={contentStyle}
+      stickyHeader={
+        <View style={nameBarStyle}>
+          {/* Customer Name — fixed above the scrollable item list. */}
+          <Input
+            accessibilityLabel="Nome do Cliente"
+            value={customerName}
+            onChangeText={(text) => {
+              setCustomerName(text.slice(0, 100));
+              if (customerNameError) setCustomerNameError('');
+            }}
+            placeholder="Nome do cliente..."
+            icon="person"
+            iconColor={theme.colors.textSecondary}
+            error={customerNameError}
+            testID="input-customer-name"
+            inputRef={customerNameRef}
+          />
+        </View>
+      }
+      footer={
+        <>
+          {/* Solid backing panel behind the floating Total + CTA. */}
+          <View style={floatingBackdropStyle} pointerEvents="none" />
+          {/* Floating Total — pinned just above the CTA. */}
+          <View style={floatingTotalStyle}>
+            <TotalRow totalCents={total} />
+          </View>
+          <FloatingButton
+            label="Criar Pedido"
+            onPress={handleSubmit}
+            disabled={loading}
+            bottomOffset={16}
+            testID="submit-order"
+          />
+        </>
+      }
+    >
         {/* Origin Selector */}
         <View>
           <RNText style={originLabelStyle}>Origem do Pedido</RNText>
@@ -430,69 +373,25 @@ export function CreateOrderScreen() {
           ) : null}
 
           {!menuLoading && categories.map((category) => (
-            <View key={category}>
-              <RNText style={categoryLabelStyle}>{category}</RNText>
-              <View style={itemsCardStyle}>
-                {groupedItems[category]!.map((item) => {
-                  const qty = selectedItems[item.id] ?? 0;
-                  return (
-                    <View key={item.id} style={menuItemRowStyle}>
-                      <View style={menuItemInfoStyle}>
-                        <RNText style={itemNameStyle}>{item.name}</RNText>
-                        <RNText style={itemPriceStyle}>{formatPrice(item.price)}</RNText>
-                      </View>
-                      <View style={stepperContainerStyle}>
-                        <TouchableOpacity
-                          style={stepperMinusStyle}
-                          onPress={() => decrementItem(item.id)}
-                          disabled={qty <= 0}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Diminuir quantidade de ${item.name}`}
-                          testID={`decrement-${item.id}`}
-                        >
-                          <RNText style={stepperMinusTextStyle(qty)}>−</RNText>
-                        </TouchableOpacity>
-                        <RNText style={quantityTextStyle}>{qty}</RNText>
-                        <TouchableOpacity
-                          style={stepperPlusStyle}
-                          onPress={() => incrementItem(item.id)}
-                          disabled={qty >= 99}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Aumentar quantidade de ${item.name}`}
-                          testID={`increment-${item.id}`}
-                        >
-                          <RNText style={stepperPlusTextStyle}>+</RNText>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
+            <MenuItemsCard
+              key={category}
+              category={category}
+              items={groupedItems[category]!.map((item) => ({
+                id: item.id,
+                name: item.name,
+                priceCents: item.price,
+              }))}
+              quantities={selectedItems}
+              onIncrement={incrementItem}
+              onDecrement={decrementItem}
+              showAddButton
+            />
           ))}
 
           {itemsError ? (
             <RNText style={errorTextStyle}>{itemsError}</RNText>
           ) : null}
         </View>
-
-        {/* Total */}
-        <View style={totalContainerStyle}>
-          <RNText style={totalLabelStyle}>Total</RNText>
-          <RNText style={totalAmountStyle}>{formatPrice(total)}</RNText>
-        </View>
-
-        {/* Submit Button */}
-        <Button
-          title="Adicionar"
-          variant="primary"
-          size="lg"
-          fullWidth
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={loading}
-          testID="submit-order"
-        />
     </FormScreen>
   );
 }

@@ -16,6 +16,11 @@ export interface FormScreenProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   /** Fixed footer (e.g. BottomNav). Rendered below the scroll area, lifts with keyboard. */
   footer?: React.ReactNode;
+  /**
+   * Fixed content pinned between the Header and the scroll area (e.g. a name
+   * field that should stay visible while the content scrolls). Does not scroll.
+   */
+  stickyHeader?: React.ReactNode;
 }
 
 /**
@@ -30,7 +35,7 @@ export interface FormScreenProps {
  *  - lifts the footer above the keyboard
  * The Header stays fixed at the top.
  */
-export function FormScreen({ title, onBack, children, contentContainerStyle, footer }: FormScreenProps) {
+export function FormScreen({ title, onBack, children, contentContainerStyle, footer, stickyHeader }: FormScreenProps) {
   const theme = useTheme();
   const keyboardHeight = useKeyboardHeight();
 
@@ -40,6 +45,8 @@ export function FormScreen({ title, onBack, children, contentContainerStyle, foo
       edges={['top', 'bottom']}
     >
       <Header title={title} onBack={onBack} />
+
+      {stickyHeader}
 
       <View style={{ flex: 1, paddingBottom: keyboardHeight }}>
         <ScrollView

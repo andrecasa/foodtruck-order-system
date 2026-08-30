@@ -100,8 +100,9 @@ describe('CreateOrderScreen', () => {
 
     await findByText('Pastel de Carne');
 
-    // Increment
-    fireEvent.press(getByTestId('increment-item-1'));
+    // At qty 0 the item shows "Adicionar"; tapping it adds the first unit.
+    fireEvent.press(getByTestId('add-item-1'));
+    // Now the stepper is visible.
     fireEvent.press(getByTestId('increment-item-1'));
 
     // Decrement
@@ -118,8 +119,8 @@ describe('CreateOrderScreen', () => {
 
     await findByText('Pastel de Carne');
 
-    // Increment pastel (R$ 8,00) twice → total = R$ 16,00
-    fireEvent.press(getByTestId('increment-item-1'));
+    // Add pastel (R$ 8,00) then increment → total = R$ 16,00
+    fireEvent.press(getByTestId('add-item-1'));
     fireEvent.press(getByTestId('increment-item-1'));
 
     await findByText('R$ 16,00');
@@ -136,8 +137,8 @@ describe('CreateOrderScreen', () => {
     // Fill customer name
     fireEvent.changeText(getByTestId('input-customer-name'), 'João Silva');
 
-    // Increment item
-    fireEvent.press(getByTestId('increment-item-1'));
+    // Add item (shows "Adicionar" at qty 0)
+    fireEvent.press(getByTestId('add-item-1'));
 
     // Submit
     fireEvent.press(getByTestId('submit-order'));

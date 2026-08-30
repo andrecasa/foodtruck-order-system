@@ -58,6 +58,8 @@ export {
   tenantBrandingResponseSchema,
 } from './validators/tenant.validator';
 
+export { NEUTRAL_PLATFORM_THEME, deepMergeTheme } from './theme/platform-theme';
+
 export {
   ORDER_STATUSES,
   PAYMENT_STATUSES,

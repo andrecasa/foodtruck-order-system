@@ -14,7 +14,12 @@ export interface PublicMenuCategory {
 export interface PublicBranding {
   businessName: string;
   logoUrl: string | null;
-  theme: Record<string, unknown> | null;
+  /**
+   * Fully-resolved theme (tenant partial override merged over the neutral
+   * platform theme). Every token has a value, matching the authenticated
+   * branding contract so the customer and operator apps render identically.
+   */
+  theme: Record<string, unknown>;
   slug: string;
   realtimeChannel: string;
 }

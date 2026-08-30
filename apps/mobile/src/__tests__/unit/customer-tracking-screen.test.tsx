@@ -64,12 +64,15 @@ describe('CustomerTrackingScreen', () => {
 
     await waitFor(() => expect(getByTestId('tracking-number-card')).toBeTruthy());
     expect(mockFetchPublicOrder).toHaveBeenCalledWith('pastel', 'order-abc');
-    expect(getByText('#42')).toBeTruthy();
-    expect(getByText('Maria')).toBeTruthy();
-    expect(getByTestId('tracking-status-badge')).toBeTruthy();
-    expect(getByTestId('tracking-payment-badge')).toBeTruthy();
+    // Name line matches the operator payment card: "#N - Name".
+    expect(getByText('#42 - Maria')).toBeTruthy();
+    // Badges + items come from the shared CustomerOrderCard.
+    expect(getByTestId('tracking-order-status-badge')).toBeTruthy();
+    expect(getByTestId('tracking-order-payment-badge')).toBeTruthy();
     expect(getByText('Pendente')).toBeTruthy();
-    expect(getByTestId('tracking-summary')).toBeTruthy();
+    expect(getByText(/2x Pastel de Carne \(R\$ 16,00\)/)).toBeTruthy();
+    // "Pedido criado há X" footer is now shown.
+    expect(getByText(/Pedido criado/)).toBeTruthy();
   });
 
   it('updates the status when a matching status_updated realtime event arrives', async () => {

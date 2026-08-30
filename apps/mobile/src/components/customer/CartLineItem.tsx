@@ -18,6 +18,8 @@ export interface CartLineItemProps {
   onDecrement: (menuItemId: string) => void;
   /** Remove the line entirely. */
   onRemove: (menuItemId: string) => void;
+  /** When true, omits the bottom divider (used for the last row in a list). */
+  isLast?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export function CartLineItem({
   onIncrement,
   onDecrement,
   onRemove,
+  isLast = false,
 }: CartLineItemProps) {
   const theme = useTheme();
 
@@ -40,7 +43,7 @@ export function CartLineItem({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
+    borderBottomWidth: isLast ? 0 : 1,
     borderBottomColor: theme.colors.divider,
     gap: theme.spacing.sm,
   };

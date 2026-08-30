@@ -9,6 +9,7 @@ import type { PublicOrderResponse } from '@order-system/shared';
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace, push: jest.fn(), back: jest.fn() }),
+  useLocalSearchParams: () => ({}),
 }));
 
 // Cart mock — controlled per test via mockCart.
@@ -22,6 +23,18 @@ jest.mock('../../hooks/customer/useCart', () => ({
 const mockCreatePublicOrder = jest.fn();
 jest.mock('../../services/public-client', () => ({
   createPublicOrder: (...args: any[]) => mockCreatePublicOrder(...args),
+}));
+
+// Session orders mock — capture addOrder to assert the placed order is recorded.
+const mockAddOrder = jest.fn();
+jest.mock('../../hooks/customer/useSessionOrders', () => ({
+  useSessionOrders: () => ({
+    orders: [],
+    addOrder: mockAddOrder,
+    updateStatus: jest.fn(),
+    clearOrders: jest.fn(),
+    refresh: jest.fn(),
+  }),
 }));
 
 jest.mock('../../theme', () => require('../helpers/mockTheme').themeMocks);
@@ -68,10 +81,20 @@ beforeEach(() => {
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('CustomerCheckoutScreen', () => {
-  it('renders the order summary with the cart total', () => {
-    const { getByTestId } = render(<CustomerCheckoutScreen slug="pastel" />);
+  it('renders the resumo items and shows the total inside the card (no separate Total row)', () => {
+    const { getByTestId, getByText, queryByTestId } = render(
+      <CustomerCheckoutScreen slug="pastel" />,
+    );
+
+    // Resumo card lists items in the payment-card format: "Nx Name (line total)".
+    expect(getByText(/2x Pastel de Carne \(R\$ 16,00\)/)).toBeTruthy();
+    expect(getByText(/1x Caldo de Cana \(R\$ 5,00\)/)).toBeTruthy();
+
+    // The grand total is shown INSIDE the resumo card (not in a separate row).
+    expect(getByTestId('checkout-total')).toBeTruthy();
     // Total: 800*2 + 500 = 2100 → R$ 21,00
-    expect(getByTestId('order-summary-total').props.children).toContain('21,00');
+    expect(getByText('R$ 21,00')).toBeTruthy();
+    expect(queryByTestId('checkout-total-row')).toBeNull();
   });
 
   it('shows a validation error when the name is empty and does not submit', () => {
@@ -99,6 +122,11 @@ describe('CustomerCheckoutScreen', () => {
 
     await waitFor(() => expect(clearSpy).toHaveBeenCalledTimes(1));
     expect(mockReplace).toHaveBeenCalledWith('/pastel/pedido/order-abc');
+    // The placed order is recorded into the session list so "Meus Pedidos"
+    // accumulates every order.
+    expect(mockAddOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'order-abc', dailyNumber: 7, customerName: 'Maria' }),
+    );
   });
 
   it('shows a friendly error and does NOT clear the cart when creation fails', async () => {

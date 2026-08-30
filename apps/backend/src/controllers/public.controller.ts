@@ -1,9 +1,11 @@
 import { Response } from 'express';
 import { publicCreateOrderSchema } from '@order-system/shared';
+import type { ThemeConfig } from '@order-system/shared';
 import { pool } from '../config/database.js';
 import * as menuService from '../services/menu.service.js';
 import { createOrder, getOrderById } from '../services/order.service.js';
 import type { PublicTenantRequest } from '../middleware/public-tenant.middleware.js';
+import { NEUTRAL_PLATFORM_THEME, deepMergeTheme } from '../theme/platform-theme.js';
 
 /**
  * Public (unauthenticated) controllers for the customer ordering flow.
@@ -41,7 +43,13 @@ interface PublicMenuCategory {
 interface PublicBranding {
   businessName: string;
   logoUrl: string | null;
-  theme: Record<string, unknown> | null;
+  /**
+   * Fully-resolved theme: the tenant's partial `theme` override merged over the
+   * neutral platform theme, so every token has a value. Mirrors the
+   * authenticated `GET /api/tenant/branding` contract so the customer app and
+   * the operator app render with identical colors (single source of truth).
+   */
+  theme: ThemeConfig;
   slug: string;
   realtimeChannel: string;
 }
@@ -49,7 +57,7 @@ interface PublicBranding {
 interface BrandingRow {
   business_name: string;
   logo_url: string | null;
-  theme: Record<string, unknown> | null;
+  theme: Partial<ThemeConfig> | null;
   provisioning_key: string;
 }
 
@@ -114,7 +122,10 @@ export async function publicBrandingController(
     const branding: PublicBranding = {
       businessName: row.business_name,
       logoUrl: row.logo_url,
-      theme: row.theme,
+      // Merge the tenant's partial override over the neutral platform theme so
+      // the response is a complete ThemeConfig — same resolution the
+      // authenticated branding endpoint uses (branding.service.ts).
+      theme: deepMergeTheme(NEUTRAL_PLATFORM_THEME, row.theme),
       slug: row.provisioning_key,
       realtimeChannel: `orders:queue:${tenantId}`,
     };

@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { ScrollView, View, type ViewStyle } from 'react-native';
+import {
+  ScrollView,
+  View,
+  Text as RNText,
+  type ViewStyle,
+  type TextStyle,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme';
 import { Button, Heading, Input, Text } from '../../components';
 import { OrderSummary } from '../../components/customer/OrderSummary';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
+import { formatPrice } from '../../utils/format';
 import { useCart } from '../../hooks/customer/useCart';
 import { useCreateOrder } from '../../hooks/customer/useCreateOrder';
 
@@ -70,6 +77,68 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
   const contentStyle: ViewStyle = {
     padding: theme.spacing.md,
     gap: theme.spacing.lg,
+    // Leave room for the fixed informative bottom bar, matching the tracking
+    // screen's bottom bar clearance.
+    paddingBottom: theme.spacing.xl * 3,
+  };
+
+  // ─── Bottom bar (total + confirm) — mirrors the tracking screen's bar. ──────
+  const itemCount = cart.items.reduce((sum, i) => sum + i.quantity, 0);
+
+  const bottomBarStyle: ViewStyle = {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+  };
+
+  const bottomBarLeftStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  };
+
+  const barIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: theme.typography.sizes.xl,
+    color: theme.colors.surface,
+  };
+
+  const barCountBadgeStyle: ViewStyle = {
+    minWidth: theme.spacing.lg,
+    height: theme.spacing.lg,
+    borderRadius: theme.borderRadius.full,
+    paddingHorizontal: theme.spacing.xs,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const barCountTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.sizes.xs,
+    fontWeight: String(theme.typography.weights.bold) as TextStyle['fontWeight'],
+    color: theme.colors.primary,
+  };
+
+  const barLabelStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.sizes.md,
+    fontWeight: String(theme.typography.weights.medium) as TextStyle['fontWeight'],
+    color: theme.colors.surface,
+  };
+
+  const barTotalStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.sizes.lg,
+    fontWeight: String(theme.typography.weights.bold) as TextStyle['fontWeight'],
+    color: theme.colors.surface,
   };
 
   const centeredStyle: ViewStyle = {
@@ -106,22 +175,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
       />
 
       <ScrollView contentContainerStyle={contentStyle} showsVerticalScrollIndicator>
-        <View>
-          <View style={{ marginBottom: theme.spacing.sm }}>
-            <Heading level={3}>Resumo</Heading>
-          </View>
-          <OrderSummary
-            testID="checkout-summary"
-            lines={cart.items.map((i) => ({
-              key: i.menuItemId,
-              name: i.name,
-              quantity: i.quantity,
-              unitPriceCents: i.priceCents,
-            }))}
-            totalCents={cart.total}
-          />
-        </View>
-
+        
         <Input
           label="Seu nome"
           placeholder="Como devemos chamar você?"
@@ -133,7 +187,26 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
           error={nameError ?? undefined}
           autoCapitalize="words"
           testID="checkout-name-input"
-        />
+        />        
+        
+        <View>
+          <View style={{ marginBottom: theme.spacing.sm }}>
+            <Heading level={3}>Itens</Heading>
+          </View>
+          <OrderSummary
+            testID="checkout-summary"
+            showTotal={false}
+            lines={cart.items.map((i) => ({
+              key: i.menuItemId,
+              name: i.name,
+              quantity: i.quantity,
+              unitPriceCents: i.priceCents,
+            }))}
+            totalCents={cart.total}
+          />
+        </View>
+
+
 
         {error ? (
           <View testID="checkout-error" style={{ gap: theme.spacing.sm }}>
@@ -154,6 +227,26 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
           testID="checkout-confirm-button"
         />
       </ScrollView>
+
+      {/* Fixed informative bottom bar — total only, mirroring the tracking screen. */}
+      <View
+        style={bottomBarStyle}
+        accessibilityLabel={`Pedido com ${itemCount} ${
+          itemCount === 1 ? 'item' : 'itens'
+        }, total ${formatPrice(cart.total)}`}
+        testID="checkout-total-bar"
+      >
+        <View style={bottomBarLeftStyle}>
+          <RNText style={barIconStyle}>shopping_cart</RNText>
+          <View style={barCountBadgeStyle}>
+            <RNText style={barCountTextStyle}>{itemCount}</RNText>
+          </View>
+          <RNText style={barLabelStyle}>Total do pedido</RNText>
+        </View>
+        <RNText style={barTotalStyle} testID="checkout-total">
+          {formatPrice(cart.total)}
+        </RNText>
+      </View>
     </SafeAreaView>
   );
 }

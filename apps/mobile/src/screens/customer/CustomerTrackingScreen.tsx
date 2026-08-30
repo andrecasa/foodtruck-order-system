@@ -53,9 +53,6 @@ const PAYMENT_LABELS: Record<string, string> = {
  */
 const PAYMENT_ICON = 'currency_exchange';
 
-/** Fixed width for the solid status/payment badges (px). */
-const STATUS_BADGE_WIDTH = 175;
-
 /**
  * Order tracking screen (`/:slug/pedido/:orderId`).
  *
@@ -125,7 +122,7 @@ export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreen
   ) => (
     <View
       style={{
-        width: STATUS_BADGE_WIDTH,
+        flex: 1,
         height: 28,
         borderRadius: theme.borderRadius.full,
         backgroundColor: color + '1F', // 12% opacity tint
@@ -358,10 +355,12 @@ export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreen
     padding: theme.spacing.md,
   };
 
-  const statusRowStyle: ViewStyle = {
+  // Row holding both badges (status + payment) side by side, each flexing to
+  // share the full horizontal width.
+  const badgeRowStyle: ViewStyle = {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
   };
 
   return (
@@ -371,6 +370,21 @@ export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreen
         onBack={() => router.replace(`/${encodeURIComponent(slug)}`)}
       />
       <ScrollView contentContainerStyle={contentStyle} showsVerticalScrollIndicator>
+        <View style={badgeRowStyle}>
+          {renderStatusBadge(
+            PAYMENT_LABELS[order.paymentStatus] ?? order.paymentStatus,
+            paymentColor(order.paymentStatus),
+            PAYMENT_ICON,
+            'tracking-payment-badge',
+          )}
+          {renderStatusBadge(
+            STATUS_LABELS[order.status] ?? order.status,
+            statusColor(order.status),
+            STATUS_ICONS[order.status] ?? 'schedule',
+            'tracking-status-badge',
+          )}
+        </View>
+
         <View style={numberCardStyle} testID="tracking-number-card">
           {/* Left stripe — status color */}
           <View style={numberCardStripeStyle} />
@@ -399,26 +413,6 @@ export function CustomerTrackingScreen({ slug, orderId }: CustomerTrackingScreen
             </Heading>
           </View>
         ) : null}
-
-        <View style={statusRowStyle}>
-          <Text size="md" weight="medium">Status</Text>
-          {renderStatusBadge(
-            STATUS_LABELS[order.status] ?? order.status,
-            statusColor(order.status),
-            STATUS_ICONS[order.status] ?? 'schedule',
-            'tracking-status-badge',
-          )}
-        </View>
-
-        <View style={statusRowStyle}>
-          <Text size="md" weight="medium">Pagamento</Text>
-          {renderStatusBadge(
-            PAYMENT_LABELS[order.paymentStatus] ?? order.paymentStatus,
-            paymentColor(order.paymentStatus),
-            PAYMENT_ICON,
-            'tracking-payment-badge',
-          )}
-        </View>
 
         <View style={{ marginTop: theme.spacing.md }}>
           <View style={{ marginBottom: theme.spacing.sm }}>

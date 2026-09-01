@@ -66,6 +66,7 @@ function makeFullOrder(id: string, dailyNumber: number, status: string): PublicO
     customerName: 'Maria',
     status,
     paymentStatus: 'pendente',
+    origin: 'web',
     totalAmountCents: 1600,
     orderDate: '2024-01-15',
     createdAt: new Date().toISOString(),
@@ -74,8 +75,9 @@ function makeFullOrder(id: string, dailyNumber: number, status: string): PublicO
 }
 
 const sampleOrders: SessionOrder[] = [
-  { id: 'o2', dailyNumber: 2, customerName: 'Maria', status: 'preparando' },
+  // useSessionOrders stores orders oldest-first (placement order).
   { id: 'o1', dailyNumber: 1, customerName: 'Maria', status: 'pronto' },
+  { id: 'o2', dailyNumber: 2, customerName: 'Maria', status: 'preparando' },
 ];
 
 beforeEach(() => {
@@ -94,13 +96,16 @@ beforeEach(() => {
 
 describe('CustomerOrdersScreen — "Meus Pedidos"', () => {
   it('renders a full order card per session order', async () => {
-    const { getByTestId, getByText } = render(<CustomerOrdersScreen slug="pastel" />);
+    const { getByTestId, getByText, getAllByText } = render(<CustomerOrdersScreen slug="pastel" />);
 
     await waitFor(() => expect(getByTestId('order-card-o1')).toBeTruthy());
     expect(getByTestId('my-orders-section')).toBeTruthy();
     expect(getByTestId('order-card-o2')).toBeTruthy();
     expect(getByText('#2 - Maria')).toBeTruthy();
     expect(getByText('#1 - Maria')).toBeTruthy();
+    // Each card shows an origin badge; web orders render as "QrCode".
+    expect(getByTestId('order-card-o1-origin-badge')).toBeTruthy();
+    expect(getAllByText('QrCode').length).toBeGreaterThanOrEqual(2);
     // Fetched one full order per session id.
     expect(mockFetchPublicOrder).toHaveBeenCalledWith('pastel', 'o1');
     expect(mockFetchPublicOrder).toHaveBeenCalledWith('pastel', 'o2');
@@ -109,6 +114,42 @@ describe('CustomerOrdersScreen — "Meus Pedidos"', () => {
   it('shows the "Pedido criado há" footer on each card', async () => {
     const { getAllByText } = render(<CustomerOrdersScreen slug="pastel" />);
     await waitFor(() => expect(getAllByText(/Pedido criado/).length).toBeGreaterThanOrEqual(2));
+  });
+
+  it('renders the cards in the session list order (oldest first)', async () => {
+    const { getByTestId, getAllByTestId } = render(<CustomerOrdersScreen slug="pastel" />);
+    await waitFor(() => expect(getByTestId('order-card-o1')).toBeTruthy());
+
+    // The session list is stored oldest-first ([o1 (#1), o2 (#2)]) and rendered
+    // directly in that order, so #1 (o1) appears before #2 (o2).
+    const cards = getAllByTestId(/^order-card-o\d+$/);
+    const order = cards.map((c) => c.props.testID);
+    expect(order).toEqual(['order-card-o1', 'order-card-o2']);
+  });
+
+  it('shows the ready banner on a "pronto" card and none on the others', async () => {
+    const { getByTestId, queryByTestId } = render(<CustomerOrdersScreen slug="pastel" />);
+
+    // o1 is "pronto" → ready banner; o2 is "preparando" → no banner.
+    await waitFor(() => expect(getByTestId('order-card-o1-ready-banner')).toBeTruthy());
+    expect(queryByTestId('order-card-o2-ready-banner')).toBeNull();
+    expect(queryByTestId('order-card-o1-delivered-banner')).toBeNull();
+  });
+
+  it('swaps to the delivered banner when a card becomes "entregue"', async () => {
+    const { getByTestId, queryByTestId } = render(<CustomerOrdersScreen slug="pastel" />);
+    await waitFor(() => expect(getByTestId('order-card-o1-ready-banner')).toBeTruthy());
+
+    act(() => {
+      capturedOnEvent?.({
+        channel: 'orders:queue:tenant-1',
+        event: 'status_updated',
+        payload: { id: 'o1', status: 'entregue' },
+      });
+    });
+
+    await waitFor(() => expect(getByTestId('order-card-o1-delivered-banner')).toBeTruthy());
+    expect(queryByTestId('order-card-o1-ready-banner')).toBeNull();
   });
 
   it('refreshes the session list on focus', async () => {

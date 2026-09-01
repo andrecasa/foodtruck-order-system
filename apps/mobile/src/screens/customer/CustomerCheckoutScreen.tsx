@@ -33,7 +33,8 @@ export interface CustomerCheckoutScreenProps {
  * customer name is
  * required (client-side validated) and may be prefilled from the menu screen
  * via the `name` route param. On success it clears the cart and navigates to
- * tracking; on error it keeps the cart intact so the customer can retry.
+ * "Meus Pedidos" (`/:slug/pedidos`); on error it keeps the cart intact so the
+ * customer can retry.
  * A customer bottom nav (Novo / Pedidos) is pinned at the bottom.
  */
 export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
@@ -87,9 +88,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
         status: order.status,
       });
       cart.clear();
-      router.replace(
-        `/${encodeURIComponent(slug)}/pedido/${encodeURIComponent(order.id)}`,
-      );
+      router.replace(ordersHref(slug));
     }
   };
 
@@ -112,17 +111,6 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.md,
     paddingBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.background,
-  };
-
-  // Full-width solid panel behind the floating CTA so no scrolled content
-  // shows through. Uses the screen background, matching the fixed name bar.
-  const floatingBackdropStyle: ViewStyle = {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 16 + 44 + 8,
     backgroundColor: theme.colors.background,
   };
 
@@ -299,9 +287,6 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
         ) : null}
 
       </ScrollView>
-
-      {/* Solid backing panel behind the floating CTA. */}
-      <View style={floatingBackdropStyle} pointerEvents="none" />
 
       {/* Floating CTA — pinned above the bottom nav. */}
       <FloatingButton

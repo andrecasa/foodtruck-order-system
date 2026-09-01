@@ -76,6 +76,7 @@ interface PublicOrderStatus {
   customerName: string;
   status: string;
   paymentStatus: string;
+  origin: string;
   totalAmountCents: number;
   createdAt: string;
   items: PublicOrderStatusItem[];
@@ -244,14 +245,25 @@ export async function publicCreateOrderController(
       createdBy: admin.id,
     });
 
-    // 4. Return only the fields the customer needs (R3.8).
+    // 4. Return the full public order shape (PublicOrderResponse) so the
+    //    client can persist a complete "Meus Pedidos" entry and render the
+    //    order card without a second fetch. Must include customerName,
+    //    paymentStatus and items — the customer order card relies on all three.
     res.status(201).json({
       id: created.id,
       dailyNumber: created.dailyNumber,
-      totalAmountCents: created.totalAmountCents,
+      customerName: created.customerName,
       status: created.status,
+      paymentStatus: created.paymentStatus,
+      origin: created.origin,
+      totalAmountCents: created.totalAmountCents,
       orderDate: created.orderDate,
       createdAt: created.createdAt,
+      items: (created.items ?? []).map((item) => ({
+        itemName: item.itemName,
+        quantity: item.quantity,
+        unitPriceCents: item.unitPriceCents,
+      })),
     });
   } catch (err) {
     // Map service errors by their numeric status code (see doc comment).
@@ -308,6 +320,7 @@ export async function publicOrderStatusController(
       customerName: order.customerName,
       status: order.status,
       paymentStatus: order.paymentStatus,
+      origin: order.origin,
       totalAmountCents: order.totalAmountCents,
       createdAt: order.createdAt,
       items: (order.items ?? []).map((item) => ({

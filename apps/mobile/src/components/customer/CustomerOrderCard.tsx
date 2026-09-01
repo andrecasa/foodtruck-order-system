@@ -3,6 +3,7 @@ import { View, Text as RNText, type ViewStyle, type TextStyle } from 'react-nati
 import type { PublicOrderResponse } from '@order-system/shared';
 import { useTheme } from '../../theme';
 import { Badge } from '../Badge';
+import { OriginBadge } from '../OriginBadge';
 import { formatPrice, formatOrderAge } from '../../utils/format';
 
 /** Portuguese status labels shown in the badge. */
@@ -30,17 +31,21 @@ const PAYMENT_LABELS: Record<string, string> = {
 /** Payment badge icon (same glyph both states, matching the operator screens). */
 const PAYMENT_ICON = 'currency_exchange';
 
+
+
 export interface CustomerOrderCardProps {
   order: PublicOrderResponse;
   testID?: string;
 }
 
 /**
- * A single public order card — the shared building block for both the customer
- * "Meus Pedidos" list and the single-order tracking screen. Mirrors the
- * operator OrderQueueScreen / PaymentScreen card: a status-colored left stripe,
- * a row of badges (payment + status), the "#N - Name" line, the item lines
- * (`Nx name (subtotal)`), the total, and a "Pedido criado há X" footer.
+ * A single public order card — the building block for the customer "Meus
+ * Pedidos" list. Mirrors the operator OrderQueueScreen / PaymentScreen card: a
+ * status-colored left stripe, a row of badges (payment + origin + status), the
+ * "#N - Name" line, the item lines (`Nx name (subtotal)`), the total, and a
+ * "Pedido criado há X" footer. When the order is `pronto` it also shows a green
+ * "Seu pedido está pronto." banner, and when `entregue` a neutral "Pedido
+ * entregue. Obrigado!" banner (both with a check icon).
  *
  * Colors come from the theme; status maps match the operator screens so both
  * apps speak one visual language.
@@ -138,6 +143,59 @@ export function CustomerOrderCard({ order, testID }: CustomerOrderCardProps) {
     opacity: 0.7,
   };
 
+  const isReady = order.status === 'pronto';
+  const isDelivered = order.status === 'entregue';
+
+  // "Pronto" banner — green tinted surface + check icon + message, matching the
+  // former tracking screen. "Entregue" banner — neutral surface + check icon.
+  const readyBannerStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surfaceReceived,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+  };
+
+  const readyIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: theme.typography.sizes.xl,
+    color: theme.colors.pronto,
+  };
+
+  const readyTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.sizes.md,
+    fontWeight: '600',
+    color: theme.colors.pronto,
+  };
+
+  const deliveredBannerStyle: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+    padding: theme.spacing.md,
+  };
+
+  const deliveredIconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: theme.typography.sizes.xl,
+    color: theme.colors.textSecondary,
+  };
+
+  const deliveredTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.sizes.md,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  };
+
   return (
     <View style={cardStyle} testID={testID}>
       <View style={cardStripeStyle} />
@@ -151,6 +209,10 @@ export function CustomerOrderCard({ order, testID }: CustomerOrderCardProps) {
               color={paymentColor(order.paymentStatus)}
             />
           </View>
+          <OriginBadge
+            origin={order.origin}
+            testID={testID ? `${testID}-origin-badge` : undefined}
+          />
           <View testID={testID ? `${testID}-status-badge` : undefined}>
             <Badge
               icon={STATUS_ICONS[order.status] ?? 'schedule'}
@@ -183,6 +245,25 @@ export function CustomerOrderCard({ order, testID }: CustomerOrderCardProps) {
           <RNText style={timeIconStyle}>timer</RNText>
           <RNText style={timeTextStyle}>{formatOrderAge(order.createdAt)}</RNText>
         </View>
+
+        {/* Ready banner — shown when the order is "pronto". */}
+        {isReady ? (
+          <View style={readyBannerStyle} testID={testID ? `${testID}-ready-banner` : undefined}>
+            <RNText style={readyIconStyle}>check_circle</RNText>
+            <RNText style={readyTextStyle}>Seu pedido está pronto.</RNText>
+          </View>
+        ) : null}
+
+        {/* Delivered banner — shown when the order is "entregue". */}
+        {isDelivered ? (
+          <View
+            style={deliveredBannerStyle}
+            testID={testID ? `${testID}-delivered-banner` : undefined}
+          >
+            <RNText style={deliveredIconStyle}>check_circle</RNText>
+            <RNText style={deliveredTextStyle}>Pedido entregue. Obrigado!</RNText>
+          </View>
+        ) : null}
       </View>
     </View>
   );

@@ -8,6 +8,7 @@ import { apiClient } from '../services/api-client';
 import { mapOrder } from '../services/real-client';
 import { useAuth, useRealtime } from '../hooks';
 import type { RealtimeEvent } from '../hooks';
+import { getOrderOriginBadge } from '@order-system/shared';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 
 /** Format price in centavos to R$ X,XX */
@@ -638,17 +639,13 @@ export function QueuePage() {
   };
 
   const getOriginBadge = (origin: string) => {
-    // Mirrors the operator mobile queue: web = "Online" (globe), whatsapp =
-    // "WhatsApp" (chat), presencial = "Presencial" (storefront). Remote orders
-    // (web/whatsapp) share the sage-green tint; presencial uses the amber tone.
-    switch (origin) {
-      case 'web':
-        return { icon: 'language', label: 'Online', color: theme.colors.pronto };
-      case 'whatsapp':
-        return { icon: 'chat', label: 'WhatsApp', color: theme.colors.pronto };
-      default:
-        return { icon: 'storefront', label: 'Presencial', color: theme.colors.preparando };
-    }
+    // Icon + label come from the shared source of truth (getOrderOriginBadge),
+    // so web = "QrCode" never diverges across apps. The color is resolved here
+    // from the color role: remote orders (web/whatsapp) share the sage-green
+    // tint, presencial uses the amber tone.
+    const { icon, label, colorRole } = getOrderOriginBadge(origin);
+    const color = colorRole === 'remote' ? theme.colors.pronto : theme.colors.preparando;
+    return { icon, label, color };
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────

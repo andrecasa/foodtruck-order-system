@@ -67,6 +67,7 @@ const sampleOrder: PublicOrderResponse = {
   customerName: 'Maria',
   status: 'aguardando',
   paymentStatus: 'pendente',
+  origin: 'web',
   totalAmountCents: 2100,
   orderDate: '2024-01-15',
   createdAt: '2024-01-15T10:00:00Z',
@@ -121,7 +122,9 @@ describe('CustomerCheckoutScreen', () => {
     });
 
     await waitFor(() => expect(clearSpy).toHaveBeenCalledTimes(1));
-    expect(mockReplace).toHaveBeenCalledWith('/pastel/pedido/order-abc');
+    // Orders are centralized on "Meus Pedidos" (`/:slug/pedidos`); there is no
+    // longer a separate single-order tracking route.
+    expect(mockReplace).toHaveBeenCalledWith('/pastel/pedidos');
     // The placed order is recorded into the session list so "Meus Pedidos"
     // accumulates every order.
     expect(mockAddOrder).toHaveBeenCalledWith(

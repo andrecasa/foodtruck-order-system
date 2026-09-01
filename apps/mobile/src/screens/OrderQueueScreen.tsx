@@ -9,6 +9,7 @@ import {
   Text,
   FilterChips,
   Badge,
+  OriginBadge,
   type FilterChipOption,
 } from '../components';
 import { Toast } from '../components/Toast';
@@ -19,7 +20,7 @@ import { useRealtime } from '../hooks/useRealtime';
 import { useNetworkError } from '../hooks/useNetworkError';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useAuth } from '../hooks/useAuth';
-import { formatPrice } from '../utils/format';
+import { formatPrice, formatOrderAge } from '../utils/format';
 
 /** Map current status to the next status in the workflow */
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -53,19 +54,7 @@ const STATUS_ICON: Record<OrderStatus, string> = {
   entregue: 'check_circle',
 };
 
-/** Icon for origin badge */
-const ORIGIN_ICON: Record<string, string> = {
-  presencial: 'storefront',
-  whatsapp: 'chat',
-  web: 'language',
-};
 
-/** Label for origin badge (web = pedido online do cliente) */
-const ORIGIN_LABEL: Record<string, string> = {
-  presencial: 'Presencial',
-  whatsapp: 'WhatsApp',
-  web: 'Online',
-};
 
 /**
  * Order Queue Screen — displays active orders (aguardando, preparando, pronto)
@@ -335,42 +324,12 @@ export function OrderQueueScreen() {
     return payStatus === 'pago' ? theme.colors.success : theme.colors.error;
   };
 
-  /**
-   * Color for the origin badge. Remote orders (whatsapp + web) share the same
-   * sage-green tint (BADGE_TEXT_WHATSAPP / theme.colors.success) — they are
-   * differentiated only by label/icon. Presencial uses the "preparando" tone.
-   */
-  const getOriginColor = (origin: string): string => {
-    switch (origin) {
-      case 'whatsapp':
-      case 'web':
-        return theme.colors.success;
-      case 'presencial':
-      default:
-        return theme.colors.preparando;
-    }
-  };
-
   const renderOrderCard = (order: Order) => {
     const statusColor = getStatusColor(order.status);
     const payColor = getPaymentColor(order.paymentStatus);
     const nextStatus = NEXT_STATUS[order.status];
     const isAdvancing = advancingId === order.id;
     const showButton = !!nextStatus;
-
-    // Time since order creation
-    const createdAt = new Date(order.createdAt);
-    const totalMinutes = Math.floor((Date.now() - createdAt.getTime()) / 60000);
-    let timeLabel: string;
-    if (totalMinutes < 1) {
-      timeLabel = 'Agora';
-    } else if (totalMinutes < 60) {
-      timeLabel = `Pedido criado há ${totalMinutes} min`;
-    } else {
-      const hours = Math.floor(totalMinutes / 60);
-      const mins = totalMinutes % 60;
-      timeLabel = mins > 0 ? `Pedido criado há ${hours}h ${mins}min` : `Pedido criado há ${hours}h`;
-    }
 
     return (
       <View
@@ -404,12 +363,7 @@ export function OrderQueueScreen() {
                 label={order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
                 color={payColor}
               />
-              <Badge
-                icon={ORIGIN_ICON[order.origin] || 'storefront'}
-                label={ORIGIN_LABEL[order.origin] || 'Presencial'}
-                color={getOriginColor(order.origin)}
-                opacitySuffix="14"
-              />
+              <OriginBadge origin={order.origin} />
               <Badge
                 icon={STATUS_ICON[order.status]}
                 label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -440,7 +394,7 @@ export function OrderQueueScreen() {
             {/* Line 5: Time */}
             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
               <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14, color: theme.colors.textSecondary, opacity: 0.7 }}>timer</RNText>
-              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, color: theme.colors.textSecondary, opacity: 0.7 }}>{timeLabel}</RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, color: theme.colors.textSecondary, opacity: 0.7 }}>{formatOrderAge(order.createdAt)}</RNText>
             </View>
           </Pressable>
 

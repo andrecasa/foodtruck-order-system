@@ -8,11 +8,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Order, PaymentMethod } from '@order-system/shared';
-import { Screen, ScrollContainer, Modal, Header, Badge } from '../components';
+import { Screen, ScrollContainer, Modal, Header, Badge, OriginBadge } from '../components';
 import { Text } from '../components/Typography';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
-import { formatPrice } from '../utils/format';
+import { formatPrice, formatOrderAge} from '../utils/format';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'pix', label: 'PIX' },
@@ -78,49 +78,6 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
 
   const getPayColor = (): string => {
     return order.paymentStatus === 'pago' ? theme.colors.success : theme.colors.error;
-  };
-
-  const getOriginIcon = (): string => {
-    switch (order.origin) {
-      case 'whatsapp': return 'chat';
-      case 'web': return 'language';
-      case 'presencial':
-      default: return 'storefront';
-    }
-  };
-
-  const getOriginLabel = (): string => {
-    switch (order.origin) {
-      case 'whatsapp': return 'WhatsApp';
-      case 'web': return 'Online';
-      case 'presencial':
-      default: return 'Presencial';
-    }
-  };
-
-  /**
-   * Remote orders (whatsapp + web) share the same sage-green tint; they are
-   * differentiated only by label/icon. Presencial uses the "preparando" tone.
-   */
-  const getOriginColor = (): string => {
-    switch (order.origin) {
-      case 'whatsapp':
-      case 'web':
-        return theme.colors.success;
-      case 'presencial':
-      default:
-        return theme.colors.preparando;
-    }
-  };
-
-  const getTimeLabel = (): string => {
-    const createdAt = new Date(order.createdAt);
-    const totalMinutes = Math.floor((Date.now() - createdAt.getTime()) / 60000);
-    if (totalMinutes < 1) return 'Pedido criado agora';
-    if (totalMinutes < 60) return `Pedido criado há ${totalMinutes} min`;
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return mins > 0 ? `Pedido criado há ${hours}h ${mins}min` : `Pedido criado há ${hours}h`;
   };
 
   const handleConfirmPress = useCallback(() => {
@@ -251,12 +208,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
                 label={order.paymentStatus === 'pago' ? 'Pago' : 'Pendente'}
                 color={getPayColor()}
               />
-              <Badge
-                icon={getOriginIcon()}
-                label={getOriginLabel()}
-                color={getOriginColor()}
-                opacitySuffix="14"
-              />
+              <OriginBadge origin={order.origin} />
               <Badge
                 icon={getStatusIcon()}
                 label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -287,7 +239,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
             {/* Line 5: Time */}
             <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
               <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14, color: theme.colors.textSecondary, opacity: 0.7 }}>timer</RNText>
-              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, color: theme.colors.textSecondary, opacity: 0.7 }}>{getTimeLabel()}</RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, color: theme.colors.textSecondary, opacity: 0.7 }}>{formatOrderAge(order.createdAt)}</RNText>
             </View>
           </View>
         </View>

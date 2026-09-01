@@ -21,11 +21,10 @@ export interface UsePublicOrdersTrackingResult {
 /**
  * Tracks MANY public orders at once (the customer "Meus Pedidos" list).
  *
- * Fetches each id via `fetchPublicOrder`, then keeps them fresh with the same
- * transport strategy as the single-order tracker (`usePublicOrderTracking`):
- * realtime `status_updated` / `payment_registered` events on the tenant channel
- * when connected, falling back to 30s polling otherwise. Per-order fetch
- * failures are ignored so one bad id doesn't blank the whole list.
+ * Fetches each id via `fetchPublicOrder`, then keeps them fresh with realtime
+ * `status_updated` / `payment_registered` events on the tenant channel when
+ * connected, falling back to 30s polling otherwise. Per-order fetch failures
+ * are ignored so one bad id doesn't blank the whole list.
  *
  * `orderIds` is treated as a set; its ORDER does not matter here — the screen
  * decides display order (newest first from the session list).

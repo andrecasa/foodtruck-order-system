@@ -8,7 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme';
-import { Button, Heading, Text } from '../../components';
+import { Button, Text } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { CustomerOrderCard } from '../../components/customer/CustomerOrderCard';
@@ -26,7 +26,7 @@ export interface CustomerOrdersScreenProps {
  * "Meus Pedidos" (`/:slug/pedidos`) — the unified customer orders screen.
  *
  * Lists every order the customer placed in THIS session (from
- * `useSessionOrders`, most recent first) as a FULL tracking card
+ * `useSessionOrders`), displayed oldest → newest, as a FULL tracking card
  * (`CustomerOrderCard`): payment + status badges, "#N - Name", the item lines,
  * the total, and a "Pedido criado há X" footer. This unifies what used to be a
  * lightweight list + a separate tracking screen into one screen, mirroring the
@@ -52,6 +52,9 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
 
   const orderIds = useMemo(() => orders.map((o) => o.id), [orders]);
   const { ordersById, isLoading } = usePublicOrdersTracking(slug, orderIds, realtimeChannel);
+
+  // `useSessionOrders` stores orders oldest-first (placement order), so the
+  // list is rendered directly in that order.
 
   const safeAreaStyle: ViewStyle = {
     flex: 1,

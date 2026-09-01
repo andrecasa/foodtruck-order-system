@@ -23,7 +23,20 @@ vi.mock('../../services/menu.service.js', () => ({
 
 vi.mock('../../services/order.service.js', () => ({
   getOrderById: vi.fn(),
+  createOrder: vi.fn(),
 }));
+
+// The `@order-system/shared` barrel resolves `publicCreateOrderSchema` as
+// `undefined` under Vitest (a re-export quirk specific to this validator file;
+// it works fine at runtime via tsx). Re-provide the barrel with the real schema
+// pulled directly from its module so the create-order controller can validate.
+vi.mock('@order-system/shared', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@order-system/shared');
+  const { publicCreateOrderSchema } = await vi.importActual<Record<string, unknown>>(
+    '@order-system/shared/validators/public-order.validator',
+  );
+  return { ...actual, publicCreateOrderSchema };
+});
 
 import { pool } from '../../config/database.js';
 import * as menuService from '../../services/menu.service.js';
@@ -32,6 +45,7 @@ import {
   publicBrandingController,
   publicMenuController,
   publicOrderStatusController,
+  publicCreateOrderController,
 } from '../../controllers/public.controller.js';
 import type { PublicTenantRequest } from '../../middleware/public-tenant.middleware.js';
 
@@ -266,19 +280,20 @@ describe('Public Order Status Controller', () => {
       status: 'preparando',
       // paymentStatus IS exposed so the customer can see if the order is paid.
       paymentStatus: 'pendente',
+      // origin IS exposed so the order card can show an origin badge.
+      origin: 'web',
       totalAmountCents: 1600,
       createdAt: '2024-01-01T10:00:00.000Z',
       items: [{ itemName: 'Pastel de Carne', quantity: 2, unitPriceCents: 800 }],
     });
 
-    // Must NOT expose truly internal fields. `paymentStatus` is intentionally
-    // allowed (see above); `payment_method`/`created_by` remain hidden.
+    // Must NOT expose truly internal fields. `paymentStatus`/`origin` are
+    // intentionally allowed (see above); `payment_method`/`created_by` hidden.
     expect(res.body).not.toHaveProperty('created_by');
     expect(res.body).not.toHaveProperty('createdBy');
     expect(res.body).not.toHaveProperty('payment_status');
     expect(res.body).not.toHaveProperty('payment_method');
     expect(res.body).not.toHaveProperty('paymentMethod');
-    expect(res.body).not.toHaveProperty('origin');
     expect(res.body).not.toHaveProperty('orderDate');
     // Item internal ids are not leaked either.
     expect(res.body.items[0]).not.toHaveProperty('id');
@@ -342,5 +357,92 @@ describe('Public Order Status Controller', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.items).toEqual([]);
+  });
+});
+
+describe('Public Create-Order Controller', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function createOrderRequest(body: unknown): Partial<PublicTenantRequest> {
+    return { ...mockRequest(), body } as Partial<PublicTenantRequest>;
+  }
+
+  it('returns the full public order shape (customerName, paymentStatus, items) on success', async () => {
+    // Admin lookup (owner of the order).
+    vi.mocked(pool.query).mockResolvedValueOnce(queryResult([{ id: 'admin-1' }]));
+
+    vi.mocked(orderService.createOrder).mockResolvedValueOnce({
+      id: 'order-9',
+      dailyNumber: 5,
+      customerName: 'Ana Costa',
+      origin: 'web',
+      status: 'aguardando',
+      paymentStatus: 'pendente',
+      paymentMethod: null,
+      totalAmountCents: 2500,
+      orderDate: '2024-01-15',
+      createdAt: '2024-01-15T10:00:00.000Z',
+      startedAt: null,
+      readyAt: null,
+      deliveredAt: null,
+      paidAt: null,
+      items: [
+        { id: 'oi-1', menuItemId: 'm1', itemName: 'Pastel de Frango', unitPriceCents: 2500, quantity: 1 },
+      ],
+    } as never);
+
+    const req = createOrderRequest({
+      customerName: 'Ana Costa',
+      items: [{ menuItemId: '550e8400-e29b-41d4-a716-446655440000', quantity: 1 }],
+    });
+    const res = mockResponse();
+
+    await publicCreateOrderController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(201);
+    // The client persists this straight into "Meus Pedidos" and renders the
+    // order card, so customerName, paymentStatus, origin and items must all be
+    // present.
+    expect(res.body).toEqual({
+      id: 'order-9',
+      dailyNumber: 5,
+      customerName: 'Ana Costa',
+      status: 'aguardando',
+      paymentStatus: 'pendente',
+      origin: 'web',
+      totalAmountCents: 2500,
+      orderDate: '2024-01-15',
+      createdAt: '2024-01-15T10:00:00.000Z',
+      items: [{ itemName: 'Pastel de Frango', quantity: 1, unitPriceCents: 2500 }],
+    });
+    // Internal-only fields stay hidden.
+    expect(res.body).not.toHaveProperty('paymentMethod');
+    expect(res.body).not.toHaveProperty('createdBy');
+  });
+
+  it('rejects an invalid body with 400 without touching the order service', async () => {
+    const req = createOrderRequest({ customerName: '', items: [] });
+    const res = mockResponse();
+
+    await publicCreateOrderController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(400);
+    expect(orderService.createOrder).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 when the tenant has no active admin to own the order', async () => {
+    vi.mocked(pool.query).mockResolvedValueOnce(queryResult([]));
+
+    const req = createOrderRequest({
+      customerName: 'Ana',
+      items: [{ menuItemId: '550e8400-e29b-41d4-a716-446655440000', quantity: 1 }],
+    });
+    const res = mockResponse();
+
+    await publicCreateOrderController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(422);
+    expect(res.body).toEqual({ error: 'TENANT_UNAVAILABLE' });
+    expect(orderService.createOrder).not.toHaveBeenCalled();
   });
 });

@@ -109,6 +109,19 @@ function createOrders(): Order[] {
         { menuItemId: 'm2', name: 'Caldo de Cana', unitPrice: 900, quantity: 1 },
       ],
     },
+    {
+      id: 'order-3',
+      dailyNumber: 3,
+      customerName: 'Ana',
+      origin: 'web',
+      status: 'aguardando',
+      paymentStatus: 'pendente',
+      totalAmount: 1000,
+      createdAt: new Date().toISOString(),
+      items: [
+        { menuItemId: 'm3', name: 'Pastel de Frango', unitPrice: 1000, quantity: 1 },
+      ],
+    },
   ];
 }
 
@@ -126,6 +139,17 @@ describe('OrderQueueScreen', () => {
 
     await findByText('#1 - Maria');
     await findByText('#2 - João');
+  });
+
+  it('renders the origin badge per origin (web = QrCode)', async () => {
+    mockGetOrders.mockResolvedValue(createOrders());
+
+    const { findByText, getByText } = render(<OrderQueueScreen />);
+
+    // web orders show as "QrCode" (matches the customer card and PaymentScreen).
+    await findByText('QrCode');
+    expect(getByText('WhatsApp')).toBeTruthy();
+    expect(getByText('Presencial')).toBeTruthy();
   });
 
   it('shows filter chips for status', async () => {

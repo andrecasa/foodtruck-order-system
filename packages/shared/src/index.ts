@@ -37,7 +37,9 @@ export {
   updateOrderItemsRequestSchema,
 } from './validators/order.validator';
 
-export { publicCreateOrderSchema } from './validators/public-order.validator';
+export {
+  publicCreateOrderSchema,
+} from './validators/public-order.validator';
 
 export {
   createMenuItemRequestSchema,
@@ -68,6 +70,9 @@ export {
   VALID_TRANSITIONS,
   isValidTransition,
 } from './constants/status';
+
+export { getOrderOriginBadge } from './constants/order-origin';
+export type { OrderOriginBadge, OrderOriginColorRole } from './constants/order-origin';
 
 export {
   MAX_QUANTITY,

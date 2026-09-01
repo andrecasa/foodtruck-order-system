@@ -31,6 +31,12 @@ export interface PublicOrderResponse {
   status: string;
   /** Payment status ('pendente' | 'pago') so the customer sees if it's paid. */
   paymentStatus: string;
+  /**
+   * Order origin ('web' | 'presencial' | 'whatsapp'). Customer-placed orders
+   * are always 'web'; exposed so the order card can show an origin badge and
+   * to keep the contract ready for other origins.
+   */
+  origin: string;
   totalAmountCents: number;
   orderDate: string;
   createdAt: string;

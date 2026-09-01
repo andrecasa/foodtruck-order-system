@@ -13,6 +13,7 @@ import {
   type FilterChipOption,
 } from '../components';
 import { Toast } from '../components/Toast';
+import { Button } from '../components/Button';
 import { CalendarModal } from '../components/CalendarModal';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
@@ -300,6 +301,7 @@ export function OrderQueueScreen() {
 
   const contentGapStyle: ViewStyle = {
     gap: 12,
+    flex: 1
   };
 
   const emptyContainerStyle: ViewStyle = {
@@ -545,9 +547,9 @@ export function OrderQueueScreen() {
                 width: 120,
                 height: 150,
                 borderRadius: 12,
-                backgroundColor: theme.colors.aguardando + '14',
+                backgroundColor: theme.colors.primary + '14',
                 borderWidth: 1.5,
-                borderColor: theme.colors.aguardando + '4D',
+                borderColor: theme.colors.primary + '4D',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
@@ -569,12 +571,12 @@ export function OrderQueueScreen() {
                 width: 48,
                 height: 48,
                 borderRadius: 24,
-                backgroundColor: theme.colors.aguardando + '1F',
+                backgroundColor: theme.colors.primary + '1F',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginTop: -30,
               }}>
-                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.aguardando, opacity: 0.6 }}>receipt_long</RNText>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.primary, opacity: 0.6 }}>receipt_long</RNText>
               </View>
               <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary, opacity: 0.8 }}>
                 Nenhum pedido na fila
@@ -582,6 +584,13 @@ export function OrderQueueScreen() {
               <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: theme.colors.textSecondary, opacity: 0.5 }}>
                 Os novos pedidos aparecerão aqui
               </RNText>
+              <View style={{ marginTop: theme.spacing.lg }}>
+                <Button
+                  title="Novo Pedido"
+                  variant="primary"
+                  onPress={() => router.replace('/(tabs)/new-order')}
+                />
+              </View>            
             </View>
           </View>
         </ScrollContainer>

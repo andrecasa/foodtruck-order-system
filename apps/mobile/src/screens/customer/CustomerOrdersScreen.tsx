@@ -1,10 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, View, Text as RNText, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme';
@@ -74,6 +69,13 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
     gap: theme.spacing.md,
   };
 
+  const emptyContainerStyle: ViewStyle = {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  };  
+
   const isEmpty = orders.length === 0;
 
   if (isEmpty) {
@@ -83,16 +85,59 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
           title="Pedidos"
           onBack={() => router.replace(`/${encodeURIComponent(slug)}`)}
         />
-        <View style={centeredStyle} testID="orders-empty">
-          <Text align="center" color={theme.colors.textSecondary}>
-            Você ainda não fez nenhum pedido nesta sessão.
-          </Text>
-          <Button
-            title="Ver cardápio"
-            variant="primary"
-            onPress={() => router.replace(`/${encodeURIComponent(slug)}`)}
-          />
-        </View>
+          <View style={emptyContainerStyle}>
+            {/* Illustrated empty state */}
+            <View style={{ alignItems: 'center', gap: 12 }}>
+              <View style={{
+                width: 120,
+                height: 150,
+                borderRadius: 12,
+                backgroundColor: theme.colors.primary + '14',
+                borderWidth: 1.5,
+                borderColor: theme.colors.primary + '4D',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <View style={{
+                  width: 100,
+                  height: 130,
+                  borderRadius: 8,
+                  backgroundColor: theme.colors.surface,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 12,
+                }}>
+                  <View style={{ width: 60, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textSecondary, opacity: 0.2 }} />
+                  <View style={{ width: 50, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textSecondary, opacity: 0.15 }} />
+                  <View style={{ width: 35, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textSecondary, opacity: 0.1 }} />
+                </View>
+              </View>
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: theme.colors.primary + '1F',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: -30,
+              }}>
+                <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.primary, opacity: 0.6 }}>receipt_long</RNText>
+              </View>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary, opacity: 0.8 }}>
+                Nenhum pedido na fila
+              </RNText>
+              <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: theme.colors.textSecondary, opacity: 0.5 }}>
+                Os novos pedidos aparecerão aqui
+              </RNText>
+              <View style={{ marginTop: theme.spacing.lg }}>
+                <Button
+                  title="Novo Pedido"
+                  variant="primary"
+                  onPress={() => router.replace(`/${encodeURIComponent(slug)}`)}
+                />
+              </View>            
+            </View>
+          </View>
         <CustomerBottomNav slug={slug} active="pedidos" pedidosHref={ordersHref(slug)} />
       </SafeAreaView>
     );

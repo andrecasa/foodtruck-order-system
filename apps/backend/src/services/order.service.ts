@@ -163,6 +163,71 @@ export async function getOrders(tenantId: string, statuses: string[], date?: str
 }
 
 /**
+ * Gets many orders by id in a single round-trip (2 queries: orders + items),
+ * scoped to the tenant. Reuses the batch strategy of `getOrders`. Ids that do
+ * not exist or belong to another tenant are simply omitted from the result
+ * (no error), matching the tolerant semantics the customer list relies on.
+ *
+ * Returns the found orders ordered by `created_at ASC` (oldest first).
+ */
+export async function getOrdersByIds(tenantId: string, orderIds: string[]): Promise<OrderRecord[]> {
+  if (orderIds.length === 0) return [];
+
+  const repo = tenantRepository(tenantId);
+
+  const ordersRows = await repo.raw<Record<string, unknown>>(
+    `SELECT o.id, o.daily_number, o.customer_name, o.origin, o.status, o.payment_status,
+            o.payment_method, o.total_amount_cents, o.order_date, o.created_at,
+            o.started_at, o.ready_at, o.delivered_at, o.paid_at
+     FROM orders o
+     WHERE o.tenant_id = $1 AND o.id = ANY($2::uuid[])
+     ORDER BY o.created_at ASC`,
+    [tenantId, orderIds],
+  );
+
+  // Fetch items for all found orders (scoped to the tenant), in one query.
+  const foundIds = ordersRows.map((o) => o.id);
+  const itemsMap: Record<string, OrderItemRecord[]> = {};
+
+  if (foundIds.length > 0) {
+    const itemsRows = await repo.raw<Record<string, unknown>>(
+      `SELECT id, order_id, menu_item_id, item_name, unit_price_cents, quantity
+       FROM order_items WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])`,
+      [tenantId, foundIds],
+    );
+    for (const item of itemsRows) {
+      const orderId = item.order_id as string;
+      if (!itemsMap[orderId]) itemsMap[orderId] = [];
+      itemsMap[orderId]!.push({
+        id: item.id as string,
+        menuItemId: item.menu_item_id as string,
+        itemName: item.item_name as string,
+        unitPriceCents: item.unit_price_cents as number,
+        quantity: item.quantity as number,
+      });
+    }
+  }
+
+  return ordersRows.map((o) => ({
+    id: o.id as string,
+    dailyNumber: o.daily_number as number,
+    customerName: o.customer_name as string,
+    origin: o.origin as string,
+    status: o.status as string,
+    paymentStatus: o.payment_status as string,
+    paymentMethod: o.payment_method as string | null,
+    totalAmountCents: o.total_amount_cents as number,
+    orderDate: o.order_date as string,
+    createdAt: o.created_at as string,
+    startedAt: o.started_at as string | null,
+    readyAt: o.ready_at as string | null,
+    deliveredAt: o.delivered_at as string | null,
+    paidAt: o.paid_at as string | null,
+    items: itemsMap[o.id as string] || [],
+  }));
+}
+
+/**
  * Gets a single order by ID with its items, scoped to the tenant. An order
  * belonging to another tenant is treated as not existing → 404 (R6.3).
  */

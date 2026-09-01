@@ -3,7 +3,7 @@ import { publicCreateOrderSchema } from '@order-system/shared';
 import type { ThemeConfig } from '@order-system/shared';
 import { pool } from '../config/database.js';
 import * as menuService from '../services/menu.service.js';
-import { createOrder, getOrderById } from '../services/order.service.js';
+import { createOrder, getOrderById, getOrdersByIds } from '../services/order.service.js';
 import type { PublicTenantRequest } from '../middleware/public-tenant.middleware.js';
 import { NEUTRAL_PLATFORM_THEME, deepMergeTheme } from '../theme/platform-theme.js';
 
@@ -339,6 +339,88 @@ export async function publicOrderStatusController(
     }
 
     console.error('[public][order-status]', err);
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+/** Max order ids accepted per batch request (public surface — keep bounded). */
+const MAX_BATCH_IDS = 50;
+
+/** Loose UUID v1-v5 matcher — rejects obviously malformed ids before hitting the DB. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * GET /api/public/:slug/orders?ids=a,b,c (batch tracking)
+ *
+ * Returns the full public shape for several orders in ONE request, so the
+ * customer "Meus Pedidos" screen avoids the N+1 fetch it did before (one call
+ * per session order). Follows the operator listing convention (`getOrders`):
+ * a GET with a comma-separated query param, accepting either a repeated param
+ * (`?ids=a&ids=b`) or a single comma string (`?ids=a,b`).
+ *
+ * Ids that don't exist or belong to another tenant are silently omitted (same
+ * tolerant behavior as the per-id tracker). Invalid input rules:
+ *   - missing/empty `ids` → 400 INVALID_REQUEST
+ *   - more than MAX_BATCH_IDS → 400 TOO_MANY_IDS
+ *   - any id not matching the UUID format → 400 INVALID_REQUEST
+ */
+export async function publicOrdersBatchController(
+  req: PublicTenantRequest,
+  res: Response,
+): Promise<void> {
+  const tenantId = req.tenantId as string;
+
+  // Parse `ids` accepting both a repeated param and a comma-separated string
+  // (mirrors the operator getOrders controller).
+  const raw = req.query.ids;
+  let ids: string[] = [];
+  if (Array.isArray(raw)) {
+    ids = raw.flatMap((v) => (typeof v === 'string' ? v.split(',') : []));
+  } else if (typeof raw === 'string') {
+    ids = raw.split(',');
+  }
+  ids = ids.map((s) => s.trim()).filter(Boolean);
+  // De-duplicate while preserving order.
+  ids = [...new Set(ids)];
+
+  if (ids.length === 0) {
+    res.status(400).json({ error: 'INVALID_REQUEST' });
+    return;
+  }
+
+  if (ids.length > MAX_BATCH_IDS) {
+    res.status(400).json({ error: 'TOO_MANY_IDS' });
+    return;
+  }
+
+  if (!ids.every((id) => UUID_RE.test(id))) {
+    res.status(400).json({ error: 'INVALID_REQUEST' });
+    return;
+  }
+
+  try {
+    const orders = await getOrdersByIds(tenantId, ids);
+
+    // Same public projection as the single-order status endpoint, one per order.
+    const payload: PublicOrderStatus[] = orders.map((order) => ({
+      id: order.id,
+      dailyNumber: order.dailyNumber,
+      customerName: order.customerName,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      origin: order.origin,
+      totalAmountCents: order.totalAmountCents,
+      createdAt: order.createdAt,
+      items: (order.items ?? []).map((item) => ({
+        itemName: item.itemName,
+        quantity: item.quantity,
+        unitPriceCents: item.unitPriceCents,
+      })),
+    }));
+
+    res.status(200).json(payload);
+  } catch (err) {
+    console.error('[public][orders-batch]', err);
     res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
 }

@@ -28,9 +28,9 @@ jest.mock('../../hooks/customer/useSessionOrders', () => ({
 }));
 
 // Full-order fetch used by usePublicOrdersTracking → public-client.
-const mockFetchPublicOrder = jest.fn();
+const mockFetchPublicOrders = jest.fn();
 jest.mock('../../services/public-client', () => ({
-  fetchPublicOrder: (...args: any[]) => mockFetchPublicOrder(...args),
+  fetchPublicOrders: (...args: any[]) => mockFetchPublicOrders(...args),
 }));
 
 // Capture useRealtime's onEvent so a test can fire a status update.
@@ -84,10 +84,12 @@ beforeEach(() => {
   jest.clearAllMocks();
   capturedOnEvent = null;
   mockSession = makeSession(sampleOrders);
-  // Return a full order matching whichever id is requested.
-  mockFetchPublicOrder.mockImplementation((_slug: string, id: string) =>
+  // ONE batch call returns the full orders for the requested id set.
+  mockFetchPublicOrders.mockImplementation((_slug: string, ids: string[]) =>
     Promise.resolve(
-      id === 'o2' ? makeFullOrder('o2', 2, 'preparando') : makeFullOrder('o1', 1, 'pronto'),
+      ids.map((id) =>
+        id === 'o2' ? makeFullOrder('o2', 2, 'preparando') : makeFullOrder('o1', 1, 'pronto'),
+      ),
     ),
   );
 });
@@ -106,9 +108,9 @@ describe('CustomerOrdersScreen — "Meus Pedidos"', () => {
     // Each card shows an origin badge; web orders render as "QrCode".
     expect(getByTestId('order-card-o1-origin-badge')).toBeTruthy();
     expect(getAllByText('QrCode').length).toBeGreaterThanOrEqual(2);
-    // Fetched one full order per session id.
-    expect(mockFetchPublicOrder).toHaveBeenCalledWith('pastel', 'o1');
-    expect(mockFetchPublicOrder).toHaveBeenCalledWith('pastel', 'o2');
+    // Fetched ALL session orders in a SINGLE batch call (not one per id).
+    expect(mockFetchPublicOrders).toHaveBeenCalledTimes(1);
+    expect(mockFetchPublicOrders).toHaveBeenCalledWith('pastel', ['o1', 'o2']);
   });
 
   it('shows the "Pedido criado há" footer on each card', async () => {
@@ -181,8 +183,9 @@ describe('CustomerOrdersScreen — "Meus Pedidos"', () => {
 
   it('shows an empty state when there are no session orders', () => {
     mockSession = makeSession([]);
-    const { getByTestId, queryByTestId } = render(<CustomerOrdersScreen slug="pastel" />);
-    expect(getByTestId('orders-empty')).toBeTruthy();
+    const { getByText, queryByTestId } = render(<CustomerOrdersScreen slug="pastel" />);
+    // Illustrated empty state (no order cards rendered).
+    expect(getByText('Nenhum pedido na fila')).toBeTruthy();
     expect(queryByTestId('my-orders-section')).toBeNull();
   });
 });

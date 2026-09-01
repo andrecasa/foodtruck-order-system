@@ -7,6 +7,7 @@ import {
   publicMenuController,
   publicCreateOrderController,
   publicOrderStatusController,
+  publicOrdersBatchController,
 } from '../controllers/public.controller.js';
 
 /**
@@ -54,6 +55,11 @@ router.get('/:slug/menu', publicMenuController);
 
 // POST /api/public/:slug/orders — create an online order, origin 'web' (R3).
 router.post('/:slug/orders', publicCreateOrderController);
+
+// GET /api/public/:slug/orders?ids=a,b,c — batch status tracking for the
+// customer "Meus Pedidos" list (one request for many orders). Registered before
+// the :orderId route for clarity (Express distinguishes them by path segments).
+router.get('/:slug/orders', publicOrdersBatchController);
 
 // GET /api/public/:slug/orders/:orderId — public order status tracking (R4).
 router.get('/:slug/orders/:orderId', publicOrderStatusController);

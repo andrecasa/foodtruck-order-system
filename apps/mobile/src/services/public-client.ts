@@ -87,3 +87,21 @@ export function fetchPublicOrder(
     `/api/public/${encodeURIComponent(slug)}/orders/${encodeURIComponent(orderId)}`,
   );
 }
+
+/**
+ * Fetches many public orders in ONE request (no token), for the "Meus Pedidos"
+ * list. Follows the operator listing convention: a GET with a comma-separated
+ * `ids` query param. Returns the found orders (unknown ids are omitted server
+ * side). Returns an empty array when no ids are given, without a network call.
+ */
+export function fetchPublicOrders(
+  slug: string,
+  orderIds: string[],
+): Promise<PublicOrderResponse[]> {
+  if (orderIds.length === 0) return Promise.resolve([]);
+  const params = new URLSearchParams();
+  params.set('ids', orderIds.join(','));
+  return publicFetch<PublicOrderResponse[]>(
+    `/api/public/${encodeURIComponent(slug)}/orders?${params.toString()}`,
+  );
+}

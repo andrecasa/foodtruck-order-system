@@ -24,6 +24,7 @@ vi.mock('../../services/menu.service.js', () => ({
 vi.mock('../../services/order.service.js', () => ({
   getOrderById: vi.fn(),
   createOrder: vi.fn(),
+  getOrdersByIds: vi.fn(),
 }));
 
 // The `@order-system/shared` barrel resolves `publicCreateOrderSchema` as
@@ -46,6 +47,7 @@ import {
   publicMenuController,
   publicOrderStatusController,
   publicCreateOrderController,
+  publicOrdersBatchController,
 } from '../../controllers/public.controller.js';
 import type { PublicTenantRequest } from '../../middleware/public-tenant.middleware.js';
 
@@ -444,5 +446,145 @@ describe('Public Create-Order Controller', () => {
     expect(res.statusCode).toBe(422);
     expect(res.body).toEqual({ error: 'TENANT_UNAVAILABLE' });
     expect(orderService.createOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe('Public Orders Batch Controller', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const ID_A = '550e8400-e29b-41d4-a716-446655440000';
+  const ID_B = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+
+  function batchRequest(ids: unknown): Partial<PublicTenantRequest> {
+    return { tenantId: TENANT, tenantSlug: 'pastel-das-meninas', query: { ids } } as Partial<PublicTenantRequest>;
+  }
+
+  function serviceOrder(id: string, dailyNumber: number) {
+    return {
+      id,
+      dailyNumber,
+      customerName: 'Ana',
+      origin: 'web',
+      status: 'aguardando',
+      paymentStatus: 'pendente',
+      paymentMethod: null,
+      totalAmountCents: 1000,
+      orderDate: '2024-01-15',
+      createdAt: '2024-01-15T10:00:00.000Z',
+      startedAt: null,
+      readyAt: null,
+      deliveredAt: null,
+      paidAt: null,
+      items: [{ id: 'oi', menuItemId: 'm1', itemName: 'Pastel', unitPriceCents: 1000, quantity: 1 }],
+    };
+  }
+
+  it('returns the public shape for each id in ONE call (comma-separated string)', async () => {
+    vi.mocked(orderService.getOrdersByIds).mockResolvedValueOnce([
+      serviceOrder(ID_A, 1),
+      serviceOrder(ID_B, 2),
+    ] as never);
+
+    const req = batchRequest(`${ID_A},${ID_B}`);
+    const res = mockResponse();
+
+    await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
+
+    // Single batch query, scoped to the tenant, with both ids.
+    expect(orderService.getOrdersByIds).toHaveBeenCalledTimes(1);
+    expect(orderService.getOrdersByIds).toHaveBeenCalledWith(TENANT, [ID_A, ID_B]);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveLength(2);
+    expect(res.body[0]).toEqual({
+      id: ID_A,
+      dailyNumber: 1,
+      customerName: 'Ana',
+      status: 'aguardando',
+      paymentStatus: 'pendente',
+      origin: 'web',
+      totalAmountCents: 1000,
+      createdAt: '2024-01-15T10:00:00.000Z',
+      items: [{ itemName: 'Pastel', quantity: 1, unitPriceCents: 1000 }],
+    });
+    // Internal-only fields stay hidden.
+    expect(res.body[0]).not.toHaveProperty('paymentMethod');
+    expect(res.body[0]).not.toHaveProperty('orderDate');
+  });
+
+  it('accepts a repeated ids param and de-duplicates', async () => {
+    vi.mocked(orderService.getOrdersByIds).mockResolvedValueOnce([serviceOrder(ID_A, 1)] as never);
+
+    const req = batchRequest([ID_A, ID_A, ID_B, ID_B]);
+    const res = mockResponse();
+
+    await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(200);
+    // Deduped to the unique set, order preserved.
+    expect(orderService.getOrdersByIds).toHaveBeenCalledWith(TENANT, [ID_A, ID_B]);
+  });
+
+  it('omits ids that are not found (tolerant) without erroring', async () => {
+    // Service returns only ID_A even though both were requested.
+    vi.mocked(orderService.getOrdersByIds).mockResolvedValueOnce([serviceOrder(ID_A, 1)] as never);
+
+    const req = batchRequest(`${ID_A},${ID_B}`);
+    const res = mockResponse();
+
+    await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].id).toBe(ID_A);
+  });
+
+  it('rejects an empty ids param with 400 without hitting the service', async () => {
+    const req = batchRequest('');
+    const res = mockResponse();
+
+    await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'INVALID_REQUEST' });
+    expect(orderService.getOrdersByIds).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed (non-uuid) id with 400', async () => {
+    const req = batchRequest(`${ID_A},not-a-uuid`);
+    const res = mockResponse();
+
+    await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'INVALID_REQUEST' });
+    expect(orderService.getOrdersByIds).not.toHaveBeenCalled();
+  });
+
+  it('rejects more than 50 ids with 400 TOO_MANY_IDS', async () => {
+    // 51 distinct valid uuids.
+    const many = Array.from({ length: 51 }, (_, i) =>
+      `550e8400-e29b-41d4-a716-${String(i).padStart(12, '0')}`,
+    );
+    const req = batchRequest(many.join(','));
+    const res = mockResponse();
+
+    await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'TOO_MANY_IDS' });
+    expect(orderService.getOrdersByIds).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 when the service throws', async () => {
+    vi.mocked(orderService.getOrdersByIds).mockRejectedValueOnce(new Error('db down'));
+
+    const req = batchRequest(ID_A);
+    const res = mockResponse();
+
+    await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual({ error: 'INTERNAL_ERROR' });
   });
 });

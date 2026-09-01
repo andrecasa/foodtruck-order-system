@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PublicOrderResponse } from '@order-system/shared';
-import { fetchPublicOrder } from '../../services/public-client';
+import { fetchPublicOrders } from '../../services/public-client';
 import { useRealtime, type RealtimeEvent } from '../useRealtime';
 
 /** Realtime event names broadcast by the backend on the queue channel. */
@@ -21,13 +21,13 @@ export interface UsePublicOrdersTrackingResult {
 /**
  * Tracks MANY public orders at once (the customer "Meus Pedidos" list).
  *
- * Fetches each id via `fetchPublicOrder`, then keeps them fresh with realtime
- * `status_updated` / `payment_registered` events on the tenant channel when
- * connected, falling back to 30s polling otherwise. Per-order fetch failures
- * are ignored so one bad id doesn't blank the whole list.
+ * Fetches all ids in a SINGLE batch request via `fetchPublicOrders`, then keeps
+ * them fresh with realtime `status_updated` / `payment_registered` events on
+ * the tenant channel when connected, falling back to 30s polling otherwise.
+ * Batch failures leave any previously loaded values untouched.
  *
  * `orderIds` is treated as a set; its ORDER does not matter here — the screen
- * decides display order (newest first from the session list).
+ * decides display order.
  */
 export function usePublicOrdersTracking(
   slug: string | undefined,
@@ -41,19 +41,6 @@ export function usePublicOrdersTracking(
   // array identity change).
   const idsKey = [...orderIds].sort().join(',');
 
-  const loadOne = useCallback(
-    async (orderId: string) => {
-      if (!slug) return;
-      try {
-        const result = await fetchPublicOrder(slug, orderId);
-        setOrdersById((prev) => ({ ...prev, [orderId]: result }));
-      } catch {
-        // Ignore per-order failures — keep any previously loaded value.
-      }
-    },
-    [slug],
-  );
-
   const loadAll = useCallback(
     async (isInitial: boolean) => {
       if (!slug || orderIds.length === 0) {
@@ -61,11 +48,21 @@ export function usePublicOrdersTracking(
         return;
       }
       if (isInitial) setIsLoading(true);
-      await Promise.all(orderIds.map((id) => loadOne(id)));
+      try {
+        // One request for the whole id set (was N per-id fetches).
+        const results = await fetchPublicOrders(slug, orderIds);
+        setOrdersById((prev) => {
+          const next = { ...prev };
+          for (const order of results) next[order.id] = order;
+          return next;
+        });
+      } catch {
+        // Ignore batch failures — keep any previously loaded values.
+      }
       if (isInitial) setIsLoading(false);
     },
     // orderIds intentionally excluded; idsKey drives re-runs.
-    [slug, idsKey, loadOne], // eslint-disable-line react-hooks/exhaustive-deps
+    [slug, idsKey], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   useEffect(() => {

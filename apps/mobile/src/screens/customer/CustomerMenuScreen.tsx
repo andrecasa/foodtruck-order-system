@@ -115,18 +115,6 @@ export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
     borderRadius: 8,
   };
 
-  // Full-width solid panel behind the floating Total + CTA so no scrolled
-  // content shows through the gaps. Uses the screen background, matching the
-  // fixed name bar. Covers from the bottom up past the Total (top ≈ 116).
-  const floatingBackdropStyle: ViewStyle = {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 16 + 44 + 8 + 48 + 8,
-    backgroundColor: theme.colors.background,
-  };
-
   // "Itens do Pedido" section title — matches operator Novo Pedido
   // (14px / weight 400 / color text).
   const sectionTitleStyle: TextStyle = {
@@ -208,10 +196,6 @@ export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
         )}
 
       </ScrollView>
-
-      {/* Solid backing panel behind the floating Total + CTA so scrolled
-          content never shows through the gaps. */}
-      <View style={floatingBackdropStyle} pointerEvents="none" />
 
       {/* Floating Total — pinned just above the CTA. */}
       <View style={floatingTotalStyle}>

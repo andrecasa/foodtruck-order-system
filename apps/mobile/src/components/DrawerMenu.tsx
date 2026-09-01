@@ -95,7 +95,7 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
     ...(user?.role === 'admin'
       ? [
-          { icon: 'folder_open', label: 'Categorias', route: '/categories-list' },
+          { icon: 'category', label: 'Categorias', route: '/categories-list' },
           { icon: 'group', label: 'Usuários', route: '/users-list' },
         ]
       : []),

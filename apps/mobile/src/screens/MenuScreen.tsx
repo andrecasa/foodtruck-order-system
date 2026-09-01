@@ -147,8 +147,6 @@ export function MenuScreen() {
     gap: 12,
   };
 
-  // Icon Button Edit removed — no longer in design
-
   // Disabled item text opacity
   const itemDisabledStyle: ViewStyle = {
     opacity: 0.5,

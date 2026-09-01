@@ -43,7 +43,9 @@ export function formatOrderAge(createdAt: string, now: number = Date.now()): str
   const totalMinutes = Math.floor((now - createdMs) / 60000);
   if (!Number.isFinite(totalMinutes) || totalMinutes < 1) return 'Pedido criado agora';
   if (totalMinutes < 60) return `Pedido criado há ${totalMinutes} min`;
-  const hours = Math.floor(totalMinutes / 60);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
   const mins = totalMinutes % 60;
+  if (days > 0) return `Pedido criado há ${days}d ${hours > 0 ? `${hours}h ` : ''}${mins > 0 ? `${mins}min` : ''}`.trim();
   return mins > 0 ? `Pedido criado há ${hours}h ${mins}min` : `Pedido criado há ${hours}h`;
 }

@@ -238,14 +238,14 @@ export function CreateOrderScreen() {
   // Full-width solid panel behind the floating Total + CTA so no scrolled
   // content shows through the gaps. Uses the screen background, matching the
   // fixed name bar.
-  const floatingBackdropStyle: ViewStyle = {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 16 + 44 + 8 + 48 + 8,
-    backgroundColor: theme.colors.background,
-  };
+  // const floatingBackdropStyle: ViewStyle = {
+  //   position: 'absolute',
+  //   left: 0,
+  //   right: 0,
+  //   bottom: 0,
+  //   height: 16 + 44 + 8 + 48 + 8,
+  //   backgroundColor: theme.colors.background,
+  // };
 
   const originLabelStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
@@ -327,7 +327,7 @@ export function CreateOrderScreen() {
       footer={
         <>
           {/* Solid backing panel behind the floating Total + CTA. */}
-          <View style={floatingBackdropStyle} pointerEvents="none" />
+          {/* <View style={floatingBackdropStyle} pointerEvents="none" /> */}
           {/* Floating Total — pinned just above the CTA. */}
           <View style={floatingTotalStyle}>
             <TotalRow totalCents={total} />

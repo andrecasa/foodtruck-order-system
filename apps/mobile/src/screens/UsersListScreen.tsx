@@ -137,7 +137,7 @@ export function UsersListScreen() {
   const contentStyle: ViewStyle = {
     flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 16,
     gap: 12,
   };
 

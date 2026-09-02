@@ -2,8 +2,10 @@ import React from 'react';
 import {
   Image,
   ScrollView,
+  Text as RNText,
   View,
   type ImageStyle,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -90,6 +92,14 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
     height: 240,
   };
 
+  const taglineStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: theme.typography.sizes.lg,
+    fontWeight: '400',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  };
+
   return (
     <SafeAreaView style={containerStyle} edges={['top', 'bottom']}>
       <CustomerHeader title={businessName ?? 'Início'} />
@@ -120,6 +130,11 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
             testID="home-qr-image"
           />
         </View>
+
+        {/* Tagline below the QR code. */}
+        <RNText style={taglineStyle} testID="home-tagline">
+          Faça você mesmo seu pedido{'\n'}e acompanhe pelo Aplicativo!
+        </RNText>
       </ScrollView>
 
       <CustomerBottomNav slug={slug} active="home" homeHref={homeHref(slug)} pedidosHref={ordersHref(slug)} />

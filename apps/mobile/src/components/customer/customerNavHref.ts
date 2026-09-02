@@ -1,21 +1,34 @@
 /**
- * Builds the target for the customer bottom nav's "Pedidos" tab.
- *
- * "Pedidos" opens the session orders list (`/:slug/pedidos`), which shows every
- * order placed this session and lets the customer open any of them for
- * tracking. Kept as one shared helper so every screen that renders
- * `CustomerBottomNav` (menu, checkout, orders list, tracking) points to the
- * same target.
+ * Shared route builders for the customer (public) flow, so every screen that
+ * renders `CustomerBottomNav` (home, menu, orders list, checkout) points to the
+ * same targets.
  */
-export function ordersHref(slug: string): string {
-  return `/${encodeURIComponent(slug)}/pedidos`;
+
+/**
+ * Builds the target for the customer bottom nav's "Home" tab.
+ *
+ * Home is the PWA's main page (`/:slug`): the tenant landing page with logo +
+ * QR code and a "Novo Pedido" button.
+ */
+export function homeHref(slug: string): string {
+  return `/${encodeURIComponent(slug)}`;
 }
 
 /**
- * Builds the target for the customer bottom nav's "Home" tab (`/:slug/home`) —
- * the tenant landing page with logo + QR code. Shared so every screen that
- * renders `CustomerBottomNav` points to the same target.
+ * Builds the target for the customer bottom nav's "Novo" tab (`/:slug/new-order`)
+ * — the tenant menu / new order screen.
  */
-export function homeHref(slug: string): string {
-  return `/${encodeURIComponent(slug)}/home`;
+export function menuHref(slug: string): string {
+  return `/${encodeURIComponent(slug)}/new-order`;
+}
+
+/**
+ * Builds the target for the customer bottom nav's "Pedidos" tab.
+ *
+ * "Pedidos" opens the session orders list (`/:slug/orders`), which shows every
+ * order placed this session and lets the customer open any of them for
+ * tracking.
+ */
+export function ordersHref(slug: string): string {
+  return `/${encodeURIComponent(slug)}/orders`;
 }

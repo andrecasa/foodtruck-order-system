@@ -7,18 +7,18 @@ import { Button, Text } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { CustomerOrderCard } from '../../components/customer/CustomerOrderCard';
-import { ordersHref, homeHref } from '../../components/customer/customerNavHref';
+import { ordersHref, homeHref, menuHref } from '../../components/customer/customerNavHref';
 import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
 import { usePublicBranding } from '../../hooks/customer/usePublicBranding';
 import { usePublicOrdersTracking } from '../../hooks/customer/usePublicOrdersTracking';
 
 export interface CustomerOrdersScreenProps {
-  /** Tenant slug from the route (`/:slug/pedidos`). */
+  /** Tenant slug from the route (`/:slug/orders`). */
   slug: string;
 }
 
 /**
- * "Meus Pedidos" (`/:slug/pedidos`) — the unified customer orders screen.
+ * "Meus Pedidos" (`/:slug/orders`) — the unified customer orders screen.
  *
  * Lists every order the customer placed in THIS session (from
  * `useSessionOrders`), displayed oldest → newest, as a FULL tracking card
@@ -83,7 +83,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
       <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
         <CustomerHeader
           title="Pedidos"
-          onBack={() => router.replace(`/${encodeURIComponent(slug)}`)}
+          onBack={() => router.replace(homeHref(slug))}
         />
           <View style={emptyContainerStyle}>
             {/* Illustrated empty state */}
@@ -133,7 +133,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
                 <Button
                   title="Novo Pedido"
                   variant="primary"
-                  onPress={() => router.replace(`/${encodeURIComponent(slug)}`)}
+                          onPress={() => router.replace(menuHref(slug))}
                 />
               </View>            
             </View>
@@ -147,7 +147,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
       <CustomerHeader
         title="Pedidos"
-        onBack={() => router.replace(`/${encodeURIComponent(slug)}`)}
+        onBack={() => router.replace(homeHref(slug))}
       />
 
       <ScrollView

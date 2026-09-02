@@ -9,10 +9,12 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme';
+import { Button } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
-import { ordersHref, homeHref } from '../../components/customer/customerNavHref';
+import { ordersHref, homeHref, menuHref } from '../../components/customer/customerNavHref';
 
 export interface CustomerHomeScreenProps {
   /** Tenant slug from the route (`/:slug/home`). */
@@ -54,6 +56,7 @@ function qrImageUrl(content: string, color: string, size = 240): string {
  */
 export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenProps) {
   const theme = useTheme();
+  const router = useRouter();
 
   const containerStyle: ViewStyle = {
     flex: 1,
@@ -135,6 +138,14 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
         <RNText style={taglineStyle} testID="home-tagline">
           Faça você mesmo seu pedido{'\n'}e acompanhe pelo Aplicativo!
         </RNText>
+
+        {/* "Novo Pedido" button — same pattern as the operator empty-state CTA. */}
+        <Button
+          title="Novo Pedido"
+          variant="primary"
+          onPress={() => router.push(menuHref(slug))}
+          testID="home-new-order-button"
+        />
       </ScrollView>
 
       <CustomerBottomNav slug={slug} active="home" homeHref={homeHref(slug)} pedidosHref={ordersHref(slug)} />

@@ -2,15 +2,16 @@ import React from 'react';
 import { Pressable, View, Text as RNText, type ViewStyle, type TextStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme';
+import { homeHref, menuHref, ordersHref } from './customerNavHref';
 
 /**
  * CustomerBottomNav — bottom navigation bar for the public (customer) flow.
  *
  * Mirrors the operator `BottomNav` (see components/BottomNav.tsx) so both
  * contexts share one visual language, matching Penpot "Clientes" boards:
- * - Home (`home`)          → the tenant landing page (`/:slug/home`)
- * - Novo (`add_circle`)    → the tenant menu / new order screen (`/:slug`)
- * - Pedidos (`receipt_long`) → the session orders list (`/:slug/pedidos`)
+ * - Home (`home`)          → the tenant landing page (`/:slug`)
+ * - Novo (`add_circle`)    → the tenant menu / new order screen (`/:slug/new-order`)
+ * - Pedidos (`receipt_long`) → the session orders list (`/:slug/orders`)
  *
  * Penpot specs (Clientes Bottom Nav):
  * - bar: height 56px, backgroundColor #FFFFFF (surface), justifyContent space-around
@@ -38,8 +39,8 @@ export interface CustomerBottomNavProps {
   homeHref?: string;
   /**
    * Where "Pedidos" should navigate. Screens pass the session orders-list route
-   * (`/:slug/pedidos`, via `ordersHref`). When omitted, "Pedidos" falls back to
-   * the menu (`/:slug`).
+   * (`/:slug/orders`, via `ordersHref`). When omitted, "Pedidos" falls back to
+   * the session orders list.
    */
   pedidosHref?: string;
 }
@@ -51,16 +52,14 @@ interface NavItem {
   href: string;
 }
 
-export function CustomerBottomNav({ slug, active, homeHref, pedidosHref }: CustomerBottomNavProps) {
+export function CustomerBottomNav({ slug, active, homeHref: homeHrefProp, pedidosHref }: CustomerBottomNavProps) {
   const theme = useTheme();
   const router = useRouter();
 
-  const menuHref = `/${encodeURIComponent(slug)}`;
-
   const items: NavItem[] = [
-    { key: 'home', icon: 'home', label: 'Home', href: homeHref ?? menuHref },
-    { key: 'novo', icon: 'add_circle', label: 'Novo', href: menuHref },
-    { key: 'pedidos', icon: 'receipt_long', label: 'Pedidos', href: pedidosHref ?? menuHref },
+    { key: 'home', icon: 'home', label: 'Home', href: homeHrefProp ?? homeHref(slug) },
+    { key: 'novo', icon: 'add_circle', label: 'Novo', href: menuHref(slug) },
+    { key: 'pedidos', icon: 'receipt_long', label: 'Pedidos', href: pedidosHref ?? ordersHref(slug) },
   ];
 
   const containerStyle: ViewStyle = {

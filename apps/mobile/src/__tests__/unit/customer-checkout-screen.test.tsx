@@ -122,9 +122,9 @@ describe('CustomerCheckoutScreen', () => {
     });
 
     await waitFor(() => expect(clearSpy).toHaveBeenCalledTimes(1));
-    // Orders are centralized on "Meus Pedidos" (`/:slug/pedidos`); there is no
+    // Orders are centralized on "Meus Pedidos" (`/:slug/orders`); there is no
     // longer a separate single-order tracking route.
-    expect(mockReplace).toHaveBeenCalledWith('/pastel/pedidos');
+    expect(mockReplace).toHaveBeenCalledWith('/pastel/orders');
     // The placed order is recorded into the session list so "Meus Pedidos"
     // accumulates every order.
     expect(mockAddOrder).toHaveBeenCalledWith(

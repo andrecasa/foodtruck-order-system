@@ -16,7 +16,7 @@ import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { useCart } from '../../hooks/customer/useCart';
 import { useCreateOrder } from '../../hooks/customer/useCreateOrder';
 import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
-import { ordersHref, homeHref } from '../../components/customer/customerNavHref';
+import { ordersHref, homeHref, menuHref } from '../../components/customer/customerNavHref';
 
 export interface CustomerCheckoutScreenProps {
   /** Tenant slug from the route (`/:slug/checkout`). */
@@ -33,7 +33,7 @@ export interface CustomerCheckoutScreenProps {
  * customer name is
  * required (client-side validated) and may be prefilled from the menu screen
  * via the `name` route param. On success it clears the cart and navigates to
- * "Meus Pedidos" (`/:slug/pedidos`); on error it keeps the cart intact so the
+ * "Meus Pedidos" (`/:slug/orders`); on error it keeps the cart intact so the
  * customer can retry.
  * A customer bottom nav (Novo / Pedidos) is pinned at the bottom.
  */
@@ -133,7 +133,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
           <Button
             title="Voltar ao cardápio"
             variant="primary"
-            onPress={() => router.replace(`/${encodeURIComponent(slug)}`)}
+            onPress={() => router.replace(menuHref(slug))}
           />
         </View>
       </SafeAreaView>
@@ -186,7 +186,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
       <CustomerHeader
         title="Confirmar Pedido"
-        onBack={() => router.replace(`/${encodeURIComponent(slug)}`)}
+        onBack={() => router.replace(menuHref(slug))}
       />
 
       <View style={{ flex: 1 }}>

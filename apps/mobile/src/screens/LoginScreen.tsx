@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View, ScrollView, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
@@ -131,6 +132,18 @@ export function LoginScreen() {
     color: theme.colors.error,
   };
 
+  const versionTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  };
+
+  // App version, read from the Expo config (app.json → expo.version) so it
+  // stays in sync with the release without a hardcoded string.
+  const appVersion = Constants.expoConfig?.version ?? '';
+
   return (
     <Screen padding={false}>
       {/* Keyboard handling: track the keyboard height and apply it as paddingBottom
@@ -207,6 +220,13 @@ export function LoginScreen() {
               testID="login-submit-button"
             />
           </View>
+
+          {/* App version — below the login card, uses theme colors */}
+          {appVersion ? (
+            <RNText style={versionTextStyle} testID="login-app-version">
+              version {appVersion}
+            </RNText>
+          ) : null}
         </ScrollView>
       </View>
     </Screen>

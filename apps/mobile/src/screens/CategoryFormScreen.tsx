@@ -11,7 +11,6 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme';
 import { FormScreen } from '../components/FormScreen';
-import { BottomNav } from '../components/BottomNav';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
 import { apiClient } from '../services/api-client';
@@ -218,7 +217,6 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
       title="Categoria"
       onBack={() => router.back()}
       contentContainerStyle={contentStyle}
-      footer={<BottomNav />}
     >
         {/* Nome Field */}
         <View style={fieldContainerStyle}>

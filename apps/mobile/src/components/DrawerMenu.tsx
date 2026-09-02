@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { useTheme } from '../theme';
 import { useAuth } from '../hooks/useAuth';
 
@@ -95,8 +96,8 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
     ...(user?.role === 'admin'
       ? [
-          { icon: 'category', label: 'Categorias', route: '/categories-list' },
-          { icon: 'group', label: 'Usuários', route: '/users-list' },
+          { icon: 'category', label: 'Categorias', route: '/(tabs)/categories-list' },
+          { icon: 'group', label: 'Usuários', route: '/(tabs)/users-list' },
         ]
       : []),
   ];
@@ -201,6 +202,25 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
     ...menuLabelStyle,
   };
 
+  const versionContainerStyle: ViewStyle = {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: insets.bottom + 16,
+    alignItems: 'center',
+  };
+
+  const versionTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  };
+
+  // App version, read from the Expo config (app.json → expo.version) so it
+  // stays in sync with the release without a hardcoded string.
+  const appVersion = Constants.expoConfig?.version ?? '';
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -279,6 +299,15 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
               <RNText style={logoutLabelStyle}>Sair</RNText>
             </Pressable>
           </View>
+
+          {/* App version — pinned at the bottom, centered, theme colors */}
+          {appVersion ? (
+            <View style={versionContainerStyle}>
+              <RNText style={versionTextStyle} testID="drawer-app-version">
+                version {appVersion}
+              </RNText>
+            </View>
+          ) : null}
         </Animated.View>
       </View>
     </Modal>

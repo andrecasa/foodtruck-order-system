@@ -16,7 +16,6 @@ import { Screen, Header } from '../components/Layout';
 import { FormScreen } from '../components/FormScreen';
 import { ErrorState } from '../components/ErrorState';
 import { Modal } from '../components/Modal';
-import { BottomNav } from '../components/BottomNav';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { apiClient } from '../services/api-client';
 import type { UpdateUserInput, UserRole, User } from '../types/user';
@@ -459,7 +458,6 @@ export function UserDetailScreen() {
             Carregando dados...
           </RNText>
         </View>
-        <BottomNav />
       </Screen>
     );
   }
@@ -471,7 +469,6 @@ export function UserDetailScreen() {
       <Screen padding={false}>
         <Header title="Usuário" onBack={() => router.back()} />
         <ErrorState message={apiError} onRetry={loadUser} />
-        <BottomNav />
       </Screen>
     );
   }
@@ -483,7 +480,6 @@ export function UserDetailScreen() {
       title="Usuário"
       onBack={() => router.back()}
       contentContainerStyle={contentStyle}
-      footer={<BottomNav />}
     >
         {/* User Info Card — same as list card with switch toggle */}
         {user && (

@@ -9,7 +9,7 @@ export interface FloatingButtonProps {
   onPress: () => void;
   /** Optional icon text (Material Symbols glyph) */
   icon?: string;
-  /** Distance from the bottom edge (default: 16). Use 72 when above BottomNav. */
+  /** Distance from the bottom edge (default: 16). */
   bottomOffset?: number;
   /** When true, dims the button and blocks presses (matches Button disabled). */
   disabled?: boolean;

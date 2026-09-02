@@ -13,7 +13,6 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Screen, Header } from '../components/Layout';
 import { ErrorState } from '../components/ErrorState';
 import { ToggleSwitch } from '../components/ToggleSwitch';
-import { BottomNav } from '../components/BottomNav';
 import { FloatingButton } from '../components/FloatingButton';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
@@ -244,7 +243,7 @@ export function CategoriesListScreen() {
           style={categoryInfoStyle}
           onPress={() =>
             router.push({
-              pathname: '/category-form',
+              pathname: '/(tabs)/category-form',
               params: { id: item.id, name: item.name },
             })
           }
@@ -342,14 +341,11 @@ export function CategoriesListScreen() {
       <FloatingButton
         label="Adicionar"
         icon="add"
-        bottomOffset={72}
-        onPress={() => router.push('/category-form')}
+        bottomOffset={16}
+        onPress={() => router.push('/(tabs)/category-form')}
         accessibilityHint="Navega para a tela de criação de categoria"
         testID="new-category-button"
       />
-
-      {/* Bottom Navigation */}
-      <BottomNav />
     </Screen>
   );
 }

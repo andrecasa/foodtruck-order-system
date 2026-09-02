@@ -12,7 +12,6 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { Screen, Header } from '../components/Layout';
 import { FormScreen } from '../components/FormScreen';
-import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { apiClient } from '../services/api-client';
 
@@ -347,7 +346,6 @@ export function CreateMenuItemScreen() {
       title="Cardápio"
       onBack={() => router.back()}
       contentContainerStyle={contentStyle}
-      footer={<BottomNav />}
     >
         {/* 1. Categoria Field (first per Penpot order) */}
         <View>

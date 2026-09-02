@@ -77,55 +77,6 @@ function ThemedApp() {
       <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen
-              name="create-menu-item"
-              options={{
-                presentation: 'card',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="edit-menu-item"
-              options={{
-                presentation: 'card',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="users-list"
-              options={{
-                presentation: 'card',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="user-form"
-              options={{
-                presentation: 'card',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="user-detail"
-              options={{
-                presentation: 'card',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="categories-list"
-              options={{
-                presentation: 'card',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="category-form"
-              options={{
-                presentation: 'card',
-                headerShown: false,
-              }}
-            />
       </Stack>
     </ThemeProvider>
   );

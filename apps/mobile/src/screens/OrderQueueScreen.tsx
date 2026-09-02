@@ -379,7 +379,7 @@ export function OrderQueueScreen() {
             </RNText>
 
             {/* Line 3: Items */}
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text }}>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text, lineHeight: 18 }}>
               {order.items.map(item => {
                 const subtotal = item.quantity * item.unitPrice;
                 return item.quantity >= 1

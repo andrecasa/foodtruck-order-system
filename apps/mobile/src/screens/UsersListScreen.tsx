@@ -13,7 +13,6 @@ import { Screen, Header } from '../components/Layout';
 import { ErrorState } from '../components/ErrorState';
 import { FilterChips, type FilterChipOption } from '../components/FilterChips';
 import { ToggleSwitch } from '../components/ToggleSwitch';
-import { BottomNav } from '../components/BottomNav';
 import { FloatingButton } from '../components/FloatingButton';
 import { useTheme } from '../theme';
 import { withOpacity } from '../utils/color';
@@ -219,7 +218,7 @@ export function UsersListScreen() {
         style={userCardStyle}
         onPress={() =>
           router.push({
-            pathname: '/user-detail',
+            pathname: '/(tabs)/user-detail',
             params: { id: item.id },
           })
         }
@@ -338,14 +337,11 @@ export function UsersListScreen() {
       <FloatingButton
         label="Adicionar"
         icon="add"
-        bottomOffset={72}
-        onPress={() => router.push('/user-form')}
+        bottomOffset={16}
+        onPress={() => router.push('/(tabs)/user-form')}
         accessibilityHint="Navega para a tela de criação de usuário"
         testID="new-user-button"
       />
-
-      {/* Bottom Navigation */}
-      <BottomNav />
     </Screen>
   );
 }

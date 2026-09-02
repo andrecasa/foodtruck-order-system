@@ -15,7 +15,6 @@ export type { TextProps, HeadingProps, TextSize, TextWeight, TextAlign, HeadingL
 export { FilterChips } from './FilterChips';
 export type { FilterChipsProps, FilterChipOption } from './FilterChips';
 export { ToggleSwitch } from './ToggleSwitch';
-export { BottomNav } from './BottomNav';
 export { CalendarLegend } from './CalendarLegend';
 export { DateSelector } from './DateSelector';
 export type { DateSelectorProps } from './DateSelector';

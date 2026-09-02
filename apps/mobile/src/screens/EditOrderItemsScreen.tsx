@@ -8,19 +8,30 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
-import { Screen, ScrollContainer, Header } from '../components/Layout';
+import { Screen, Header } from '../components/Layout';
+import { FormScreen } from '../components/FormScreen';
 import { Text } from '../components/Typography';
 import { Input } from '../components/Input';
-import { Button } from '../components/Button';
 import { MenuItemsCard } from '../components/MenuItemsCard';
+import { TotalRow } from '../components/TotalRow';
+import { FloatingButton } from '../components/FloatingButton';
 import { apiClient } from '../services/api-client';
-import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
+import { SwipeableOriginSelector, type OriginOption } from '../components/SwipeableOriginSelector';
 import type { MenuItem, Order, OrderOrigin } from '@order-system/shared';
-import { formatPrice } from '../utils/format';
-import { withOpacity } from '../utils/color';
 
 /** Map of menuItemId → quantity for selected items */
 type SelectedItems = Record<string, number>;
+
+/**
+ * Origin segments shown in the edit screen. Includes "QrCode" (web) so that
+ * web orders can display (and lock) their origin. For Presencial/WhatsApp
+ * orders the "QrCode" segment is rendered but disabled (never selectable).
+ */
+const ORIGIN_OPTIONS_WITH_WEB: OriginOption[] = [
+  { key: 'presencial', label: 'Presencial' },
+  { key: 'whatsapp', label: 'WhatsApp' },
+  { key: 'web', label: 'QrCode' },
+];
 
 export interface EditOrderItemsScreenProps {
   /** The order ID to edit items for */
@@ -136,6 +147,12 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     return Object.values(selectedItems).some((qty) => qty > 0);
   }, [selectedItems]);
 
+  // CTA is enabled only when a customer name is filled AND at least one item
+  // is selected. Otherwise it stays inactive.
+  const canSubmit = useMemo(() => {
+    return customerName.trim().length > 0 && hasItems;
+  }, [customerName, hasItems]);
+
   // Item quantity management
   const incrementItem = useCallback((id: string) => {
     setSelectedItems((prev) => {
@@ -187,9 +204,38 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
+  // The bottom tab bar is now provided by the (tabs) navigator (outside this
+  // screen), so the floating Total + CTA stack mirrors CreateOrderScreen exactly:
+  // CTA at bottom:16 (height 44), Total just above it, backdrop behind both.
   const contentStyle: ViewStyle = {
-    padding: 16,
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     gap: 20,
+    // Room so the last content clears the floating Total (48) + CTA (44) stack.
+    paddingBottom: 16 + 44 + 8 + 48 + 16,
+  };
+
+  // Full-width solid panel behind the floating Total + CTA so no scrolled
+  // content shows through the gaps. Uses the screen background.
+  const floatingBackdropStyle: ViewStyle = {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 16 + 44 + 8 + 48 + 8,
+    backgroundColor: theme.colors.background,
+  };
+
+  // Floating Total — pinned just above the CTA. Opaque tint so scrolled
+  // content does not bleed through.
+  const floatingTotalStyle: ViewStyle = {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16 + 44 + 8,
+    backgroundColor: theme.colors.surfacePrimary,
+    borderRadius: 8,
   };
 
   const sectionTitleStyle: TextStyle = {
@@ -205,59 +251,6 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
     fontWeight: '400',
     color: theme.colors.text,
     marginBottom: 20,
-  };
-
-  const originSelectorStyle: ViewStyle = {
-    flexDirection: 'row',
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    overflow: 'hidden',
-    alignItems: 'center',
-    padding: 2,
-    marginTop: 8,
-  };
-
-  const originTabStyle = (selected: boolean): ViewStyle => ({
-    flex: 1,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: selected ? theme.colors.primary : 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  });
-
-  const originTabTextStyle = (selected: boolean): TextStyle => ({
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 13,
-    fontWeight: '400',
-    color: selected ? theme.colors.surface : theme.colors.textSecondary,
-  });
-
-  const totalContainerStyle: ViewStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 48,
-    paddingHorizontal: 16,
-    backgroundColor: withOpacity(theme.colors.primary, 0.06),
-    borderRadius: 8,
-  };
-
-  const totalLabelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const totalAmountStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 20,
-    fontWeight: '400',
-    color: theme.colors.primary,
   };
 
   const errorTextStyle: TextStyle = {
@@ -307,86 +300,90 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
   }
 
   return (
-    <Screen padding={false}>
-      {/* AppBar */}
-      <Header title="Pedido" onBack={() => router.back()} />
-
-      <ScrollContainer padding={false} style={contentStyle}>
-        {/* Customer Name */}
-        <Input
-          accessibilityLabel="Nome do Cliente"
-          value={customerName}
-          onChangeText={(text) => setCustomerName(text.slice(0, 100))}
-          placeholder="Nome do cliente..."
-          icon="person"
-          iconColor={theme.colors.textSecondary}
-          testID="input-customer-name"
-        />
-
-        {/* Origin Selector */}
-        <View>
-          <RNText style={originLabelStyle}>Origem do Pedido</RNText>
-          <SwipeableOriginSelector
-            value={origin}
-            onChange={setOrigin}
-            primaryColor={theme.colors.primary}
-            surfaceColor={theme.colors.surface}
-            borderColor={theme.colors.border}
-            backgroundColor={theme.colors.surface}
-            inactiveTextColor={theme.colors.textSecondary}
-            fontFamily={theme.typography.fontFamily}
-            testID="origin-selector"
+    <FormScreen
+      title="Pedido"
+      onBack={() => router.back()}
+      contentContainerStyle={contentStyle}
+      footer={
+        <>
+          {/* Solid backing panel behind the floating Total + CTA. */}
+          <View style={floatingBackdropStyle} pointerEvents="none" />
+          {/* Floating Total — pinned just above the CTA. Mirrors CreateOrderScreen. */}
+          <View style={floatingTotalStyle}>
+            <TotalRow totalCents={total} testID="total-amount" />
+          </View>
+          <FloatingButton
+            label="Salvar Alterações"
+            onPress={handleSubmit}
+            disabled={loading || !canSubmit}
+            bottomOffset={16}
+            testID="submit-edit-order"
           />
-        </View>
+        </>
+      }
+    >
+      {/* Customer Name */}
+      <Input
+        accessibilityLabel="Nome do Cliente"
+        value={customerName}
+        onChangeText={(text) => setCustomerName(text.slice(0, 100))}
+        placeholder="Nome do cliente..."
+        icon="person"
+        iconColor={theme.colors.textSecondary}
+        testID="input-customer-name"
+      />
 
-        {/* Menu Items Selection */}
-        <View>
-          <RNText style={sectionTitleStyle}>Itens do Pedido</RNText>
+      {/* Origin Selector */}
+      <View>
+        <RNText style={originLabelStyle}>Origem do Pedido</RNText>
+        <SwipeableOriginSelector
+          value={origin}
+          onChange={setOrigin}
+          primaryColor={theme.colors.primary}
+          surfaceColor={theme.colors.surface}
+          borderColor={theme.colors.border}
+          backgroundColor={theme.colors.surface}
+          inactiveTextColor={theme.colors.textSecondary}
+          fontFamily={theme.typography.fontFamily}
+          options={ORIGIN_OPTIONS_WITH_WEB}
+          // Pedidos vindos do PWA (web/QrCode) não podem ter a origem alterada.
+          disabled={order.origin === 'web'}
+          // Para pedidos Presencial/WhatsApp, "QrCode" é exibido mas nunca é
+          // um destino selecionável.
+          disabledOptions={order.origin === 'web' ? [] : ['web']}
+          testID="origin-selector"
+        />
+      </View>
 
-          {categories.map((category) => (
-            <MenuItemsCard
-              key={category}
-              category={category}
-              items={groupedItems[category]!.map((item) => ({
-                id: item.id,
-                name: item.name,
-                priceCents: item.price,
-              }))}
-              quantities={selectedItems}
-              onIncrement={incrementItem}
-              onDecrement={decrementItem}
-              showAddButton
-            />
-          ))}
+      {/* Menu Items Selection */}
+      <View>
+        <RNText style={sectionTitleStyle}>Itens do Pedido</RNText>
 
-          {itemsError ? (
-            <RNText style={errorTextStyle} testID="items-error">{itemsError}</RNText>
-          ) : null}
-        </View>
+        {categories.map((category) => (
+          <MenuItemsCard
+            key={category}
+            category={category}
+            items={groupedItems[category]!.map((item) => ({
+              id: item.id,
+              name: item.name,
+              priceCents: item.price,
+            }))}
+            quantities={selectedItems}
+            onIncrement={incrementItem}
+            onDecrement={decrementItem}
+            showAddButton
+          />
+        ))}
 
-        {/* Total */}
-        <View style={totalContainerStyle}>
-          <RNText style={totalLabelStyle}>Total</RNText>
-          <RNText style={totalAmountStyle} testID="total-amount">{formatPrice(total)}</RNText>
-        </View>
+        {itemsError ? (
+          <RNText style={errorTextStyle} testID="items-error">{itemsError}</RNText>
+        ) : null}
 
         {/* API Error */}
         {apiError ? (
           <RNText style={errorTextStyle} testID="api-error">{apiError}</RNText>
         ) : null}
-
-        {/* Submit Button */}
-        <Button
-          title="Salvar Alterações"
-          variant="primary"
-          size="lg"
-          fullWidth
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={loading}
-          testID="submit-edit-order"
-        />
-      </ScrollContainer>
-    </Screen>
+      </View>
+    </FormScreen>
   );
 }

@@ -7,7 +7,7 @@ import { Button, Text } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { CustomerOrderCard } from '../../components/customer/CustomerOrderCard';
-import { ordersHref } from '../../components/customer/customerNavHref';
+import { ordersHref, homeHref } from '../../components/customer/customerNavHref';
 import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
 import { usePublicBranding } from '../../hooks/customer/usePublicBranding';
 import { usePublicOrdersTracking } from '../../hooks/customer/usePublicOrdersTracking';
@@ -124,7 +124,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
                 <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24, color: theme.colors.primary, opacity: 0.6 }}>receipt_long</RNText>
               </View>
               <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 13, fontWeight: '500', color: theme.colors.textSecondary, opacity: 0.8 }}>
-                Nenhum pedido na fila
+                Você não tem nenhum pedido
               </RNText>
               <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, fontWeight: '400', color: theme.colors.textSecondary, opacity: 0.5 }}>
                 Os novos pedidos aparecerão aqui
@@ -138,7 +138,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
               </View>            
             </View>
           </View>
-        <CustomerBottomNav slug={slug} active="pedidos" pedidosHref={ordersHref(slug)} />
+        <CustomerBottomNav slug={slug} active="pedidos" homeHref={homeHref(slug)} pedidosHref={ordersHref(slug)} />
       </SafeAreaView>
     );
   }
@@ -178,7 +178,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
         </View>
       </ScrollView>
 
-      <CustomerBottomNav slug={slug} active="pedidos" pedidosHref={ordersHref(slug)} />
+      <CustomerBottomNav slug={slug} active="pedidos" homeHref={homeHref(slug)} pedidosHref={ordersHref(slug)} />
     </SafeAreaView>
   );
 }

@@ -187,15 +187,30 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
       <Header title="Pagamento" icon="payments" onBack={() => router.back()} />
 
       <ScrollContainer padding={false} style={contentStyle}>
-        {/* Order Card (same pattern as Fila de Pedidos) */}
-        <View style={{
-          backgroundColor: theme.colors.surface,
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: getStatusColor() + '40',
-          flexDirection: 'row',
-          overflow: 'hidden',
-        }}>
+        {/* Order Card (same pattern as Fila de Pedidos).
+            When the order is not yet paid the card is tappable and navigates
+            to the edit-items screen (replaces the old "+ Adicionar" button). */}
+        <TouchableOpacity
+          disabled={isAlreadyPaid}
+          activeOpacity={0.7}
+          onPress={() =>
+            router.push({
+              pathname: '/(tabs)/edit-order-items',
+              params: { orderId: order.id },
+            })
+          }
+          accessibilityRole={isAlreadyPaid ? undefined : 'button'}
+          accessibilityLabel={isAlreadyPaid ? undefined : 'Editar pedido'}
+          testID="order-card"
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: getStatusColor() + '40',
+            flexDirection: 'row',
+            overflow: 'hidden',
+          }}
+        >
           {/* Left stripe */}
           <View style={{ width: 5, backgroundColor: getStatusColor(), borderTopLeftRadius: 14, borderBottomLeftRadius: 14 }} />
 
@@ -222,7 +237,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
             </RNText>
 
             {/* Line 3: Items */}
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text }}>
+            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 12, fontWeight: '400', color: theme.colors.text, lineHeight: 18 }}>
               {order.items.map(item => {
                 const subtotal = item.quantity * item.unitPrice;
                 return item.quantity >= 1
@@ -242,38 +257,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 11, color: theme.colors.textSecondary, opacity: 0.7 }}>{formatOrderAge(order.createdAt)}</RNText>
             </View>
           </View>
-        </View>
-
-        {/* "+ Adicionar Item" button */}
-        {!isAlreadyPaid && (
-          <TouchableOpacity
-            style={{
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: theme.colors.surface,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-              flexDirection: 'row',
-              gap: 6,
-              alignItems: 'center',
-              justifyContent: 'center',
-              alignSelf: 'stretch',
-            }}
-            onPress={() =>
-              router.push({
-                pathname: '/edit-order-items',
-                params: { orderId: order.id },
-              })
-            }
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar"
-            testID="add-items-button-main"
-          >
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: '400', color: theme.colors.text }}>+</RNText>
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text }}>Adicionar</RNText>
-          </TouchableOpacity>
-        )}
+        </TouchableOpacity>
 
         {/* Delete Order button */}
         <TouchableOpacity

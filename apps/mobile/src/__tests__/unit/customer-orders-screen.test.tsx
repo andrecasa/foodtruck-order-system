@@ -185,7 +185,7 @@ describe('CustomerOrdersScreen — "Meus Pedidos"', () => {
     mockSession = makeSession([]);
     const { getByText, queryByTestId } = render(<CustomerOrdersScreen slug="pastel" />);
     // Illustrated empty state (no order cards rendered).
-    expect(getByText('Nenhum pedido na fila')).toBeTruthy();
+    expect(getByText('Você não tem nenhum pedido')).toBeTruthy();
     expect(queryByTestId('my-orders-section')).toBeNull();
   });
 });

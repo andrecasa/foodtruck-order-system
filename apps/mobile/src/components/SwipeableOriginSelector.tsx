@@ -11,6 +11,11 @@ import {
 } from 'react-native';
 import type { OrderOrigin } from '@order-system/shared';
 
+export interface OriginOption {
+  key: OrderOrigin;
+  label: string;
+}
+
 export interface SwipeableOriginSelectorProps {
   value: OrderOrigin;
   onChange: (value: OrderOrigin) => void;
@@ -20,10 +25,28 @@ export interface SwipeableOriginSelectorProps {
   backgroundColor: string;
   inactiveTextColor: string;
   fontFamily: string;
+  /**
+   * Segments to render. Defaults to the two operator-authorable origins
+   * (Presencial / WhatsApp). Pass a custom list to expose additional
+   * segments such as `web` ("QrCode").
+   */
+  options?: OriginOption[];
+  /**
+   * When true the entire control is read-only: no drag, no tap, and the
+   * thumb stays locked on the current value. Used for `web` (QrCode) orders
+   * whose origin cannot be changed.
+   */
+  disabled?: boolean;
+  /**
+   * Origins that are visible but NOT selectable. Tapping/dragging onto them
+   * is ignored. Used to show "QrCode" as a segment for Presencial/WhatsApp
+   * orders without allowing it as a manual destination.
+   */
+  disabledOptions?: OrderOrigin[];
   testID?: string;
 }
 
-const OPTIONS: { key: OrderOrigin; label: string }[] = [
+const DEFAULT_OPTIONS: OriginOption[] = [
   { key: 'presencial', label: 'Presencial' },
   { key: 'whatsapp', label: 'WhatsApp' },
 ];
@@ -39,10 +62,33 @@ export function SwipeableOriginSelector({
   backgroundColor,
   inactiveTextColor,
   fontFamily,
+  options = DEFAULT_OPTIONS,
+  disabled = false,
+  disabledOptions,
   testID,
 }: SwipeableOriginSelectorProps) {
+  const count = options.length;
+
+  const indexOfValue = useCallback(
+    (v: OrderOrigin) => {
+      const idx = options.findIndex((o) => o.key === v);
+      return idx >= 0 ? idx : 0;
+    },
+    [options]
+  );
+
+  const isSelectable = useCallback(
+    (index: number) => {
+      const option = options[index];
+      if (!option) return false;
+      if (disabled) return false;
+      return !(disabledOptions ?? []).includes(option.key);
+    },
+    [options, disabled, disabledOptions]
+  );
+
   const widthRef = useRef(0);
-  const indexRef = useRef(value === 'presencial' ? 0 : 1);
+  const indexRef = useRef(indexOfValue(value));
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
   const animX = useRef(new Animated.Value(0)).current;
@@ -52,103 +98,129 @@ export function SwipeableOriginSelector({
   valueRef.current = value;
   onChangeRef.current = onChange;
 
-  const maxX = () => {
+  const thumbWidth = useCallback(() => {
     const w = widthRef.current;
     if (w === 0) return 0;
-    const thumbW = (w - MARGIN * 2) / 2;
-    return w - thumbW - MARGIN * 2;
-  };
+    return (w - MARGIN * 2) / count;
+  }, [count]);
 
-  const targetForIndex = (i: number) => (i === 0 ? 0 : maxX());
+  const targetForIndex = useCallback(
+    (i: number) => i * thumbWidth(),
+    [thumbWidth]
+  );
 
-  const snapTo = useCallback((index: number, animated = true) => {
-    indexRef.current = index;
-    const target = targetForIndex(index);
-    if (animated) {
-      Animated.spring(animX, {
-        toValue: target,
-        useNativeDriver: false,
-        friction: 8,
-        tension: 80,
-      }).start();
-    } else {
-      animX.setValue(target);
-    }
-  }, [animX]);
+  const snapTo = useCallback(
+    (index: number, animated = true) => {
+      indexRef.current = index;
+      const target = targetForIndex(index);
+      if (animated) {
+        Animated.spring(animX, {
+          toValue: target,
+          useNativeDriver: false,
+          friction: 8,
+          tension: 80,
+        }).start();
+      } else {
+        animX.setValue(target);
+      }
+    },
+    [animX, targetForIndex]
+  );
+
+  const commitIndex = useCallback(
+    (index: number) => {
+      const option = options[index];
+      if (!option) return;
+      snapTo(index);
+      if (option.key !== valueRef.current) {
+        onChangeRef.current(option.key);
+      }
+    },
+    [options, snapTo]
+  );
 
   useEffect(() => {
-    const idx = value === 'presencial' ? 0 : 1;
+    const idx = indexOfValue(value);
     if (indexRef.current !== idx) {
       snapTo(idx, layoutReady);
     }
-  }, [value, layoutReady, snapTo]);
+  }, [value, layoutReady, snapTo, indexOfValue]);
 
   useEffect(() => {
     if (widthRef.current > 0) {
-      const idx = valueRef.current === 'presencial' ? 0 : 1;
+      const idx = indexOfValue(valueRef.current);
       indexRef.current = idx;
       animX.setValue(targetForIndex(idx));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutReady]);
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
     widthRef.current = w;
-    const idx = valueRef.current === 'presencial' ? 0 : 1;
+    const idx = indexOfValue(valueRef.current);
     indexRef.current = idx;
-    const thumbW = (w - MARGIN * 2) / 2;
-    const target = idx === 0 ? 0 : w - thumbW - MARGIN * 2;
-    animX.setValue(target);
+    animX.setValue(idx * ((w - MARGIN * 2) / count));
     setLayoutReady(true);
   };
 
   const pan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 4,
-      onMoveShouldSetPanResponderCapture: (_, gs) => Math.abs(gs.dx) > 4,
+      onStartShouldSetPanResponder: () => !disabled,
+      onMoveShouldSetPanResponder: (_, gs) => !disabled && Math.abs(gs.dx) > 4,
+      onMoveShouldSetPanResponderCapture: (_, gs) => !disabled && Math.abs(gs.dx) > 4,
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
         dragStart.current = targetForIndex(indexRef.current);
       },
       onPanResponderMove: (_, gs) => {
-        const mx = maxX();
-        if (mx === 0) return;
-        const newX = Math.max(0, Math.min(dragStart.current + gs.dx, mx));
+        if (disabled) return;
+        const tw = thumbWidth();
+        const maxX = tw * (count - 1);
+        if (maxX <= 0) return;
+        const newX = Math.max(0, Math.min(dragStart.current + gs.dx, maxX));
         animX.setValue(newX);
       },
       onPanResponderRelease: (_, gs) => {
-        const mx = maxX();
-        if (mx === 0) return;
+        if (disabled) return;
+        const tw = thumbWidth();
+        if (tw === 0) return;
+        const maxX = tw * (count - 1);
 
+        // Tap (negligible movement) → advance to next selectable segment
         if (Math.abs(gs.dx) < 6) {
-          // Tap on thumb → toggle
-          const newIdx = indexRef.current === 0 ? 1 : 0;
-          snapTo(newIdx);
-          const newVal: OrderOrigin = newIdx === 0 ? 'presencial' : 'whatsapp';
-          if (newVal !== valueRef.current) {
-            onChangeRef.current(newVal);
+          let next = indexRef.current;
+          for (let step = 1; step <= count; step++) {
+            const candidate = (indexRef.current + step) % count;
+            if (isSelectable(candidate)) {
+              next = candidate;
+              break;
+            }
           }
+          if (next === indexRef.current) {
+            // Nothing else selectable → snap back
+            snapTo(indexRef.current);
+            return;
+          }
+          commitIndex(next);
           return;
         }
 
-        const finalX = Math.max(0, Math.min(dragStart.current + gs.dx, mx));
-        const newIdx = finalX > mx / 2 ? 1 : 0;
-        snapTo(newIdx);
-        const newVal: OrderOrigin = newIdx === 0 ? 'presencial' : 'whatsapp';
-        if (newVal !== valueRef.current) {
-          onChangeRef.current(newVal);
+        const finalX = Math.max(0, Math.min(dragStart.current + gs.dx, maxX));
+        const nearest = Math.round(finalX / tw);
+        // If the nearest segment is not selectable, snap back to current
+        if (!isSelectable(nearest)) {
+          snapTo(indexRef.current);
+          return;
         }
+        commitIndex(nearest);
       },
     })
   ).current;
 
   const handleLabelPress = (index: number) => {
-    snapTo(index);
-    const newVal: OrderOrigin = index === 0 ? 'presencial' : 'whatsapp';
-    if (newVal !== value) {
-      onChange(newVal);
-    }
+    if (!isSelectable(index)) return;
+    commitIndex(index);
   };
 
   // ── Styles ──
@@ -162,24 +234,22 @@ export function SwipeableOriginSelector({
     padding: MARGIN,
     position: 'relative',
     justifyContent: 'center',
+    opacity: disabled ? 0.6 : 1,
   };
 
-  const thumbW = widthRef.current > 0
-    ? (widthRef.current - MARGIN * 2) / 2
-    : undefined;
+  const tw = widthRef.current > 0 ? (widthRef.current - MARGIN * 2) / count : undefined;
 
   const thumbStyle: ViewStyle = {
     position: 'absolute',
     top: MARGIN,
     left: MARGIN,
-    width: thumbW ?? '50%',
+    width: tw ?? `${100 / count}%`,
     height: 36,
     borderRadius: 18,
     backgroundColor: primaryColor,
     zIndex: 2,
   };
 
-  // Labels are absolutely positioned on top of everything, but pass touches through
   const labelsOverlayStyle: ViewStyle = {
     position: 'absolute',
     top: MARGIN,
@@ -196,12 +266,17 @@ export function SwipeableOriginSelector({
     justifyContent: 'center',
   };
 
-  const getTextStyle = (index: number): TextStyle => ({
-    fontFamily,
-    fontSize: 13,
-    fontWeight: '400',
-    color: value === OPTIONS[index]!.key ? surfaceColor : inactiveTextColor,
-  });
+  const getTextStyle = (index: number): TextStyle => {
+    const isActive = value === options[index]!.key;
+    const selectable = isSelectable(index);
+    return {
+      fontFamily,
+      fontSize: 13,
+      fontWeight: '400',
+      color: isActive ? surfaceColor : inactiveTextColor,
+      opacity: !isActive && !selectable ? 0.45 : 1,
+    };
+  };
 
   return (
     <View
@@ -213,13 +288,14 @@ export function SwipeableOriginSelector({
     >
       {/* Layer 1: Tap targets for the INACTIVE side (zIndex 1, behind thumb) */}
       <View style={{ position: 'absolute', top: MARGIN, left: MARGIN, right: MARGIN, bottom: MARGIN, flexDirection: 'row', zIndex: 1 }}>
-        {OPTIONS.map((option, index) => (
+        {options.map((option, index) => (
           <Pressable
             key={option.key}
             style={labelHalfStyle}
             onPress={() => handleLabelPress(index)}
+            disabled={!isSelectable(index)}
             accessibilityRole="radio"
-            accessibilityState={{ selected: value === option.key }}
+            accessibilityState={{ selected: value === option.key, disabled: !isSelectable(index) }}
             accessibilityLabel={option.label}
           />
         ))}
@@ -233,7 +309,7 @@ export function SwipeableOriginSelector({
 
       {/* Layer 3: Text labels on top (pointerEvents none, purely visual) */}
       <View style={labelsOverlayStyle} pointerEvents="none">
-        {OPTIONS.map((option, index) => (
+        {options.map((option, index) => (
           <View key={option.key} style={labelHalfStyle}>
             <Text style={getTextStyle(index)}>{option.label}</Text>
           </View>

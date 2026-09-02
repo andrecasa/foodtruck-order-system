@@ -7,8 +7,8 @@ import { useTheme } from '../../theme';
  * CustomerBottomNav — bottom navigation bar for the public (customer) flow.
  *
  * Mirrors the operator `BottomNav` (see components/BottomNav.tsx) so both
- * contexts share one visual language, but exposes only the two destinations the
- * customer flow has, matching Penpot "Clientes" boards:
+ * contexts share one visual language, matching Penpot "Clientes" boards:
+ * - Home (`home`)          → the tenant landing page (`/:slug/home`)
  * - Novo (`add_circle`)    → the tenant menu / new order screen (`/:slug`)
  * - Pedidos (`receipt_long`) → the session orders list (`/:slug/pedidos`)
  *
@@ -24,13 +24,18 @@ import { useTheme } from '../../theme';
  */
 
 /** Which tab is currently active. Drives the active color per item. */
-export type CustomerNavTab = 'novo' | 'pedidos';
+export type CustomerNavTab = 'home' | 'novo' | 'pedidos';
 
 export interface CustomerBottomNavProps {
   /** Tenant slug, used to build the route targets. */
   slug: string;
   /** Currently active tab (for highlighting). */
   active: CustomerNavTab;
+  /**
+   * Where "Home" should navigate. Screens pass the home route (`/:slug/home`).
+   * When omitted, "Home" falls back to the menu (`/:slug`).
+   */
+  homeHref?: string;
   /**
    * Where "Pedidos" should navigate. Screens pass the session orders-list route
    * (`/:slug/pedidos`, via `ordersHref`). When omitted, "Pedidos" falls back to
@@ -46,13 +51,14 @@ interface NavItem {
   href: string;
 }
 
-export function CustomerBottomNav({ slug, active, pedidosHref }: CustomerBottomNavProps) {
+export function CustomerBottomNav({ slug, active, homeHref, pedidosHref }: CustomerBottomNavProps) {
   const theme = useTheme();
   const router = useRouter();
 
   const menuHref = `/${encodeURIComponent(slug)}`;
 
   const items: NavItem[] = [
+    { key: 'home', icon: 'home', label: 'Home', href: homeHref ?? menuHref },
     { key: 'novo', icon: 'add_circle', label: 'Novo', href: menuHref },
     { key: 'pedidos', icon: 'receipt_long', label: 'Pedidos', href: pedidosHref ?? menuHref },
   ];

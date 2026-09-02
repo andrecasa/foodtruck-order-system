@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useAuth } from '../src/hooks/useAuth';
-import { CategoryFormScreen } from '../src/screens/CategoryFormScreen';
+import { useAuth } from '../../src/hooks/useAuth';
+import { CategoryFormScreen } from '../../src/screens/CategoryFormScreen';
 
 /**
  * Route: /category-form

@@ -15,7 +15,7 @@ import { usePublicMenu } from '../../hooks/customer/usePublicMenu';
 import { useCart } from '../../hooks/customer/useCart';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
-import { ordersHref } from '../../components/customer/customerNavHref';
+import { ordersHref, homeHref } from '../../components/customer/customerNavHref';
 
 export interface CustomerMenuScreenProps {
   /** Tenant slug from the route (`/:slug`). */
@@ -215,6 +215,7 @@ export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
       <CustomerBottomNav
         slug={slug}
         active="novo"
+        homeHref={homeHref(slug)}
         pedidosHref={ordersHref(slug)}
       />
     </SafeAreaView>

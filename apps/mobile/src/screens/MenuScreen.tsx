@@ -213,7 +213,7 @@ export function MenuScreen() {
                   accessibilityLabel={`${item.name}, ${formatPrice(item.price)}, ${item.status === 'ativo' ? 'ativado' : 'desativado'}`}
                   onPress={() => {
                     router.push({
-                      pathname: '/edit-menu-item',
+                      pathname: '/(tabs)/edit-menu-item',
                       params: {
                         id: item.id,
                         name: item.name,
@@ -254,7 +254,7 @@ export function MenuScreen() {
         <FloatingButton
           label="Adicionar"
           icon="add"
-          onPress={() => router.push('/create-menu-item')}
+          onPress={() => router.push('/(tabs)/create-menu-item')}
           accessibilityHint="Navega para a tela de criação de item do cardápio"
         />
       </View>

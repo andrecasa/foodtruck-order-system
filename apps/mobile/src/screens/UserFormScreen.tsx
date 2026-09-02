@@ -14,7 +14,6 @@ import { useTheme } from '../theme';
 import { Screen, Header } from '../components/Layout';
 import { FormScreen } from '../components/FormScreen';
 import { ErrorState } from '../components/ErrorState';
-import { BottomNav } from '../components/BottomNav';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
 import { apiClient } from '../services/api-client';
@@ -404,7 +403,6 @@ export function UserFormScreen() {
             Carregando dados...
           </RNText>
         </View>
-        <BottomNav />
       </Screen>
     );
   }
@@ -416,7 +414,6 @@ export function UserFormScreen() {
       <Screen padding={false}>
         <Header title="Usuário" onBack={() => router.back()} />
         <ErrorState message={apiError || 'Erro ao carregar dados'} onRetry={loadUser} />
-        <BottomNav />
       </Screen>
     );
   }
@@ -428,7 +425,6 @@ export function UserFormScreen() {
       title="Usuário"
       onBack={() => router.back()}
       contentContainerStyle={contentStyle}
-      footer={<BottomNav />}
     >
         {/* Função Field (Role Selector) */}
         <View style={fieldContainerStyle}>

@@ -178,7 +178,7 @@ export interface ScrollContainerProps {
   style?: StyleProp<ViewStyle>;
   /**
    * When true, the ScrollView fills available vertical space (flex: 1),
-   * so sibling elements like a fixed BottomNav stay pinned at the bottom
+   * so sibling elements like a fixed footer stay pinned at the bottom
    * and the content between scrolls. Defaults to false for backward compatibility.
    */
   fillHeight?: boolean;

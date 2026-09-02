@@ -32,5 +32,5 @@ export const updateOrderItemsRequestSchema = z.object({
       { message: 'Itens duplicados não são permitidos' }
     ),
   customerName: z.string().min(1).max(100).optional(),
-  origin: z.enum(['presencial', 'whatsapp']).optional(),
+  origin: z.enum(['presencial', 'whatsapp', 'web']).optional(),
 });

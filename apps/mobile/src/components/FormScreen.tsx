@@ -14,7 +14,7 @@ export interface FormScreenProps {
   children: React.ReactNode;
   /** Style applied to the ScrollView's contentContainerStyle. */
   contentContainerStyle?: StyleProp<ViewStyle>;
-  /** Fixed footer (e.g. BottomNav). Rendered below the scroll area, lifts with keyboard. */
+  /** Fixed footer (e.g. floating action buttons). Rendered below the scroll area, lifts with keyboard. */
   footer?: React.ReactNode;
   /**
    * Fixed content pinned between the Header and the scroll area (e.g. a name

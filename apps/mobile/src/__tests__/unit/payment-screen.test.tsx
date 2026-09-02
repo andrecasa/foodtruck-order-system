@@ -88,48 +88,62 @@ describe('PaymentScreen', () => {
   describe('Button visibility', () => {
     /**
      * Validates: Requirements 2.1
-     * WHILE the order has paymentStatus 'pendente', the button "Adicionar Item"
-     * SHALL be rendered visible and enabled.
+     * WHILE the order has paymentStatus 'pendente', the order card SHALL be
+     * tappable (enabled) to edit the order (replaces the old "+ Adicionar" button).
      */
-    it('renders "+ Adicionar Item" button when paymentStatus is pendente', () => {
+    it('renders a tappable order card when paymentStatus is pendente', () => {
       const order = createOrder({ paymentStatus: 'pendente' });
       const { getByTestId } = render(<PaymentScreen order={order} />);
 
-      const addButton = getByTestId('add-items-button-main');
-      expect(addButton).toBeTruthy();
+      const card = getByTestId('order-card');
+      expect(card).toBeTruthy();
+      expect(card.props.accessibilityState?.disabled).toBeFalsy();
     });
 
     /**
      * Validates: Requirements 2.2
-     * WHILE the order has paymentStatus 'pago', the button "Adicionar Item"
-     * SHALL be hidden completely (not rendered).
+     * WHILE the order has paymentStatus 'pago', the order card SHALL be
+     * disabled (not tappable / no navigation).
      */
-    it('hides "+ Adicionar Item" button when paymentStatus is pago', () => {
+    it('renders a disabled order card when paymentStatus is pago', () => {
       const order = createOrder({ paymentStatus: 'pago' });
-      const { queryByTestId } = render(<PaymentScreen order={order} />);
+      const { getByTestId } = render(<PaymentScreen order={order} />);
 
-      const addButton = queryByTestId('add-items-button-main');
-      expect(addButton).toBeNull();
+      const card = getByTestId('order-card');
+      expect(card).toBeTruthy();
+      expect(card.props.accessibilityState?.disabled).toBe(true);
     });
   });
 
   describe('Navigation', () => {
     /**
      * Validates: Requirements 3.1
-     * WHEN the user presses "Adicionar Item", the app SHALL navigate to
+     * WHEN the user taps the order card (pendente), the app SHALL navigate to
      * EditOrderItemsScreen passing the orderId as a navigation parameter.
      */
-    it('navigates to edit-order-items with orderId when button pressed', () => {
+    it('navigates to edit-order-items with orderId when card pressed', () => {
       const order = createOrder({ paymentStatus: 'pendente' });
       const { getByTestId } = render(<PaymentScreen order={order} />);
 
-      const addButton = getByTestId('add-items-button-main');
-      fireEvent.press(addButton);
+      const card = getByTestId('order-card');
+      fireEvent.press(card);
 
       expect(mockPush).toHaveBeenCalledWith({
-        pathname: '/edit-order-items',
+        pathname: '/(tabs)/edit-order-items',
         params: { orderId: 'order-123' },
       });
+    });
+
+    /**
+     * WHEN the order is already paid, tapping the card SHALL NOT navigate.
+     */
+    it('does not navigate when a paid order card is pressed', () => {
+      const order = createOrder({ paymentStatus: 'pago' });
+      const { getByTestId } = render(<PaymentScreen order={order} />);
+
+      fireEvent.press(getByTestId('order-card'));
+
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,11 +1,11 @@
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { EditMenuItemScreen } from '../src/screens/EditMenuItemScreen';
+import { EditMenuItemScreen } from '../../src/screens/EditMenuItemScreen';
 
 /**
  * Edit Menu Item route — opened from MenuScreen when tapping an existing item.
  *
- * Usage: router.push({ pathname: '/edit-menu-item', params: { id, name, price: String(price), category } })
+ * Usage: router.push({ pathname: '/(tabs)/edit-menu-item', params: { id, name, price: String(price), category } })
  *
  * Route params:
  * - id: string — menu item ID

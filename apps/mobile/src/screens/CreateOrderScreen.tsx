@@ -121,6 +121,14 @@ export function CreateOrderScreen() {
     return sum;
   }, [selectedItems, menuItems]);
 
+  // CTA is enabled only when a customer name is filled AND at least one item
+  // is selected. Otherwise it stays inactive.
+  const canSubmit = useMemo(() => {
+    const hasName = customerName.trim().length > 0;
+    const hasItems = Object.values(selectedItems).some((qty) => qty > 0);
+    return hasName && hasItems;
+  }, [customerName, selectedItems]);
+
   // Item quantity management
   const incrementItem = useCallback((id: string) => {
     setSelectedItems((prev) => {
@@ -238,14 +246,14 @@ export function CreateOrderScreen() {
   // Full-width solid panel behind the floating Total + CTA so no scrolled
   // content shows through the gaps. Uses the screen background, matching the
   // fixed name bar.
-  // const floatingBackdropStyle: ViewStyle = {
-  //   position: 'absolute',
-  //   left: 0,
-  //   right: 0,
-  //   bottom: 0,
-  //   height: 16 + 44 + 8 + 48 + 8,
-  //   backgroundColor: theme.colors.background,
-  // };
+  const floatingBackdropStyle: ViewStyle = {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 16 + 44 + 8 + 48 + 8,
+    backgroundColor: theme.colors.background,
+  };
 
   const originLabelStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
@@ -327,7 +335,7 @@ export function CreateOrderScreen() {
       footer={
         <>
           {/* Solid backing panel behind the floating Total + CTA. */}
-          {/* <View style={floatingBackdropStyle} pointerEvents="none" /> */}
+          <View style={floatingBackdropStyle} pointerEvents="none" />
           {/* Floating Total — pinned just above the CTA. */}
           <View style={floatingTotalStyle}>
             <TotalRow totalCents={total} />
@@ -335,7 +343,7 @@ export function CreateOrderScreen() {
           <FloatingButton
             label="Criar Pedido"
             onPress={handleSubmit}
-            disabled={loading}
+            disabled={loading || !canSubmit}
             bottomOffset={16}
             testID="submit-order"
           />

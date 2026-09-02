@@ -101,7 +101,7 @@ describe('MenuScreen', () => {
     const addButton = await findByLabelText('Adicionar');
     fireEvent.press(addButton);
 
-    expect(mockPush).toHaveBeenCalledWith('/create-menu-item');
+    expect(mockPush).toHaveBeenCalledWith('/(tabs)/create-menu-item');
   });
 
   it('toggles item status', async () => {

@@ -69,12 +69,12 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
     justifyContent: 'flex-start',
     paddingHorizontal: 24,
     paddingVertical: 32,
-    gap: 32,
+    gap: 24,
   };
 
   const logoStyle: ImageStyle = {
-    width: 175,
-    height: 175,
+    width: 150,
+    height: 150,
     borderRadius: 16,
   };
 
@@ -82,7 +82,7 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
   // over the themed background.
   const qrCardStyle: ViewStyle = {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',

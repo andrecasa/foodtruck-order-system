@@ -102,6 +102,18 @@ export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
     paddingBottom: 16 + 44 + 8 + 48 + 16,
   };
 
+  // Full-width solid panel behind the floating Total + CTA so no scrolled
+  // content shows through the gaps. Uses the screen background, matching the
+  // operator CreateOrderScreen.
+  const floatingBackdropStyle: ViewStyle = {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 16 + 44 + 8 + 48 + 8,
+    backgroundColor: theme.colors.background,
+  };
+
   // Floating Total container — pinned just above the CTA (which sits at
   // bottom:16, height 44), so the total floats at 16 + 44 + 8. Uses the opaque
   // `surfacePrimary` tint (matches the TotalRow look) so scrolled content does
@@ -196,6 +208,9 @@ export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
         )}
 
       </ScrollView>
+
+      {/* Solid backing panel behind the floating Total + CTA. */}
+      <View style={floatingBackdropStyle} pointerEvents="none" />
 
       {/* Floating Total — pinned just above the CTA. */}
       <View style={floatingTotalStyle}>

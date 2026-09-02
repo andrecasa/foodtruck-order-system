@@ -1,6 +1,13 @@
 export interface ThemeConfig {
   businessName: string;
   logo: string;
+  /**
+   * Tenant slug (public `provisioning_key`). Used to build the public ordering
+   * URL (`order.foodtruck.app.br/:slug`), e.g. for the operator Home QR code.
+   * Optional: the neutral platform theme (pre-login / branding fallback) has
+   * no tenant, so this is absent there.
+   */
+  slug?: string;
   colors: {
     primary: string;
     secondary: string;

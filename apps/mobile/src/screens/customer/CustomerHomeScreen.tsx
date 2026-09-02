@@ -73,9 +73,8 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
   };
 
   const logoStyle: ImageStyle = {
-    width: 150,
-    height: 150,
-    borderRadius: 16,
+    width: 125,
+    height: 125,
   };
 
   // Card that frames the QR code. Uses the surface color so it reads as a panel
@@ -91,8 +90,8 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
   };
 
   const qrStyle: ImageStyle = {
-    width: 240,
-    height: 240,
+    width: 200,
+    height: 200,
   };
 
   const taglineStyle: TextStyle = {

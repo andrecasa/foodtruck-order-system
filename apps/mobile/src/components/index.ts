@@ -10,6 +10,8 @@ export { FormScreen } from './FormScreen';
 export type { FormScreenProps } from './FormScreen';
 export { DrawerMenu } from './DrawerMenu';
 export type { DrawerMenuProps } from './DrawerMenu';
+export { HomeHero } from './HomeHero';
+export type { HomeHeroProps } from './HomeHero';
 export { Text, Heading } from './Typography';
 export type { TextProps, HeadingProps, TextSize, TextWeight, TextAlign, HeadingLevel } from './Typography';
 export { FilterChips } from './FilterChips';

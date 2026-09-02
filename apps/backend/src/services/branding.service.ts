@@ -28,6 +28,7 @@ export class BrandingNotFoundError extends Error {
 interface TenantBrandingRow {
   business_name: string;
   logo_url: string | null;
+  provisioning_key: string | null;
   theme: Partial<ThemeConfig> | null;
 }
 
@@ -47,7 +48,7 @@ export async function getBranding(tenantId: string): Promise<TenantBrandingRespo
   // `$1` is the resolved tenant id — satisfies the repository's mandatory
   // tenant-placeholder requirement while reading the tenant's own row by id.
   const rows = await repo.raw<TenantBrandingRow>(
-    `SELECT business_name, logo_url, theme
+    `SELECT business_name, logo_url, provisioning_key, theme
        FROM tenants
       WHERE id = $1`,
     [tenantId],
@@ -69,6 +70,8 @@ export async function getBranding(tenantId: string): Promise<TenantBrandingRespo
     tenantId,
     businessName: row.business_name,
     logoUrl: row.logo_url,
+    // Public slug used by the operator app to build the ordering URL (QR code).
+    slug: row.provisioning_key,
     theme: mergedTheme,
   };
 }

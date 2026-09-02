@@ -48,6 +48,7 @@ const brandingArb: fc.Arbitrary<TenantBrandingResponse> = fc.record({
   tenantId: fc.uuid(),
   businessName: fc.string({ minLength: 1, maxLength: 40 }),
   logoUrl: fc.option(fc.webUrl(), { nil: null }),
+  slug: fc.option(fc.string({ minLength: 1, maxLength: 40 }), { nil: null }),
   theme: partialThemeArb,
 });
 
@@ -157,15 +158,18 @@ describe('Property 9 (mobile): tenant theme application on success', () => {
       tenantId: '11111111-1111-4111-8111-111111111111',
       businessName: 'Loja X',
       logoUrl: 'https://cdn/x.png',
+      slug: 'loja-x',
       theme: {},
     });
     expect(withBoth.businessName).toBe('Loja X');
     expect(withBoth.logo).toBe('https://cdn/x.png');
+    expect(withBoth.slug).toBe('loja-x');
 
     // Tenant provides neither → neutral platform defaults.
-    const withNeither = applyBranding({ tenantId: '11111111-1111-4111-8111-111111111111', businessName: '', logoUrl: null, theme: {} });
+    const withNeither = applyBranding({ tenantId: '11111111-1111-4111-8111-111111111111', businessName: '', logoUrl: null, slug: null, theme: {} });
     expect(withNeither.businessName).toBe(defaultTheme.businessName);
     expect(withNeither.logo).toBe(defaultTheme.logo);
+    expect(withNeither.slug).toBeUndefined();
   });
 });
 

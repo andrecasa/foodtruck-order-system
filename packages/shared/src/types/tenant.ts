@@ -20,6 +20,11 @@ export interface TenantBrandingResponse {
   tenantId: string;
   businessName: string;
   logoUrl: string | null;
+  /**
+   * Tenant slug (public `provisioning_key`), or `null` when the tenant has none.
+   * Lets the operator app build the public ordering URL for the Home QR code.
+   */
+  slug: string | null;
   /** Partial override applied via deepMergeTheme over the neutral platform theme */
   theme: Partial<ThemeConfig>;
 }

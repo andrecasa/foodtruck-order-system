@@ -35,6 +35,9 @@ export function applyBranding(branding: TenantBrandingResponse): ThemeConfig {
     ...merged,
     businessName: branding.businessName || merged.businessName,
     logo: branding.logoUrl ?? merged.logo,
+    // Public slug for building the ordering URL (operator Home QR). Absent when
+    // the tenant has none; the neutral fallback theme leaves this undefined.
+    slug: branding.slug ?? merged.slug,
   };
 }
 

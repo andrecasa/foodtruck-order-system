@@ -89,6 +89,7 @@ describe('tenantBrandingResponseSchema', () => {
     tenantId: '11111111-1111-4111-8111-111111111111',
     businessName: 'Pastel das Meninas',
     logoUrl: 'https://cdn.example.com/logo.png',
+    slug: 'pastel-das-meninas',
     theme: { colors: { primary: '#ff0000' } },
   };
 
@@ -103,6 +104,15 @@ describe('tenantBrandingResponseSchema', () => {
 
   it('accepts null logoUrl', () => {
     expect(tenantBrandingResponseSchema.safeParse({ ...validBranding, logoUrl: null }).success).toBe(true);
+  });
+
+  it('accepts null slug', () => {
+    expect(tenantBrandingResponseSchema.safeParse({ ...validBranding, slug: null }).success).toBe(true);
+  });
+
+  it('rejects missing slug', () => {
+    const { slug, ...rest } = validBranding;
+    expect(tenantBrandingResponseSchema.safeParse(rest).success).toBe(false);
   });
 
   it('accepts an empty theme object', () => {

@@ -84,6 +84,18 @@ describe('BrandingService.getBranding', () => {
     expect(result.logoUrl).toBe('https://x/logo.png');
   });
 
+  it('maps provisioning_key to slug (used by the operator Home QR)', async () => {
+    vi.mocked(pool.query).mockResolvedValueOnce(
+      queryResult([
+        { business_name: 'Loja X', logo_url: null, provisioning_key: 'loja-x', theme: null },
+      ]),
+    );
+
+    const result = await getBranding(TENANT);
+
+    expect(result.slug).toBe('loja-x');
+  });
+
   it('falls back to the neutral platform theme when tenant theme is null (R11.3)', async () => {
     vi.mocked(pool.query).mockResolvedValueOnce(
       queryResult([{ business_name: 'Loja X', logo_url: null, theme: null }]),

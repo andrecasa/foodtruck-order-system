@@ -104,5 +104,7 @@ export const tenantBrandingResponseSchema = z.object({
   tenantId: z.string().uuid(),
   businessName: z.string().min(1).max(120),
   logoUrl: z.string().nullable(),
+  // Tenant slug (public provisioning_key), or null when the tenant has none.
+  slug: z.string().nullable(),
   theme: themeConfigPartialSchema,
 });

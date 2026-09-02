@@ -4,7 +4,7 @@ import type { PublicOrderResponse } from '@order-system/shared';
 import { useTheme } from '../../theme';
 import { Badge } from '../Badge';
 import { OriginBadge } from '../OriginBadge';
-import { formatPrice, formatOrderAge } from '../../utils/format';
+import { formatPrice, formatOrderAge, formatOrderItemLine } from '../../utils/format';
 
 /** Portuguese status labels shown in the badge. */
 const STATUS_LABELS: Record<string, string> = {
@@ -230,10 +230,9 @@ export function CustomerOrderCard({ order, testID }: CustomerOrderCardProps) {
         {/* Line 3: items — "Nx name (subtotal)" per line */}
         <RNText style={itemsStyle}>
           {order.items
-            .map((item) => {
-              const subtotal = item.quantity * item.unitPriceCents;
-              return `${item.quantity}x ${item.itemName} (${formatPrice(subtotal)})`;
-            })
+            .map((item) =>
+              formatOrderItemLine(item.quantity, item.itemName, item.quantity * item.unitPriceCents),
+            )
             .join('\n')}
         </RNText>
 

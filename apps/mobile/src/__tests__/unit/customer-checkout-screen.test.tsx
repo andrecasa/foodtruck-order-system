@@ -88,8 +88,11 @@ describe('CustomerCheckoutScreen', () => {
     );
 
     // Resumo card lists items in the payment-card format: "Nx Name (line total)".
-    expect(getByText(/2x Pastel de Carne \(R\$ 16,00\)/)).toBeTruthy();
-    expect(getByText(/1x Caldo de Cana \(R\$ 5,00\)/)).toBeTruthy();
+    // A LTR mark (\u200E) may sit between the "x" and the space to keep the
+    // multiplier from rendering as a multiplication sign when the name starts
+    // with a digit; allow it optionally in the matchers.
+    expect(getByText(/2x\u200E? Pastel de Carne \(R\$ 16,00\)/)).toBeTruthy();
+    expect(getByText(/1x\u200E? Caldo de Cana \(R\$ 5,00\)/)).toBeTruthy();
 
     // The grand total is shown INSIDE the resumo card (not in a separate row).
     expect(getByTestId('checkout-total')).toBeTruthy();

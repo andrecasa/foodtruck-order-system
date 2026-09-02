@@ -12,7 +12,7 @@ import { Screen, ScrollContainer, Modal, Header, Badge, OriginBadge } from '../c
 import { Text } from '../components/Typography';
 import { useTheme } from '../theme';
 import { apiClient } from '../services/api-client';
-import { formatPrice, formatOrderAge} from '../utils/format';
+import { formatPrice, formatOrderAge, formatOrderItemLine } from '../utils/format';
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'pix', label: 'PIX' },
@@ -241,8 +241,8 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
               {order.items.map(item => {
                 const subtotal = item.quantity * item.unitPrice;
                 return item.quantity >= 1
-                  ? `${item.quantity}x ${item.name} (${formatPrice(subtotal)})`
-                  : `${item.quantity}x ${item.name}`;
+                  ? formatOrderItemLine(item.quantity, item.name, subtotal)
+                  : formatOrderItemLine(item.quantity, item.name);
               }).join('\n')}
             </RNText>
 

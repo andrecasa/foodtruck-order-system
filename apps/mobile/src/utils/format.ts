@@ -49,3 +49,29 @@ export function formatOrderAge(createdAt: string, now: number = Date.now()): str
   if (days > 0) return `Pedido criado há ${days}d ${hours > 0 ? `${hours}h ` : ''}${mins > 0 ? `${mins}min` : ''}`.trim();
   return mins > 0 ? `Pedido criado há ${hours}h ${mins}min` : `Pedido criado há ${hours}h`;
 }
+
+/**
+ * Formats a single order-item line as `Nx Name (subtotal)`, e.g.
+ * "2x Pastel de Carne (R$ 16,00)".
+ *
+ * Why the `\u200E` (LTR mark): when the item name starts with a digit (e.g.
+ * "00 - Pastel de Camarão"), the sequence "1x 00" places the "x" between two
+ * numbers. The Unicode bidirectional algorithm then treats that "x" as a
+ * multiplication sign and renders it larger/inconsistently ("1×00"). Inserting
+ * an invisible LTR mark right after the "x" isolates the multiplier from the
+ * following digits, so the "x" always renders as a normal lowercase letter —
+ * consistent across the operator and customer apps.
+ *
+ * @param quantity item quantity
+ * @param name item name
+ * @param subtotalCents optional line subtotal in centavos; when provided it is
+ *   appended as " (R$ X,XX)"
+ */
+export function formatOrderItemLine(
+  quantity: number,
+  name: string,
+  subtotalCents?: number,
+): string {
+  const base = `${quantity}x\u200E ${name}`;
+  return subtotalCents === undefined ? base : `${base} (${formatPrice(subtotalCents)})`;
+}

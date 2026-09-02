@@ -21,7 +21,7 @@ import { useRealtime } from '../hooks/useRealtime';
 import { useNetworkError } from '../hooks/useNetworkError';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useAuth } from '../hooks/useAuth';
-import { formatPrice, formatOrderAge } from '../utils/format';
+import { formatPrice, formatOrderAge, formatOrderItemLine } from '../utils/format';
 
 /** Map current status to the next status in the workflow */
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -383,8 +383,8 @@ export function OrderQueueScreen() {
               {order.items.map(item => {
                 const subtotal = item.quantity * item.unitPrice;
                 return item.quantity >= 1
-                  ? `${item.quantity}x ${item.name} (${formatPrice(subtotal)})`
-                  : `${item.quantity}x ${item.name}`;
+                  ? formatOrderItemLine(item.quantity, item.name, subtotal)
+                  : formatOrderItemLine(item.quantity, item.name);
               }).join('\n')}
             </RNText>
 

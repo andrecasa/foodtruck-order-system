@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../theme';
 import { Button, Heading, Input, Text, MenuItemsCard, FloatingButton } from '../../components';
-import { formatPrice } from '../../utils/format';
+import { formatPrice, formatOrderItemLine } from '../../utils/format';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { useCart } from '../../hooks/customer/useCart';
@@ -238,7 +238,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
                   the Total row below owns the grand total. */}
               <RNText style={resumoItemsStyle}>
                 {cart.items
-                  .map((i) => `${i.quantity}x ${i.name} (${formatPrice(i.priceCents * i.quantity)})`)
+                  .map((i) => formatOrderItemLine(i.quantity, i.name, i.priceCents * i.quantity))
                   .join('\n')}
               </RNText>
 

@@ -259,7 +259,7 @@ export function QueuePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(DEFAULT_FILTERS);
-  const [paymentFilters, setPaymentFilters] = useState<PaymentStatus[]>(['pago']);
+  const [paymentFilters, setPaymentFilters] = useState<PaymentStatus[]>([]);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [isStale, setIsStale] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);

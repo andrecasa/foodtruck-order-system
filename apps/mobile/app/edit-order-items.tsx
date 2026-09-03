@@ -48,16 +48,14 @@ export default function EditOrderItemsRoute() {
       }
 
       try {
-        const orders = await apiClient.getOrders({});
-        const found = orders.find((o) => o.id === orderId);
+        // Fetch the order directly by id (no date filter), so orders from
+        // previous days still resolve. Filtering `getOrders({})` in memory
+        // failed for past-day orders because that list defaults to today.
+        const found = await apiClient.getOrderById(orderId);
         if (cancelled) return;
-        if (!found) {
-          setError('Pedido não encontrado');
-        } else {
-          setOrder(found);
-        }
+        setOrder(found);
       } catch {
-        if (!cancelled) setError('Erro ao carregar pedido');
+        if (!cancelled) setError('Pedido não encontrado');
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -1,19 +1,17 @@
 import React from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { CustomerHomeScreen } from '../../../src/screens/customer/CustomerHomeScreen';
-import { usePublicBranding } from '../../../src/hooks/customer/usePublicBranding';
+import { Redirect, useLocalSearchParams } from 'expo-router';
+import { menuHref } from '../../../src/components/customer/customerNavHref';
 
 /**
- * Public customer home route: `/:slug` — the PWA's main page.
+ * Public customer root route: `/:slug`.
  *
- * Landing page showing the tenant logo, a QR code to the public ordering URL,
- * and a "Novo Pedido" button. The `(public)` layout already resolves and
- * applies the tenant branding/theme; here we reuse `usePublicBranding` to
- * surface the business name in the header. The slug comes from the route.
+ * The PWA's entry point now lands on the new-order screen (`/:slug/new-order`)
+ * instead of the Home landing page. This route is a pure redirect that
+ * preserves the tenant slug; the Home landing page lives at `/:slug/home` and
+ * remains reachable from the bottom nav's "Home" tab.
  */
-export default function CustomerHomeRoute() {
+export default function CustomerRootRoute() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { branding } = usePublicBranding(slug);
 
-  return <CustomerHomeScreen slug={slug} businessName={branding?.businessName} />;
+  return <Redirect href={menuHref(slug) as never} />;
 }

@@ -7,11 +7,12 @@
 /**
  * Builds the target for the customer bottom nav's "Home" tab.
  *
- * Home is the PWA's main page (`/:slug`): the tenant landing page with logo +
- * QR code and a "Novo Pedido" button.
+ * Home is the tenant landing page (`/:slug/home`) with logo + QR code and a
+ * "Novo Pedido" button. The PWA root (`/:slug`) redirects to the orders list,
+ * so the Home lives at its own `/:slug/home` route.
  */
 export function homeHref(slug: string): string {
-  return `/${encodeURIComponent(slug)}`;
+  return `/${encodeURIComponent(slug)}/home`;
 }
 
 /**

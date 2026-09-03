@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, type ColorValue } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme/ThemeProvider';
@@ -8,7 +8,7 @@ import { useTheme } from '../../src/theme/ThemeProvider';
  * Material Symbols Outlined icon component using the icon font.
  * Penpot spec: 22px, weight 400, Material Symbols Outlined font.
  */
-function TabIcon({ name, color }: { name: string; color: string }) {
+function TabIcon({ name, color }: { name: string; color: ColorValue }) {
   return (
     <Text
       style={{

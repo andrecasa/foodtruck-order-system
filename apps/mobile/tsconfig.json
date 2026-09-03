@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-native",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["jest", "node"],
     "paths": {
       "@order-system/shared": ["../../packages/shared/src"],
       "@order-system/shared/*": ["../../packages/shared/src/*"],

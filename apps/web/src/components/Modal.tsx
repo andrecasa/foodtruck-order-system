@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, type ReactPortal } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -47,7 +47,7 @@ export function Modal({
   onConfirm,
   onCancel,
   variant = 'default',
-}: ModalProps) {
+}: ModalProps): ReactPortal | null {
   const theme = useTheme();
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);

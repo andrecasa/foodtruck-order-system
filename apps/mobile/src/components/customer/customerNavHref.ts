@@ -1,18 +1,18 @@
 /**
  * Shared route builders for the customer (public) flow, so every screen that
- * renders `CustomerBottomNav` (home, menu, orders list, checkout) points to the
- * same targets.
+ * renders `CustomerBottomNav` (qrcode, menu, orders list, checkout) points to
+ * the same targets.
  */
 
 /**
- * Builds the target for the customer bottom nav's "Home" tab.
+ * Builds the target for the customer bottom nav's "QrCode" tab.
  *
- * Home is the tenant landing page (`/:slug/home`) with logo + QR code and a
+ * QrCode is the tenant landing page (`/:slug/qrcode`) with logo + QR code and a
  * "Novo Pedido" button. The PWA root (`/:slug`) redirects to the orders list,
- * so the Home lives at its own `/:slug/home` route.
+ * so the QrCode page lives at its own `/:slug/qrcode` route.
  */
-export function homeHref(slug: string): string {
-  return `/${encodeURIComponent(slug)}/home`;
+export function qrcodeHref(slug: string): string {
+  return `/${encodeURIComponent(slug)}/qrcode`;
 }
 
 /**

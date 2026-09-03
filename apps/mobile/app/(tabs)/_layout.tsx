@@ -59,13 +59,7 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
-        }}
-      />
+      
       <Tabs.Screen
         name="index"
         options={{
@@ -95,24 +89,12 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="payment"
+        name="qrcode"
         options={{
-          href: null,
+          title: 'QrCode',
+          tabBarIcon: ({ color }) => <TabIcon name="qr_code" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="edit-order-items"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen name="categories-list" options={{ href: null }} />
-      <Tabs.Screen name="category-form" options={{ href: null }} />
-      <Tabs.Screen name="users-list" options={{ href: null }} />
-      <Tabs.Screen name="user-form" options={{ href: null }} />
-      <Tabs.Screen name="user-detail" options={{ href: null }} />
-      <Tabs.Screen name="create-menu-item" options={{ href: null }} />
-      <Tabs.Screen name="edit-menu-item" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -129,7 +129,7 @@ describe('PaymentScreen', () => {
       fireEvent.press(card);
 
       expect(mockPush).toHaveBeenCalledWith({
-        pathname: '/(tabs)/edit-order-items',
+        pathname: '/edit-order-items',
         params: { orderId: 'order-123' },
       });
     });

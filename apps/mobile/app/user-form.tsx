@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../src/hooks/useAuth';
-import { UserDetailScreen } from '../../src/screens/UserDetailScreen';
+import { useAuth } from '../src/hooks/useAuth';
+import { UserFormScreen } from '../src/screens/UserFormScreen';
 
 /**
- * Route: /user-detail
+ * Route: /user-form
  * Protected: only accessible by admin users.
  * Non-admin users are redirected to /(tabs) (order queue).
  */
-export default function UserDetailRoute() {
+export default function UserFormRoute() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -23,5 +23,5 @@ export default function UserDetailRoute() {
     return null;
   }
 
-  return <UserDetailScreen />;
+  return <UserFormScreen />;
 }

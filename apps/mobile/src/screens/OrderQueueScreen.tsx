@@ -287,7 +287,7 @@ export function OrderQueueScreen() {
   };
 
   const handleCardPress = (order: Order) => {
-    router.push({ pathname: '/(tabs)/payment', params: { orderId: order.id } });
+    router.push({ pathname: '/payment', params: { orderId: order.id } });
   };
 
 

@@ -218,7 +218,7 @@ export function UsersListScreen() {
         style={userCardStyle}
         onPress={() =>
           router.push({
-            pathname: '/(tabs)/user-detail',
+            pathname: '/user-detail',
             params: { id: item.id },
           })
         }
@@ -338,7 +338,7 @@ export function UsersListScreen() {
         label="Adicionar"
         icon="add"
         bottomOffset={16}
-        onPress={() => router.push('/(tabs)/user-form')}
+        onPress={() => router.push('/user-form')}
         accessibilityHint="Navega para a tela de criação de usuário"
         testID="new-user-button"
       />

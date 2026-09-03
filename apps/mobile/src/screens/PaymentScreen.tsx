@@ -195,7 +195,7 @@ export function PaymentScreen({ order, onPaymentSuccess }: PaymentScreenProps) {
           activeOpacity={0.7}
           onPress={() =>
             router.push({
-              pathname: '/(tabs)/edit-order-items',
+              pathname: '/edit-order-items',
               params: { orderId: order.id },
             })
           }

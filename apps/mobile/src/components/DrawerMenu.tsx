@@ -90,15 +90,15 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
   };
 
   const menuItems: DrawerMenuItem[] = [
-    { icon: 'home', label: 'Home', route: '/(tabs)/home' },
     { icon: 'receipt_long', label: 'Pedidos', route: '/(tabs)' },
     { icon: 'add_circle', label: 'Novo Pedido', route: '/(tabs)/new-order' },
     { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
     { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
+    { icon: 'qr_code', label: 'QrCode', route: '/(tabs)/qrcode' },
     ...(user?.role === 'admin'
       ? [
-          { icon: 'category', label: 'Categorias', route: '/(tabs)/categories-list' },
-          { icon: 'group', label: 'Usuários', route: '/(tabs)/users-list' },
+          { icon: 'category', label: 'Categorias', route: '/categories-list' },
+          { icon: 'group', label: 'Usuários', route: '/users-list' },
         ]
       : []),
   ];

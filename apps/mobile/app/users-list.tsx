@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../src/hooks/useAuth';
-import { CategoriesListScreen } from '../../src/screens/CategoriesListScreen';
+import { useAuth } from '../src/hooks/useAuth';
+import { UsersListScreen } from '../src/screens/UsersListScreen';
 
 /**
- * Route: /categories-list
+ * Route: /users-list
  * Protected: only accessible by admin users.
  * Non-admin users are redirected to /(tabs) (order queue).
  */
-export default function CategoriesListRoute() {
+export default function UsersListRoute() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -23,5 +23,5 @@ export default function CategoriesListRoute() {
     return null;
   }
 
-  return <CategoriesListScreen />;
+  return <UsersListScreen />;
 }

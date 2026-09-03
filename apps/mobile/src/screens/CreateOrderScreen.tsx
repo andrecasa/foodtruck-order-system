@@ -202,7 +202,7 @@ export function CreateOrderScreen() {
       setCustomerName('');
       setOrigin('presencial');
       setSelectedItems({});
-      router.push({ pathname: '/(tabs)/payment', params: { orderId: order.id } });
+      router.push({ pathname: '/payment', params: { orderId: order.id } });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar pedido';
       setApiError(message);

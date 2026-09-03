@@ -2,16 +2,17 @@ import React from 'react';
 import { Pressable, View, Text as RNText, type ViewStyle, type TextStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../theme';
-import { homeHref, menuHref, ordersHref } from './customerNavHref';
+import { qrcodeHref, menuHref, ordersHref } from './customerNavHref';
 
 /**
  * CustomerBottomNav — bottom navigation bar for the public (customer) flow.
  *
  * Mirrors the operator `BottomNav` (see components/BottomNav.tsx) so both
- * contexts share one visual language, matching Penpot "Clientes" boards:
- * - Home (`home`)          → the tenant landing page (`/:slug`)
- * - Novo (`add_circle`)    → the tenant menu / new order screen (`/:slug/new-order`)
+ * contexts share one visual language, matching Penpot "Clientes" boards.
+ * Order (left → right): Pedidos | Novo | QrCode.
  * - Pedidos (`receipt_long`) → the session orders list (`/:slug/orders`)
+ * - Novo (`add_circle`)      → the tenant menu / new order screen (`/:slug/new-order`)
+ * - QrCode (`qr_code`)       → the tenant landing page (`/:slug/qrcode`)
  *
  * Penpot specs (Clientes Bottom Nav):
  * - bar: height 56px, backgroundColor #FFFFFF (surface), justifyContent space-around
@@ -25,7 +26,7 @@ import { homeHref, menuHref, ordersHref } from './customerNavHref';
  */
 
 /** Which tab is currently active. Drives the active color per item. */
-export type CustomerNavTab = 'home' | 'novo' | 'pedidos';
+export type CustomerNavTab = 'qrcode' | 'novo' | 'pedidos';
 
 export interface CustomerBottomNavProps {
   /** Tenant slug, used to build the route targets. */
@@ -33,10 +34,10 @@ export interface CustomerBottomNavProps {
   /** Currently active tab (for highlighting). */
   active: CustomerNavTab;
   /**
-   * Where "Home" should navigate. Screens pass the home route (`/:slug/home`).
-   * When omitted, "Home" falls back to the menu (`/:slug`).
+   * Where "QrCode" should navigate. Screens pass the qrcode route
+   * (`/:slug/qrcode`). When omitted, "QrCode" falls back to `qrcodeHref(slug)`.
    */
-  homeHref?: string;
+  qrcodeHref?: string;
   /**
    * Where "Pedidos" should navigate. Screens pass the session orders-list route
    * (`/:slug/orders`, via `ordersHref`). When omitted, "Pedidos" falls back to
@@ -52,14 +53,15 @@ interface NavItem {
   href: string;
 }
 
-export function CustomerBottomNav({ slug, active, homeHref: homeHrefProp, pedidosHref }: CustomerBottomNavProps) {
+export function CustomerBottomNav({ slug, active, qrcodeHref: qrcodeHrefProp, pedidosHref }: CustomerBottomNavProps) {
   const theme = useTheme();
   const router = useRouter();
 
+  // Order (left → right): Pedidos | Novo | QrCode.
   const items: NavItem[] = [
-    { key: 'home', icon: 'home', label: 'Home', href: homeHrefProp ?? homeHref(slug) },
-    { key: 'novo', icon: 'add_circle', label: 'Novo', href: menuHref(slug) },
     { key: 'pedidos', icon: 'receipt_long', label: 'Pedidos', href: pedidosHref ?? ordersHref(slug) },
+    { key: 'novo', icon: 'add_circle', label: 'Novo', href: menuHref(slug) },
+    { key: 'qrcode', icon: 'qr_code', label: 'QrCode', href: qrcodeHrefProp ?? qrcodeHref(slug) },
   ];
 
   const containerStyle: ViewStyle = {

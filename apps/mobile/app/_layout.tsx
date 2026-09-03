@@ -77,6 +77,24 @@ function ThemedApp() {
       <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
             <Stack.Screen name="(tabs)" />
+            {/*
+              Operator detail screens live at the root stack (ABOVE the tab bar)
+              rather than inside a tab. Pushing them from any tab stacks them on
+              top of that tab and `router.back()` returns to the originating
+              screen — the standard iOS detail-screen behavior. Keeping them
+              inside a tab would make "back" fall to that tab's index instead
+              (see Expo Router "Common navigation patterns"). Each screen renders
+              its own Header with an onBack, so they don't need the tab bar.
+            */}
+            <Stack.Screen name="payment" />
+            <Stack.Screen name="edit-order-items" />
+            <Stack.Screen name="create-menu-item" />
+            <Stack.Screen name="edit-menu-item" />
+            <Stack.Screen name="categories-list" />
+            <Stack.Screen name="category-form" />
+            <Stack.Screen name="users-list" />
+            <Stack.Screen name="user-form" />
+            <Stack.Screen name="user-detail" />
       </Stack>
     </ThemeProvider>
   );

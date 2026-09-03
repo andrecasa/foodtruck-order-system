@@ -153,7 +153,7 @@ describe('CreateOrderScreen', () => {
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith({
-        pathname: '/(tabs)/payment',
+        pathname: '/payment',
         params: { orderId: 'new-order-1' },
       });
     });

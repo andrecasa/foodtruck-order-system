@@ -26,7 +26,7 @@ jest.mock('expo-router', () => ({
   useNavigation: () => ({
     canGoBack: () => true,
   }),
-  usePathname: () => '/(tabs)/categories-list',
+  usePathname: () => '/categories-list',
 }));
 
 const mockGetCategories = jest.fn<Promise<Category[]>, any[]>();
@@ -190,7 +190,7 @@ describe('CategoriesListScreen', () => {
       fireEvent.press(categoryName);
 
       expect(mockPush).toHaveBeenCalledWith({
-        pathname: '/(tabs)/category-form',
+        pathname: '/category-form',
         params: { id: 'cat-1', name: 'Pastéis Salgados' },
       });
     });
@@ -236,8 +236,8 @@ describe('DrawerMenu', () => {
         { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
         ...(user?.role === 'admin'
           ? [
-              { icon: 'folder_open', label: 'Categorias', route: '/(tabs)/categories-list' },
-              { icon: 'group', label: 'Usuários', route: '/(tabs)/users-list' },
+              { icon: 'folder_open', label: 'Categorias', route: '/categories-list' },
+              { icon: 'group', label: 'Usuários', route: '/users-list' },
             ]
           : []),
       ];
@@ -263,8 +263,8 @@ describe('DrawerMenu', () => {
       { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
       ...(user?.role === 'admin'
         ? [
-            { icon: 'folder_open', label: 'Categorias', route: '/(tabs)/categories-list' },
-            { icon: 'group', label: 'Usuários', route: '/(tabs)/users-list' },
+            { icon: 'folder_open', label: 'Categorias', route: '/categories-list' },
+            { icon: 'group', label: 'Usuários', route: '/users-list' },
           ]
         : []),
     ];

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { EditMenuItemScreen } from '../../src/screens/EditMenuItemScreen';
+import { EditMenuItemScreen } from '../src/screens/EditMenuItemScreen';
 
 /**
  * Edit Menu Item route — opened from MenuScreen when tapping an existing item.

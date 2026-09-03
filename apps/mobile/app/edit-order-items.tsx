@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, type ViewStyle } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { EditOrderItemsScreen } from '../../src/screens/EditOrderItemsScreen';
-import { Screen } from '../../src/components';
-import { Text } from '../../src/components/Typography';
-import { Header } from '../../src/components/Layout';
-import { useTheme } from '../../src/theme/ThemeProvider';
-import { apiClient } from '../../src/services/api-client';
+import { EditOrderItemsScreen } from '../src/screens/EditOrderItemsScreen';
+import { Screen } from '../src/components';
+import { Text } from '../src/components/Typography';
+import { Header } from '../src/components/Layout';
+import { useTheme } from '../src/theme/ThemeProvider';
+import { apiClient } from '../src/services/api-client';
 import type { Order } from '@order-system/shared';
 
 /**

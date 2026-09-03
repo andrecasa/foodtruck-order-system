@@ -15,7 +15,7 @@ import { usePublicMenu } from '../../hooks/customer/usePublicMenu';
 import { useCart } from '../../hooks/customer/useCart';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
-import { ordersHref, homeHref } from '../../components/customer/customerNavHref';
+import { ordersHref, qrcodeHref } from '../../components/customer/customerNavHref';
 
 export interface CustomerMenuScreenProps {
   /** Tenant slug from the route (`/:slug`). */
@@ -37,7 +37,7 @@ export interface CustomerMenuScreenProps {
  * The list of orders placed this session lives on the "Pedidos" screen, so this
  * screen has no order list and no realtime subscription.
  */
-export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
+export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenProps) {
   const theme = useTheme();
   const router = useRouter();
   const { categories, isLoading, error, refetch } = usePublicMenu(slug);
@@ -170,7 +170,10 @@ export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
 
   return (
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
-      <CustomerHeader title="Novo Pedido" />
+      <CustomerHeader
+        title={businessName ?? 'Novo Pedido'}
+        onBack={() => router.replace(ordersHref(slug))}
+      />
 
       <View style={{ flex: 1 }}>
       <ScrollView
@@ -230,7 +233,7 @@ export function CustomerMenuScreen({ slug }: CustomerMenuScreenProps) {
       <CustomerBottomNav
         slug={slug}
         active="novo"
-        homeHref={homeHref(slug)}
+        qrcodeHref={qrcodeHref(slug)}
         pedidosHref={ordersHref(slug)}
       />
     </SafeAreaView>

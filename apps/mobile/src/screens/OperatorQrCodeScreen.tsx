@@ -10,7 +10,7 @@ function orderUrl(slug: string): string {
 }
 
 /**
- * Operator Home screen (`/(tabs)/home`).
+ * Operator QrCode screen (`/(tabs)/qrcode`).
  *
  * Mirrors the customer Home landing page — tenant logo, a QR code pointing to
  * the tenant's public ordering URL (so the operator can show it for a customer
@@ -24,7 +24,7 @@ function orderUrl(slug: string): string {
  * branding falls back to the neutral theme, `slug` is undefined and the QR card
  * is hidden (HomeHero omits it when `qrContent` is falsy).
  */
-export function OperatorHomeScreen() {
+export function OperatorQrCodeScreen() {
   const theme = useTheme();
   const router = useRouter();
 
@@ -39,7 +39,10 @@ export function OperatorHomeScreen() {
 
   return (
     <Screen padding={false}>
-      <Header title={theme.businessName || 'Início'} />
+      <Header
+        title={theme.businessName || 'QrCode'}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      />
 
       <ScrollView
         style={{ flex: 1 }}

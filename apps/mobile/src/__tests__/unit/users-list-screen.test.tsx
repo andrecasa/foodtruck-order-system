@@ -117,7 +117,7 @@ describe('UsersListScreen', () => {
     fireEvent.press(userCard);
 
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/(tabs)/user-detail',
+      pathname: '/user-detail',
       params: { id: 'user-1' },
     });
   });

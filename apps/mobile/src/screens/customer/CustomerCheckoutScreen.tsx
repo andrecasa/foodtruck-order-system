@@ -16,7 +16,7 @@ import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { useCart } from '../../hooks/customer/useCart';
 import { useCreateOrder } from '../../hooks/customer/useCreateOrder';
 import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
-import { ordersHref, homeHref, menuHref } from '../../components/customer/customerNavHref';
+import { ordersHref, qrcodeHref, menuHref } from '../../components/customer/customerNavHref';
 
 export interface CustomerCheckoutScreenProps {
   /** Tenant slug from the route (`/:slug/checkout`). */
@@ -301,7 +301,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
       <CustomerBottomNav
         slug={slug}
         active="novo"
-        homeHref={homeHref(slug)}
+        qrcodeHref={qrcodeHref(slug)}
         pedidosHref={ordersHref(slug)}
       />
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { ActivityIndicator, ScrollView, View, Text as RNText, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, View, Text as RNText, type ImageStyle, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme';
@@ -7,7 +7,7 @@ import { Button, Text } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { CustomerOrderCard } from '../../components/customer/CustomerOrderCard';
-import { ordersHref, homeHref, menuHref } from '../../components/customer/customerNavHref';
+import { ordersHref, qrcodeHref, menuHref } from '../../components/customer/customerNavHref';
 import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
 import { usePublicBranding } from '../../hooks/customer/usePublicBranding';
 import { usePublicOrdersTracking } from '../../hooks/customer/usePublicOrdersTracking';
@@ -35,7 +35,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
   const theme = useTheme();
   const router = useRouter();
   const { orders, refresh } = useSessionOrders(slug);
-  const { realtimeChannel } = usePublicBranding(slug);
+  const { realtimeChannel, branding } = usePublicBranding(slug);
 
   // Re-read the persisted list whenever the screen regains focus (an order may
   // have been placed on another screen while this one stayed mounted).
@@ -69,25 +69,44 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
     gap: theme.spacing.md,
   };
 
+  // Top-aligned like the QrCode screen so the tenant logo lands in the same
+  // spot (just below the header) instead of vertically centered.
   const emptyContainerStyle: ViewStyle = {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: theme.spacing.xl,
-  };  
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  };
+
+  // Tenant logo above the empty-state illustration — same pattern/size as the
+  // QrCode screen, so the empty Pedidos screen stays on-brand. Extra bottom
+  // margin adds breathing room before the illustration.
+  const logoStyle: ImageStyle = {
+    width: 125,
+    height: 125,
+    marginBottom: theme.spacing.lg,
+  };
 
   const isEmpty = orders.length === 0;
 
   if (isEmpty) {
     return (
       <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
-        <CustomerHeader
-          title="Pedidos"
-          onBack={() => router.replace(homeHref(slug))}
-        />
+        <CustomerHeader title={branding?.businessName ?? 'Pedidos'} />
           <View style={emptyContainerStyle}>
             {/* Illustrated empty state */}
             <View style={{ alignItems: 'center', gap: 12 }}>
+              {/* Tenant logo — same pattern as the QrCode screen, above the illustration. */}
+              {theme.logo ? (
+                <Image
+                  source={{ uri: theme.logo }}
+                  style={logoStyle}
+                  resizeMode="contain"
+                  accessibilityLabel={`Logo ${branding?.businessName ?? ''}`.trim()}
+                  testID="orders-empty-logo"
+                />
+              ) : null}
               <View style={{
                 width: 120,
                 height: 150,
@@ -138,17 +157,14 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
               </View>            
             </View>
           </View>
-        <CustomerBottomNav slug={slug} active="pedidos" homeHref={homeHref(slug)} pedidosHref={ordersHref(slug)} />
+        <CustomerBottomNav slug={slug} active="pedidos" qrcodeHref={qrcodeHref(slug)} pedidosHref={ordersHref(slug)} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
-      <CustomerHeader
-        title="Pedidos"
-        onBack={() => router.replace(homeHref(slug))}
-      />
+      <CustomerHeader title={branding?.businessName ?? 'Pedidos'} />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -178,7 +194,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
         </View>
       </ScrollView>
 
-      <CustomerBottomNav slug={slug} active="pedidos" homeHref={homeHref(slug)} pedidosHref={ordersHref(slug)} />
+      <CustomerBottomNav slug={slug} active="pedidos" qrcodeHref={qrcodeHref(slug)} pedidosHref={ordersHref(slug)} />
     </SafeAreaView>
   );
 }

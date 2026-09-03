@@ -14,10 +14,10 @@ import { useTheme } from '../../theme';
 import { Button } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
-import { ordersHref, homeHref, menuHref } from '../../components/customer/customerNavHref';
+import { ordersHref, qrcodeHref, menuHref } from '../../components/customer/customerNavHref';
 
-export interface CustomerHomeScreenProps {
-  /** Tenant slug from the route (`/:slug/home`). */
+export interface CustomerQrCodeScreenProps {
+  /** Tenant slug from the route (`/:slug/qrcode`). */
   slug: string;
   /** Business name resolved from branding, shown in the header. */
   businessName?: string;
@@ -47,14 +47,14 @@ function qrImageUrl(content: string, color: string, size = 240): string {
 }
 
 /**
- * Customer Home screen (`/:slug/home`).
+ * Customer QrCode screen (`/:slug/qrcode`).
  *
  * A simple landing page for the tenant's public ordering flow: the tenant logo
  * (from the resolved theme branding) and a card with a QR code that opens the
  * public ordering URL (`order.foodtruck.app.br/:slug`). All colors come from
  * the theme so it stays on-brand per tenant.
  */
-export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenProps) {
+export function CustomerQrCodeScreen({ slug, businessName }: CustomerQrCodeScreenProps) {
   const theme = useTheme();
   const router = useRouter();
 
@@ -104,7 +104,10 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
 
   return (
     <SafeAreaView style={containerStyle} edges={['top', 'bottom']}>
-      <CustomerHeader title={businessName ?? 'Início'} />
+      <CustomerHeader
+        title={businessName ?? 'QrCode'}
+        onBack={() => router.replace(ordersHref(slug))}
+      />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -135,7 +138,7 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
 
         {/* Tagline below the QR code. */}
         <RNText style={taglineStyle} testID="home-tagline">
-          Faça você mesmo seu pedido{'\n'}e acompanhe pelo Aplicativo!
+          Compartilhe o QrCode com seus{'\n'}amigos e acompanhe os pedidos{'\n'}pelo Aplicativo!
         </RNText>
 
         {/* "Novo Pedido" button — same pattern as the operator empty-state CTA. */}
@@ -147,7 +150,7 @@ export function CustomerHomeScreen({ slug, businessName }: CustomerHomeScreenPro
         />
       </ScrollView>
 
-      <CustomerBottomNav slug={slug} active="home" homeHref={homeHref(slug)} pedidosHref={ordersHref(slug)} />
+      <CustomerBottomNav slug={slug} active="qrcode" qrcodeHref={qrcodeHref(slug)} pedidosHref={ordersHref(slug)} />
     </SafeAreaView>
   );
 }

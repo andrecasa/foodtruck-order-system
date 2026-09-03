@@ -193,7 +193,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
       setLoading(true);
       const updatedOrder = await apiClient.updateOrderItems(orderId, { items, customerName: customerName.trim(), origin });
       // Navigate back to PaymentScreen with updated order data (replace to avoid stale edit screen in stack)
-      router.replace({ pathname: '/(tabs)/payment', params: { orderId: updatedOrder.id } });
+      router.replace({ pathname: '/payment', params: { orderId: updatedOrder.id } });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar itens do pedido';
       setApiError(message);

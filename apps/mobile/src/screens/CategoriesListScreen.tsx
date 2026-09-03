@@ -243,7 +243,7 @@ export function CategoriesListScreen() {
           style={categoryInfoStyle}
           onPress={() =>
             router.push({
-              pathname: '/(tabs)/category-form',
+              pathname: '/category-form',
               params: { id: item.id, name: item.name },
             })
           }
@@ -342,7 +342,7 @@ export function CategoriesListScreen() {
         label="Adicionar"
         icon="add"
         bottomOffset={16}
-        onPress={() => router.push('/(tabs)/category-form')}
+        onPress={() => router.push('/category-form')}
         accessibilityHint="Navega para a tela de criação de categoria"
         testID="new-category-button"
       />

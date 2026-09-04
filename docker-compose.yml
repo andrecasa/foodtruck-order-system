@@ -233,6 +233,14 @@ services:
       EVOLUTION_API_URL: http://evolution-api:8080
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-change-me-evolution-api-key}
       TZ: ${TZ:-America/Sao_Paulo}
+      # Entrega de e-mail (SMTP) — valores vêm do .env; default noop se ausentes.
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-noop}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
     depends_on:
       db:
         condition: service_healthy

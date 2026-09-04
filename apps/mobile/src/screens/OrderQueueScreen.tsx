@@ -299,9 +299,15 @@ export function OrderQueueScreen() {
     alignItems: 'center',
   };
 
+  // NOTE: this is the ScrollView's contentContainerStyle. It must use `flexGrow: 1`
+  // (NOT `flex: 1`). `flex: 1` pins the content container to the ScrollView's own
+  // height, so it can never exceed the viewport and the list stops scrolling on
+  // Android when there are more cards than fit on screen. `flexGrow: 1` still lets
+  // the empty state stretch/center when content is short, but allows the content
+  // to grow past the viewport (and scroll) when the queue is long.
   const contentGapStyle: ViewStyle = {
     gap: 12,
-    flex: 1
+    flexGrow: 1,
   };
 
   const emptyContainerStyle: ViewStyle = {
@@ -488,7 +494,7 @@ export function OrderQueueScreen() {
         }
       />
         <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
-        <ScrollContainer style={contentGapStyle}>
+        <ScrollContainer style={contentGapStyle} fillHeight>
           <FilterChips
             options={filterOptions}
             selected={selectedFilters}
@@ -632,7 +638,7 @@ export function OrderQueueScreen() {
         }
       />
       <Toast message={networkError.message} visible={networkError.visible} onDismiss={dismissError} />
-      <ScrollContainer style={contentGapStyle}>
+      <ScrollContainer style={contentGapStyle} fillHeight>
         {/* Status Filter (Penpot: row of tinted chips, gap 8px) */}
         <FilterChips
           options={filterOptions}

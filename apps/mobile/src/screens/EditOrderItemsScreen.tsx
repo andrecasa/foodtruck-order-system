@@ -304,6 +304,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
       title="Pedido"
       onBack={() => router.back()}
       contentContainerStyle={contentStyle}
+      hideFooterOnKeyboard={false}
       footer={
         <>
           {/* Solid backing panel behind the floating Total + CTA. */}

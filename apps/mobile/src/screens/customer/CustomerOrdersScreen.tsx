@@ -92,7 +92,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
 
   if (isEmpty) {
     return (
-      <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={safeAreaStyle} edges={['top', 'bottom', 'left', 'right']}>
         <CustomerHeader title={branding?.businessName ?? 'Pedidos'} />
           <View style={emptyContainerStyle}>
             {/* Illustrated empty state */}
@@ -163,7 +163,7 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
   }
 
   return (
-    <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={safeAreaStyle} edges={['top', 'bottom', 'left', 'right']}>
       <CustomerHeader title={branding?.businessName ?? 'Pedidos'} />
 
       <ScrollView

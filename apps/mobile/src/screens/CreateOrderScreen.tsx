@@ -313,6 +313,7 @@ export function CreateOrderScreen() {
       title="Pedido"
       onBack={() => router.back()}
       contentContainerStyle={contentStyle}
+      hideFooterOnKeyboard={false}
       stickyHeader={
         <View style={nameBarStyle}>
           {/* Customer Name — fixed above the scrollable item list. */}

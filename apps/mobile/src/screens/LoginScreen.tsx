@@ -1,18 +1,16 @@
 import React, { useRef, useState } from 'react';
-import { View, ScrollView, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../hooks/useAuth';
-import { useKeyboardHeight } from '../hooks/useKeyboardHeight';
 
 export function LoginScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { login } = useAuth();
-  const keyboardHeight = useKeyboardHeight();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -146,10 +144,16 @@ export function LoginScreen() {
 
   return (
     <Screen padding={false}>
-      {/* Keyboard handling: track the keyboard height and apply it as paddingBottom
-          so the ScrollView shrinks (activating scroll) and no field is hidden behind
-          the keyboard. keyboardShouldPersistTaps keeps taps working while open. */}
-      <View style={{ flex: 1, paddingBottom: keyboardHeight }}>
+      {/* Keyboard handling: KeyboardAvoidingView is the idiomatic, Expo-recommended
+          approach. On iOS 'padding' lifts the content; on Android the presence of the
+          view alone keeps inputs visible under edge-to-edge (behavior undefined), so we
+          avoid the manual paddingBottom offset that previously clipped the top of the
+          content (logo/title) when the keyboard opened. The ScrollView still lets the
+          user reach every field, and keyboardShouldPersistTaps keeps taps working. */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={containerStyle}
@@ -228,7 +232,7 @@ export function LoginScreen() {
             </RNText>
           ) : null}
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

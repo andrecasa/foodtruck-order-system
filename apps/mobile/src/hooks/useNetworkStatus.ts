@@ -40,13 +40,32 @@ function setOffline(value: boolean) {
   }, value ? 2000 : 500); // 2s to go offline (avoid flicker), 500ms to go online (fast recovery)
 }
 
+/**
+ * Derives an offline flag from an expo-network state, tolerating Android's
+ * unreliable `isInternetReachable`.
+ *
+ * On Android, `getNetworkStateAsync()` frequently returns `isInternetReachable`
+ * as `undefined`/`null` (and sometimes `false`) even when the device clearly has
+ * a working connection (expo/expo#6338, #33070). Treating those non-`false`
+ * values as offline produced false positives that broke the UI (e.g. the login
+ * screen collapsing into the offline empty state).
+ *
+ * We now only consider the device offline when connectivity is explicitly
+ * negative: `isConnected === false`, or `isInternetReachable === false` while
+ * still connected. Unknown reachability (`undefined`/`null`) is treated as
+ * online.
+ */
+function deriveOffline(state: Network.NetworkState): boolean {
+  if (state.isConnected === false) return true;
+  return state.isInternetReachable === false;
+}
+
 async function checkNetwork() {
   try {
     const state = await Network.getNetworkStateAsync();
     // The interval may have been cleared while awaiting; ignore late results.
     if (!initialized) return;
-    const offline = !state.isConnected || !state.isInternetReachable;
-    setOffline(offline);
+    setOffline(deriveOffline(state));
   } catch {
     // Can't check — don't change state
   }
@@ -60,7 +79,7 @@ function startMonitoring() {
   Network.getNetworkStateAsync().then((state) => {
     // Ignore if monitoring was torn down before this resolved.
     if (!initialized) return;
-    const offline = !state.isConnected || !state.isInternetReachable;
+    const offline = deriveOffline(state);
     if (offline !== isOfflineState) {
       isOfflineState = offline;
       notify();

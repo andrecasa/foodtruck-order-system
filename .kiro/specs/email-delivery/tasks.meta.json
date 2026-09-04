@@ -1,0 +1,454 @@
+{
+  "pbtResults": {
+    "2.2 Escrever teste de propriedade para configuração incompleta": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560349406
+    },
+    "2.4 Escrever teste de propriedade para parse fiel de configuração válida": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560349486
+    },
+    "2.3 Escrever teste de propriedade para porta inválida": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560357019
+    },
+    "4.3 Escrever teste de propriedade para conteúdo renderizado (texto e HTML)": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560449335
+    },
+    "4.4 Escrever teste de propriedade para fallback de texto": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560455064
+    },
+    "4.5 Escrever teste de propriedade para escaping de placeholders": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560483996
+    },
+    "6.2 Escrever teste de propriedade para preservação do payload": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560585619
+    },
+    "6.3 Escrever teste de propriedade para propagação de falha do transport": {
+      "status": "passed",
+      "lastRunTimestamp": 1788560601146
+    }
+  },
+  "executionHistory": {
+    "1. Adicionar a dependência `nodemailer`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560134942
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560145669
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560254394
+      }
+    ],
+    "2.1 Criar `apps/backend/src/services/email/smtp-config.ts`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135006
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560147018
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560256549
+      }
+    ],
+    "2.2 Escrever teste de propriedade para configuração incompleta": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135087
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560261167
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560382985
+      }
+    ],
+    "2.3 Escrever teste de propriedade para porta inválida": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135140
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560262116
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560382007
+      }
+    ],
+    "2.4 Escrever teste de propriedade para parse fiel de configuração válida": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135188
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560263508
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560384371
+      }
+    ],
+    "3. Estender a `EmailMessage` com o campo opcional `html`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135236
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560264541
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560385239
+      }
+    ],
+    "4.1 Criar o template `apps/backend/src/services/email/templates/verification-code.html`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135281
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560147721
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560255898
+      }
+    ],
+    "4.2 Criar o renderizador `apps/backend/src/services/email/templates/verification-email.ts`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135329
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560265499
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560381074
+      }
+    ],
+    "4.3 Escrever teste de propriedade para conteúdo renderizado (texto e HTML)": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135364
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560391011
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560502505
+      }
+    ],
+    "4.4 Escrever teste de propriedade para fallback de texto": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135402
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560391967
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560501200
+      }
+    ],
+    "4.5 Escrever teste de propriedade para escaping de placeholders": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135449
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560392835
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560503388
+      }
+    ],
+    "5.1 Atualizar `buildVerificationMessage` em `apps/backend/src/services/email/email.service.ts`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135501
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560394282
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560499220
+      }
+    ],
+    "5.2 Escrever teste de exemplo para a montagem da mensagem": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135550
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560508569
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560640367
+      }
+    ],
+    "6.1 Criar `apps/backend/src/services/email/smtp-email.provider.ts`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135628
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560395304
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560500184
+      }
+    ],
+    "6.2 Escrever teste de propriedade para preservação do payload": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135680
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560509583
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560641290
+      }
+    ],
+    "6.3 Escrever teste de propriedade para propagação de falha do transport": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135723
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560510417
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560642709
+      }
+    ],
+    "6.4 Escrever teste de exemplo para envio via transport mockado": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135770
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560511860
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560643635
+      }
+    ],
+    "7. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135813
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560791776
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560851525
+      }
+    ],
+    "8.1 Adicionar `case 'smtp'` em `resolveEmailProvider` (`apps/backend/src/services/email/email.service.ts`)": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135865
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560655956
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560706035
+      }
+    ],
+    "8.2 Escrever teste de exemplo para resolução de provedor": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135914
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560711023
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560781040
+      }
+    ],
+    "9. Documentar as variáveis de ambiente no `.env.example`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560135962
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560512533
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560644711
+      }
+    ],
+    "10. Final checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560136000
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560855620
+      },
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560912009
+      }
+    ],
+    "11. (MANUAL / OPCIONAL — NÃO EXECUTAR COMO CÓDIGO) Validação de entrega real (R7)": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560136051
+      }
+    ],
+    "2. Implementar o carregador de configuração SMTP (fail-fast)": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560384438
+      }
+    ],
+    "4. Implementar o template HTML e o renderizador multipart": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560503496
+      }
+    ],
+    "5. Enriquecer a montagem da mensagem de verificação": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560640421
+      }
+    ],
+    "6. Implementar o `SmtpEmailProvider`": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560643685
+      }
+    ],
+    "8. Integrar o caso `smtp` na seleção de provedor": [
+      {
+        "executionId": "a5daa005-c9ce-422b-894b-9436ad6c96c1",
+        "chatSessionId": "sess_e8aef295-7802-4960-8250-1d3c6caf060d",
+        "timestamp": 1788560781122
+      }
+    ]
+  }
+}

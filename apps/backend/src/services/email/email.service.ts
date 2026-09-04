@@ -10,6 +10,10 @@
  * - O corpo da mensagem inclui o código e a instrução de expiração em 15 minutos.
  */
 
+import { renderVerificationEmail } from './templates/verification-email.js';
+import { SmtpEmailProvider } from './smtp-email.provider.js';
+import { loadSmtpConfig } from './smtp-config.js';
+
 /** Número máximo de tentativas de envio (R9.2). */
 export const MAX_SEND_ATTEMPTS = 3;
 
@@ -19,7 +23,16 @@ export const RETRY_INTERVAL_MS = 2_000;
 export interface EmailMessage {
   to: string;
   subject: string;
+  /** Corpo em texto puro — fallback SEMPRE presente. */
   body: string;
+  /**
+   * Corpo HTML opcional. Quando presente e não vazio, o provedor envia a
+   * mensagem em formato multipart (HTML + texto); quando ausente, o envio é
+   * somente-texto (comportamento anterior preservado). Extensão retrocompatível:
+   * `NoopEmailProvider`/`LoggingEmailProvider` e mensagens somente-texto
+   * continuam válidos sem alteração.
+   */
+  html?: string;
 }
 
 /** Contrato do provedor de e-mail. Uma tentativa de envio; lança em falha. */
@@ -53,10 +66,12 @@ export function buildVerificationBody(code: string): string {
 
 /** Monta a `EmailMessage` completa de verificação de código. */
 export function buildVerificationMessage(to: string, code: string): EmailMessage {
+  const { text, html } = renderVerificationEmail(code);
   return {
     to,
     subject: VERIFICATION_SUBJECT,
-    body: buildVerificationBody(code),
+    body: text, // texto puro via buildVerificationBody (fallback SEMPRE presente)
+    html, // HTML renderizado do Template_Email
   };
 }
 
@@ -148,6 +163,8 @@ export function resolveEmailProvider(
   providerName: string | undefined = process.env.EMAIL_PROVIDER,
 ): EmailProvider {
   switch ((providerName ?? '').toLowerCase()) {
+    case 'smtp':
+      return new SmtpEmailProvider(loadSmtpConfig()); // fail-fast se config inválida
     case 'logging':
       return new LoggingEmailProvider();
     case 'noop':

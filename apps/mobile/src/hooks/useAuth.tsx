@@ -101,8 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Public route groups the customer can reach without authentication. The
     // customer-ordering flow lives in the `(public)` group (accessed via
     // `/:slug`), so it must NOT be redirected to /login when there is no user.
+    // The password-recovery routes (`forgot-password`, `reset-password`) are
+    // also public and must NOT be redirected to /login — an unauthenticated
+    // user reaches them from the login screen (R1.3, R1.5).
     // Operator routes remain protected.
-    const PUBLIC_GROUPS = ['login', '(public)'];
+    const PUBLIC_GROUPS = ['login', '(public)', 'forgot-password', 'reset-password'];
     const inPublicRoute = PUBLIC_GROUPS.includes(segments[0]);
 
     if (!user && !inPublicRoute) {

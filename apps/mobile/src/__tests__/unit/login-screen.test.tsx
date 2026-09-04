@@ -110,4 +110,42 @@ describe('LoginScreen', () => {
 
     await findByText('Não foi possível conectar ao servidor. Verifique sua conexão e o endereço da API.');
   });
+
+  // ─── "Esqueceu sua senha?" entry point (Requisito 1) ───────────────────────
+
+  describe('forgot-password entry point', () => {
+    // R1.1 — o controle acionável "Esqueceu sua senha?" é exibido na tela de login.
+    it('renders the "Esqueceu sua senha?" control', () => {
+      const { getByTestId, getByText } = render(<LoginScreen />);
+
+      expect(getByTestId('login-forgot-password-link')).toBeTruthy();
+      expect(getByText('Esqueceu sua senha?')).toBeTruthy();
+    });
+
+    // R1.2 — ao acionar o controle, navega para a tela de solicitação de código.
+    it('navigates to /forgot-password when the control is pressed', () => {
+      const { getByTestId } = render(<LoginScreen />);
+
+      fireEvent.press(getByTestId('login-forgot-password-link'));
+
+      expect(mockPush).toHaveBeenCalledWith('/forgot-password');
+    });
+
+    // R1.4 — se a navegação falhar, permanece na tela de login e exibe a mensagem de erro.
+    it('stays on the login screen and shows an error when navigation fails', async () => {
+      mockPush.mockImplementationOnce(() => {
+        throw new Error('navigation failed');
+      });
+      const { getByTestId, findByTestId } = render(<LoginScreen />);
+
+      fireEvent.press(getByTestId('login-forgot-password-link'));
+
+      // Permanece na tela de login: o formulário continua presente.
+      expect(getByTestId('login-submit-button')).toBeTruthy();
+
+      // Exibe a mensagem de erro de navegação (R1.4).
+      const error = await findByTestId('login-forgot-password-error');
+      expect(error).toBeTruthy();
+    });
+  });
 });

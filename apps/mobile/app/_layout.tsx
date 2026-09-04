@@ -76,6 +76,8 @@ function ThemedApp() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
+            <Stack.Screen name="forgot-password" />
+            <Stack.Screen name="reset-password" />
             <Stack.Screen name="(tabs)" />
             {/*
               Operator detail screens live at the root stack (ABOVE the tab bar)

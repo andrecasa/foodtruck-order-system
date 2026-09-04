@@ -1,0 +1,811 @@
+{
+  "pbtResults": {
+    "2.2 Escrever teste de propriedade para validação de e-mail": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546488437
+    },
+    "4.2 Escrever teste de propriedade para conteúdo do e-mail": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546495706
+    },
+    "2.3 Escrever teste de propriedade para política de comprimento de senha": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546506548
+    },
+    "4.3 Escrever teste de propriedade para política de retry": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546512555
+    },
+    "12.2 Escrever teste de propriedade para validação client-side": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546616442
+    },
+    "7.2 Escrever teste de propriedade para rate limit (IP, e-mail, reset e estado)": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546630290
+    },
+    "3.3 Escrever teste de propriedade para limite de tentativas": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546750395
+    },
+    "3.2 Escrever teste de propriedade para \"um código ativo por usuário/tenant\"": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546769983
+    },
+    "3.4 Escrever teste de propriedade para escopo de tenant": {
+      "status": "passed",
+      "lastRunTimestamp": 1788546798415
+    },
+    "5.2 Escrever teste de propriedade para geração de código": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547134689
+    },
+    "5.4 Escrever teste de propriedade para falha total de e-mail": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547142971
+    },
+    "5.3 Escrever teste de propriedade para solicitação sem usuário ativo": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547150969
+    },
+    "5.6 Escrever teste de propriedade para redefinição bem-sucedida e isolada": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547490727
+    },
+    "5.7 Escrever teste de propriedade para códigos inválidos": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547491420
+    },
+    "5.9 Escrever teste de propriedade para falha do Supabase": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547503651
+    },
+    "5.8 Escrever teste de propriedade para uso único": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547506050
+    },
+    "8.2 Escrever teste de propriedade para resposta indistinguível (não enumeração)": {
+      "status": "passed",
+      "lastRunTimestamp": 1788547514407
+    }
+  },
+  "executionHistory": {
+    "1. Criar a migração da tabela `password_reset_codes`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089435
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546099367
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546326689
+      }
+    ],
+    "2.1 Implementar `apps/backend/src/validation/password-reset.validation.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089503
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546104365
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546327501
+      }
+    ],
+    "2.2 Escrever teste de propriedade para validação de e-mail": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089548
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546423153
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546530645
+      }
+    ],
+    "2.3 Escrever teste de propriedade para política de comprimento de senha": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089616
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546424076
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546531374
+      }
+    ],
+    "3.1 Criar `apps/backend/src/db/password-reset-repository.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089662
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546425593
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546526896
+      }
+    ],
+    "3.2 Escrever teste de propriedade para \"um código ativo por usuário/tenant\"": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089711
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546658964
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546904077
+      }
+    ],
+    "3.3 Escrever teste de propriedade para limite de tentativas": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089750
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546660382
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546905043
+      }
+    ],
+    "3.4 Escrever teste de propriedade para escopo de tenant": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089794
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546661273
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546906512
+      }
+    ],
+    "4.1 Criar `apps/backend/src/services/email/email.service.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089836
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546105286
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546328825
+      }
+    ],
+    "4.2 Escrever teste de propriedade para conteúdo do e-mail": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089882
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546426449
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546529222
+      }
+    ],
+    "4.3 Escrever teste de propriedade para política de retry": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089928
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546427459
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546528294
+      }
+    ],
+    "5.1 Criar `apps/backend/src/services/password-reset.service.ts` com geração de código e `requestCode`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546089977
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546658045
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546907366
+      }
+    ],
+    "5.2 Escrever teste de propriedade para geração de código": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090014
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547014692
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547271575
+      }
+    ],
+    "5.3 Escrever teste de propriedade para solicitação sem usuário ativo": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090052
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547015591
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547272958
+      }
+    ],
+    "5.4 Escrever teste de propriedade para falha total de e-mail": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090096
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547016457
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547275226
+      }
+    ],
+    "5.5 Implementar `confirmReset` no serviço de recuperação de senha": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090135
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547013273
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547270532
+      }
+    ],
+    "5.6 Escrever teste de propriedade para redefinição bem-sucedida e isolada": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090176
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547404759
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547530237
+      }
+    ],
+    "5.7 Escrever teste de propriedade para códigos inválidos": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090214
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547406091
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547531233
+      }
+    ],
+    "5.8 Escrever teste de propriedade para uso único": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090252
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547407086
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547532566
+      }
+    ],
+    "5.9 Escrever teste de propriedade para falha do Supabase": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090314
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547408035
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547533584
+      }
+    ],
+    "6. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090361
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547766461
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547840199
+      }
+    ],
+    "7.1 Criar `apps/backend/src/middleware/forgot-password-rate-limit.middleware.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090439
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546106685
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546329788
+      }
+    ],
+    "7.2 Escrever teste de propriedade para rate limit (IP, e-mail, reset e estado)": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090481
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546536387
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546649335
+      }
+    ],
+    "8.1 Criar `apps/backend/src/controllers/password-reset.controller.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090528
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547023353
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547275523
+      }
+    ],
+    "8.2 Escrever teste de propriedade para resposta indistinguível (não enumeração)": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090571
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547408994
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547534504
+      }
+    ],
+    "9.1 Estender `apps/backend/src/routes/auth.routes.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090613
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547540847
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547659132
+      }
+    ],
+    "10. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090663
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547846514
+      }
+    ],
+    "11.1 Adicionar métodos ao contrato em `apps/mobile/src/services/types.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090702
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546107587
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546332100
+      }
+    ],
+    "11.2 Implementar os métodos em `apps/mobile/src/services/real-client.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090748
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546537267
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546650269
+      }
+    ],
+    "12.1 Criar util de validação de senha em `apps/mobile/src/services/password-reset-validation.ts`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090798
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546336318
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546418640
+      }
+    ],
+    "12.2 Escrever teste de propriedade para validação client-side": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090845
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546538144
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546648073
+      }
+    ],
+    "13.1 Criar `apps/mobile/src/screens/RequestCodeScreen.tsx`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090892
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546662336
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546908511
+      }
+    ],
+    "13.2 Escrever teste de exemplo/interação da RequestCodeScreen": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090931
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547280112
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547398551
+      }
+    ],
+    "14.1 Criar `apps/mobile/src/screens/ResetPasswordScreen.tsx`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546090976
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546915104
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547008916
+      }
+    ],
+    "14.2 Escrever teste de exemplo/interação da ResetPasswordScreen": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546091020
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547280826
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547399237
+      }
+    ],
+    "15.1 Criar as rotas `apps/mobile/app/forgot-password.tsx` e `apps/mobile/app/reset-password.tsx`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546091066
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547542286
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547657000
+      }
+    ],
+    "15.2 Adicionar o controle \"Esqueceu sua senha?\" em `apps/mobile/src/screens/LoginScreen.tsx`": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546091114
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547543400
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547658434
+      }
+    ],
+    "15.3 Escrever teste de exemplo/interação do ponto de entrada no login": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546091152
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547664850
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547754365
+      }
+    ],
+    "16. Final checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546091203
+      },
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547850409
+      }
+    ],
+    "4. Implementar o serviço de e-mail (abstração + retry assíncrono)": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546529271
+      }
+    ],
+    "2. Criar o módulo de validação Zod": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546531423
+      }
+    ],
+    "12. Implementar a validação client-side de senha (mobile)": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546648123
+      }
+    ],
+    "7. Implementar o middleware de rate limit dedicado": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546649390
+      }
+    ],
+    "11. Estender o cliente de API do mobile": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546650320
+      }
+    ],
+    "3. Implementar o repositório de acesso direto ao pool": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788546906571
+      }
+    ],
+    "13. Implementar a tela de solicitação de código (mobile)": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547398653
+      }
+    ],
+    "14. Implementar a tela de redefinição de senha (mobile)": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547399299
+      }
+    ],
+    "5. Implementar o serviço de recuperação de senha": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547533632
+      }
+    ],
+    "8. Implementar o controller de recuperação de senha": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547534546
+      }
+    ],
+    "9. Registrar as rotas públicas no backend": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547659184
+      }
+    ],
+    "15. Registrar rotas mobile e ponto de entrada no login": [
+      {
+        "executionId": "a422b017-e457-4c22-994e-315e14e7b891",
+        "chatSessionId": "sess_faae346a-9220-4e02-b374-73e353b4b8d3",
+        "timestamp": 1788547754467
+      }
+    ]
+  }
+}

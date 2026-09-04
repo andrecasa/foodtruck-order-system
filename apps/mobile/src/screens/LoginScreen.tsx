@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, TouchableOpacity, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Screen, Input } from '../components';
@@ -17,6 +17,7 @@ export function LoginScreen() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [navError, setNavError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Refs for focus management
@@ -78,6 +79,17 @@ export function LoginScreen() {
     }
   }
 
+  // Navega para o fluxo de recuperação de senha. Em falha de navegação (R1.4),
+  // permanece na tela de login e exibe uma mensagem de erro local.
+  function handleForgotPassword() {
+    setNavError('');
+    try {
+      router.push('/forgot-password');
+    } catch {
+      setNavError('Não foi possível abrir a recuperação de senha. Tente novamente.');
+    }
+  }
+
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
   const containerStyle: ViewStyle = {
@@ -128,6 +140,19 @@ export function LoginScreen() {
     fontSize: 12,
     fontWeight: '400',
     color: theme.colors.error,
+  };
+
+  const forgotPasswordContainerStyle: ViewStyle = {
+    alignItems: 'center',
+    marginTop: 4,
+  };
+
+  const forgotPasswordTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.primary,
+    textAlign: 'center',
   };
 
   const versionTextStyle: TextStyle = {
@@ -223,6 +248,32 @@ export function LoginScreen() {
               disabled={loading}
               testID="login-submit-button"
             />
+
+            {/* Ponto de entrada "Esqueceu sua senha?" — abaixo do botão Entrar,
+                visível sem rolagem. Navega para /forgot-password via router.push;
+                em falha de navegação, permanece na tela e exibe erro (R1.4). */}
+            <View style={forgotPasswordContainerStyle}>
+              <TouchableOpacity
+                onPress={handleForgotPassword}
+                accessibilityRole="link"
+                accessibilityLabel="Esqueceu sua senha?"
+                accessibilityHint="Navega para a tela de recuperação de senha"
+                testID="login-forgot-password-link"
+              >
+                <RNText style={forgotPasswordTextStyle}>
+                  Esqueceu sua senha?
+                </RNText>
+              </TouchableOpacity>
+
+              {navError ? (
+                <RNText
+                  style={[errorTextStyle, { marginTop: 8, textAlign: 'center' }]}
+                  testID="login-forgot-password-error"
+                >
+                  {navError}
+                </RNText>
+              ) : null}
+            </View>
           </View>
 
           {/* App version — below the login card, uses theme colors */}

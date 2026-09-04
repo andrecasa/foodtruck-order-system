@@ -283,6 +283,49 @@ export const realClient: ApiClient = {
     }
   },
 
+  async requestPasswordReset(email: string): Promise<void> {
+    // Fluxo não autenticado: usa fetch direto (não authFetch). A resposta do
+    // backend é sempre neutra (Mensagem_Neutra), então não diferenciamos
+    // sucesso/erro de negócio aqui — apenas tratamos falha de conexão, como no login.
+    try {
+      await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch {
+      // fetch só lança quando a requisição não chega ao servidor (offline,
+      // host/porta inacessível, DNS, etc.). status 0 sinaliza falha de conexão.
+      throw new NetworkError(
+        'Não foi possível conectar ao servidor. Verifique sua conexão e o endereço da API.',
+        0,
+      );
+    }
+  },
+
+  async confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void> {
+    // Fluxo não autenticado: usa fetch direto (não authFetch).
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, newPassword }),
+      });
+    } catch {
+      throw new NetworkError(
+        'Não foi possível conectar ao servidor. Verifique sua conexão e o endereço da API.',
+        0,
+      );
+    }
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      // Mensagem em pt-BR vinda do backend (ex.: "Código inválido ou expirado").
+      throw new NetworkError(body.message || `Erro ${response.status}`, response.status);
+    }
+  },
+
   async getMenu(): Promise<MenuItem[]> {
     const response = await authFetch('/api/menu');
     const data = await response.json();

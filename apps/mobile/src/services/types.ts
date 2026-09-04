@@ -29,6 +29,10 @@ export interface ApiClient {
   login(email: string, password: string): Promise<{ token: string }>;
   logout(): Promise<void>;
 
+  // Password reset (unauthenticated flow)
+  requestPasswordReset(email: string): Promise<void>;
+  confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void>;
+
   // Menu
   getMenu(): Promise<MenuItem[]>;
   getAllMenuItems(): Promise<MenuItem[]>;

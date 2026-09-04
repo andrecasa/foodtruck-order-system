@@ -308,7 +308,7 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
       footer={
         <>
           {/* Solid backing panel behind the floating Total + CTA. */}
-          <View style={floatingBackdropStyle} pointerEvents="none" />
+          <View style={[floatingBackdropStyle, { pointerEvents: 'none' }]} />
           {/* Floating Total — pinned just above the CTA. Mirrors CreateOrderScreen. */}
           <View style={floatingTotalStyle}>
             <TotalRow totalCents={total} testID="total-amount" />

@@ -308,7 +308,7 @@ export function SwipeableOriginSelector({
       />
 
       {/* Layer 3: Text labels on top (pointerEvents none, purely visual) */}
-      <View style={labelsOverlayStyle} pointerEvents="none">
+      <View style={[labelsOverlayStyle, { pointerEvents: 'none' }]}>
         {options.map((option, index) => (
           <View key={option.key} style={labelHalfStyle}>
             <Text style={getTextStyle(index)}>{option.label}</Text>

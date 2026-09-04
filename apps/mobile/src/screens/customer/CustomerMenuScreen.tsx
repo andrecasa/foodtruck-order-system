@@ -213,7 +213,7 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
       </ScrollView>
 
       {/* Solid backing panel behind the floating Total + CTA. */}
-      <View style={floatingBackdropStyle} pointerEvents="none" />
+      <View style={[floatingBackdropStyle, { pointerEvents: 'none' }]} />
 
       {/* Floating Total — pinned just above the CTA. */}
       <View style={floatingTotalStyle}>

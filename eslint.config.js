@@ -88,6 +88,11 @@ export default defineConfig(
   {
     files: ['apps/mobile/**/*.{ts,tsx}', 'apps/web/**/*.{ts,tsx}'],
     plugins: {
+      // Os tipos do eslint-plugin-react-hooks v7 (com `configs.flat` aninhado)
+      // não casam com o tipo `Plugin` esperado pelo `defineConfig`, gerando
+      // ruído apenas no editor sob `@ts-check`. Em runtime o plugin funciona
+      // normalmente. Silenciamos de forma pontual em vez de afrouxar a config.
+      // @ts-expect-error -- incompatibilidade de tipos react-hooks x eslint
       'react-hooks': reactHooks,
     },
     rules: {

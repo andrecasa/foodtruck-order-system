@@ -33,6 +33,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { deleteOrder } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(params?: any): Partial<AuthenticatedRequest> {
   return {
@@ -82,7 +83,7 @@ describe('Order Controller - deleteOrder', () => {
     const req = mockRequest({ id: orderId });
     const res = mockResponse();
 
-    await deleteOrder(req as AuthenticatedRequest, res as unknown as Response);
+    await invokeHandler(deleteOrder, req as AuthenticatedRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(204);
     expect(res.sent).toBe(true);
@@ -94,7 +95,7 @@ describe('Order Controller - deleteOrder', () => {
     const req = mockRequest({ id: orderId });
     const res = mockResponse();
 
-    await deleteOrder(req as AuthenticatedRequest, res as unknown as Response);
+    await invokeHandler(deleteOrder, req as AuthenticatedRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(404);
     expect(res.body.error).toBe('NOT_FOUND');
@@ -110,7 +111,7 @@ describe('Order Controller - deleteOrder', () => {
     const req = mockRequest({ id: orderId });
     const res = mockResponse();
 
-    await deleteOrder(req as AuthenticatedRequest, res as unknown as Response);
+    await invokeHandler(deleteOrder, req as AuthenticatedRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(204);
     expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'order_deleted', {
@@ -130,7 +131,7 @@ describe('Order Controller - deleteOrder', () => {
       const req = mockRequest({ id: orderId });
       const res = mockResponse();
 
-      await deleteOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(deleteOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(204);
     }
@@ -147,7 +148,7 @@ describe('Order Controller - deleteOrder', () => {
       const req = mockRequest({ id: orderId });
       const res = mockResponse();
 
-      await deleteOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(deleteOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(204);
     }
@@ -159,10 +160,11 @@ describe('Order Controller - deleteOrder', () => {
     const req = mockRequest({ id: orderId });
     const res = mockResponse();
 
-    await deleteOrder(req as AuthenticatedRequest, res as unknown as Response);
+    await invokeHandler(deleteOrder, req as AuthenticatedRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(500);
     expect(res.body.error).toBe('INTERNAL_ERROR');
-    expect(res.body.message).toBe('Erro ao excluir pedido.');
+    // Mensagem genérica única do error middleware (não mais fallback por-endpoint).
+    expect(res.body.message).toBe('Erro ao processar requisição');
   });
 });

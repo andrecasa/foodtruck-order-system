@@ -30,6 +30,7 @@ vi.mock('../../config/database.js', () => ({
 }));
 
 import { createMenuItem } from '../../controllers/menu.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body: any): Partial<AuthenticatedRequest> {
   return {
@@ -98,7 +99,7 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
           const req = mockRequest({ name: variant, price, category: 'Pastéis' });
           const res = mockResponse();
 
-          await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
           expect(res.statusCode).toBe(409);
           expect(res.body.error).toBe('CONFLICT');
@@ -139,7 +140,7 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
           const req = mockRequest({ name: transformed, price, category: 'Pastéis' });
           const res = mockResponse();
 
-          await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
           expect(res.statusCode).toBe(409);
           expect(res.body.error).toBe('CONFLICT');
@@ -175,7 +176,7 @@ describe('Property 3: Unicidade case-insensitive rejeita com 409', () => {
           const req = mockRequest({ name, price, category: 'Pastéis' });
           const res = mockResponse();
 
-          await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
           // Verify the uniqueness check query uses LOWER for case-insensitive
           // match. Via the TenantRepository, tenant_id is $1 and the caller

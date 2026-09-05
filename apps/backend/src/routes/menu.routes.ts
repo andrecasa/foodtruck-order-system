@@ -9,22 +9,23 @@ import {
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { syncUserMiddleware } from '../middleware/sync-user.middleware.js';
 import { tenantMiddleware } from '../middleware/tenant.middleware.js';
+import { asyncHandler } from '../http/async-handler.js';
 
 const router = Router();
 
 // GET /api/menu - List active menu items grouped by category
-router.get('/', authMiddleware, syncUserMiddleware, tenantMiddleware, getMenu);
+router.get('/', authMiddleware, syncUserMiddleware, tenantMiddleware, asyncHandler(getMenu));
 
 // POST /api/menu - Create a new menu item
-router.post('/', authMiddleware, syncUserMiddleware, tenantMiddleware, createMenuItem);
+router.post('/', authMiddleware, syncUserMiddleware, tenantMiddleware, asyncHandler(createMenuItem));
 
 // PUT /api/menu/:id - Update an existing menu item
-router.put('/:id', authMiddleware, syncUserMiddleware, tenantMiddleware, updateMenuItem);
+router.put('/:id', authMiddleware, syncUserMiddleware, tenantMiddleware, asyncHandler(updateMenuItem));
 
 // PATCH /api/menu/:id/status - Toggle item active/inactive
-router.patch('/:id/status', authMiddleware, syncUserMiddleware, tenantMiddleware, toggleMenuItemStatus);
+router.patch('/:id/status', authMiddleware, syncUserMiddleware, tenantMiddleware, asyncHandler(toggleMenuItemStatus));
 
 // DELETE /api/menu/:id - Delete a menu item
-router.delete('/:id', authMiddleware, syncUserMiddleware, tenantMiddleware, deleteMenuItem);
+router.delete('/:id', authMiddleware, syncUserMiddleware, tenantMiddleware, asyncHandler(deleteMenuItem));
 
 export default router;

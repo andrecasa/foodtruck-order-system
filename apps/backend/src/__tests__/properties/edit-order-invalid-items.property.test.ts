@@ -45,6 +45,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { updateOrderItems } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body: any, params: any): Partial<AuthenticatedRequest> {
   return {
@@ -212,7 +213,7 @@ describe('Property 4: Invalid Menu Items Cause Atomic Rejection', () => {
         const req = mockRequest({ items: data.items }, { id: orderId });
         const res = mockResponse();
 
-        await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
         // Should reject with 422
         expect(res.statusCode).toBe(422);
@@ -249,7 +250,7 @@ describe('Property 4: Invalid Menu Items Cause Atomic Rejection', () => {
         const req = mockRequest({ items: data.items }, { id: orderId });
         const res = mockResponse();
 
-        await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
         // Should reject with 422
         expect(res.statusCode).toBe(422);
@@ -291,7 +292,7 @@ describe('Property 4: Invalid Menu Items Cause Atomic Rejection', () => {
           const req = mockRequest({ items: data.items }, { id: orderId });
           const res = mockResponse();
 
-          await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
           // Request is rejected
           expect(res.statusCode).toBe(422);

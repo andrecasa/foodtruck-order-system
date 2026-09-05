@@ -2,27 +2,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response } from 'express';
 import type { AdminRequest } from '../../middleware/role.middleware.js';
 
-// Mock the user service module
-vi.mock('../../services/user.service.js', () => ({
-  ServiceError: class ServiceError extends Error {
-    constructor(
-      message: string,
-      public readonly statusCode: number,
-      public readonly code: string,
-    ) {
-      super(message);
-      this.name = 'ServiceError';
-    }
-  },
-  createUser: vi.fn(),
+// Mock the user service module. Reexporta a ServiceError REAL (centralizada em
+// service-error.js) — não uma classe local — para que o `instanceof` no
+// errorHandler bata e o mapeamento de status funcione após a migração para o
+// error middleware.
+vi.mock('../../services/user.service.js', async () => {
+  const { ServiceError } = await import('../../services/service-error.js');
+  return {
+    ServiceError,
+    createUser: vi.fn(),
   listUsers: vi.fn(),
   getUserById: vi.fn(),
   updateUser: vi.fn(),
   deactivateUser: vi.fn(),
   activateUser: vi.fn(),
-  deleteUser: vi.fn(),
-  resetPassword: vi.fn(),
-}));
+    deleteUser: vi.fn(),
+    resetPassword: vi.fn(),
+  };
+});
 
 import {
   createUser,
@@ -35,6 +32,7 @@ import {
 } from '../../controllers/user.controller.js';
 
 import * as userService from '../../services/user.service.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 const mockCreateUser = userService.createUser as ReturnType<typeof vi.fn>;
 const mockListUsers = userService.listUsers as ReturnType<typeof vi.fn>;
@@ -111,7 +109,7 @@ describe('User Controller', () => {
       const req = mockRequest({ body: validBody });
       const res = mockResponse();
 
-      await createUser(req, res as unknown as Response);
+      await invokeHandler(createUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       expect(res.body).toEqual({
@@ -129,7 +127,7 @@ describe('User Controller', () => {
       const req = mockRequest({ body: {} });
       const res = mockResponse();
 
-      await createUser(req, res as unknown as Response);
+      await invokeHandler(createUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -148,7 +146,7 @@ describe('User Controller', () => {
       const req = mockRequest({ body: validBody });
       const res = mockResponse();
 
-      await createUser(req, res as unknown as Response);
+      await invokeHandler(createUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body).toEqual({
@@ -166,7 +164,7 @@ describe('User Controller', () => {
       const req = mockRequest({ body: validBody });
       const res = mockResponse();
 
-      await createUser(req, res as unknown as Response);
+      await invokeHandler(createUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(502);
       expect(res.body).toEqual({
@@ -184,7 +182,7 @@ describe('User Controller', () => {
       const req = mockRequest({ body: validBody });
       const res = mockResponse();
 
-      await createUser(req, res as unknown as Response);
+      await invokeHandler(createUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({
@@ -204,7 +202,7 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'user-uuid-1' } });
       const res = mockResponse();
 
-      await getUserById(req, res as unknown as Response);
+      await invokeHandler(getUserById, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.id).toBe('user-uuid-1');
@@ -217,7 +215,7 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'nonexistent-id' } });
       const res = mockResponse();
 
-      await getUserById(req, res as unknown as Response);
+      await invokeHandler(getUserById, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body).toEqual({
@@ -241,7 +239,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await updateUser(req, res as unknown as Response);
+      await invokeHandler(updateUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.name).toBe('João Atualizado');
@@ -255,7 +253,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await updateUser(req, res as unknown as Response);
+      await invokeHandler(updateUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -272,7 +270,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await updateUser(req, res as unknown as Response);
+      await invokeHandler(updateUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body).toEqual({
@@ -293,7 +291,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await updateUser(req, res as unknown as Response);
+      await invokeHandler(updateUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body).toEqual({
@@ -317,7 +315,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await toggleUserStatus(req, res as unknown as Response);
+      await invokeHandler(toggleUserStatus, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('inativo');
@@ -333,7 +331,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await toggleUserStatus(req, res as unknown as Response);
+      await invokeHandler(toggleUserStatus, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('ativo');
@@ -352,7 +350,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await toggleUserStatus(req, res as unknown as Response);
+      await invokeHandler(toggleUserStatus, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Não é possível desativar o próprio usuário');
@@ -369,7 +367,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await toggleUserStatus(req, res as unknown as Response);
+      await invokeHandler(toggleUserStatus, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Usuário já está inativo');
@@ -386,7 +384,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await toggleUserStatus(req, res as unknown as Response);
+      await invokeHandler(toggleUserStatus, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Usuário já está ativo');
@@ -403,7 +401,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await toggleUserStatus(req, res as unknown as Response);
+      await invokeHandler(toggleUserStatus, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('O sistema deve ter ao menos um administrador ativo');
@@ -419,7 +417,7 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'user-uuid-1' } });
       const res = mockResponse();
 
-      await deleteUser(req, res as unknown as Response);
+      await invokeHandler(deleteUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toEqual({ message: 'Usuário excluído com sucesso' });
@@ -437,7 +435,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await deleteUser(req, res as unknown as Response);
+      await invokeHandler(deleteUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Não é permitido excluir o próprio usuário');
@@ -455,7 +453,7 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'user-uuid-1' } });
       const res = mockResponse();
 
-      await deleteUser(req, res as unknown as Response);
+      await invokeHandler(deleteUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Usuário possui pedidos associados. Desative o usuário em vez de excluí-lo');
@@ -469,7 +467,7 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'other-admin-id' } });
       const res = mockResponse();
 
-      await deleteUser(req, res as unknown as Response);
+      await invokeHandler(deleteUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('O sistema deve ter ao menos um administrador ativo');
@@ -483,7 +481,7 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'nonexistent-id' } });
       const res = mockResponse();
 
-      await deleteUser(req, res as unknown as Response);
+      await invokeHandler(deleteUser, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body).toEqual({
@@ -506,7 +504,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await resetPassword(req, res as unknown as Response);
+      await invokeHandler(resetPassword, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toEqual({ message: 'Senha redefinida com sucesso' });
@@ -520,7 +518,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await resetPassword(req, res as unknown as Response);
+      await invokeHandler(resetPassword, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -538,7 +536,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await resetPassword(req, res as unknown as Response);
+      await invokeHandler(resetPassword, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body).toEqual({
@@ -559,7 +557,7 @@ describe('User Controller', () => {
       });
       const res = mockResponse();
 
-      await resetPassword(req, res as unknown as Response);
+      await invokeHandler(resetPassword, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({
@@ -579,7 +577,7 @@ describe('User Controller', () => {
       const req = mockRequest({ query: {} });
       const res = mockResponse();
 
-      await listUsers(req, res as unknown as Response);
+      await invokeHandler(listUsers, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.users).toHaveLength(1);
@@ -593,7 +591,7 @@ describe('User Controller', () => {
       const req = mockRequest({ query: { role: 'admin', status: 'ativo' } });
       const res = mockResponse();
 
-      await listUsers(req, res as unknown as Response);
+      await invokeHandler(listUsers, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(mockListUsers).toHaveBeenCalledWith(TENANT_ID, { role: 'admin', status: 'ativo' });
@@ -607,7 +605,7 @@ describe('User Controller', () => {
       const req = mockRequest({ query: { role: 'preparador' } });
       const res = mockResponse();
 
-      await listUsers(req, res as unknown as Response);
+      await invokeHandler(listUsers, req, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toEqual({ users: [], total: 0 });
@@ -625,7 +623,7 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'user-uuid-1' } });
       const res = mockResponse();
 
-      await getUserById(req, res as unknown as Response);
+      await invokeHandler(getUserById, req, res as unknown as Response);
 
       expect(res.body).toHaveProperty('statusCode', 500);
       expect(res.body).toHaveProperty('error', 'INTERNAL_ERROR');
@@ -638,13 +636,16 @@ describe('User Controller', () => {
       const req = mockRequest({ params: { id: 'user-uuid-1' } });
       const res = mockResponse();
 
-      await getUserById(req, res as unknown as Response);
+      await invokeHandler(getUserById, req, res as unknown as Response);
 
+      // Após a migração para o error middleware, erros inesperados (não
+      // ServiceError) recebem uma mensagem genérica única — não mais um
+      // fallback por-endpoint. O contrato de status/código permanece.
       expect(res.statusCode).toBe(500);
       expect(res.body).toEqual({
         statusCode: 500,
         error: 'INTERNAL_ERROR',
-        message: 'Erro ao buscar usuário.',
+        message: 'Erro ao processar requisição',
       });
     });
   });

@@ -8,13 +8,16 @@
  *   dentro de um try/catch amplo e SEMPRE responde 200 com a `NEUTRAL_MESSAGE`,
  *   mesmo em erro interno, para preservar a neutralidade (não enumeração de
  *   contas — R2.2, R9.3, R9.5).
- * - `resetPassword`: valida o corpo com `resetPasswordSchema` (400
- *   `VALIDATION_ERROR` em falha); chama `confirmReset`; em sucesso responde 200
- *   com a mensagem de conclusão; `ServiceError` é mapeado para
- *   `{ statusCode, error, message }` (R5.7, R5.8, R6.1, R6.2, R6.3, R8.4).
+ * - `resetPassword`: valida o corpo com `resetPasswordSchema` (lança
+ *   `ServiceError` 400 `VALIDATION_ERROR` em falha); chama `confirmReset`; em
+ *   sucesso responde 200 com a mensagem de conclusão. Recusas de negócio
+ *   chegam como `ServiceError` e são mapeadas pelo errorHandler central
+ *   (R5.7, R5.8, R6.1, R6.2, R6.3, R8.4).
  *
- * O formato de resposta de erro (`{ statusCode, error, message }`) segue a
- * convenção dos demais controllers (ex.: `auth.controller`, `user.controller`).
+ * Erros são mapeados centralmente pelo errorHandler (src/http/error-handler.js)
+ * para `{ statusCode, error, message }`. EXCEÇÃO: `forgotPassword` mantém um
+ * try/catch próprio porque sua resposta é sempre neutra (200) — o erro NÃO pode
+ * propagar ao middleware. As rotas envolvem estes handlers em asyncHandler.
  */
 
 import { Request, Response } from 'express';
@@ -23,6 +26,7 @@ import {
   resetPasswordSchema,
 } from '../validation/password-reset.validation.js';
 import * as passwordResetService from '../services/password-reset.service.js';
+import { logError } from '../http/log-error.js';
 
 /**
  * Mensagem_Neutra: confirma o envio de instruções sem revelar se o e-mail está
@@ -45,26 +49,25 @@ const RESET_SUCCESS_MESSAGE = 'Senha redefinida com sucesso.';
  * 200 com a `NEUTRAL_MESSAGE`, preservando a neutralidade da resposta.
  */
 export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  // Validação inline (não usa parseBody): este fluxo usa status 400 para erro
+  // de formato — parseBody é padronizado em 422, então mantemos o mapeamento
+  // local para preservar o contrato (400 VALIDATION_ERROR).
   const parsed = forgotPasswordSchema.safeParse(req.body);
-
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message ?? 'Formato de e-mail inválido';
-    res.status(400).json({
-      statusCode: 400,
-      error: 'VALIDATION_ERROR',
-      message,
-    });
-    return;
+    throw new passwordResetService.ServiceError(message, 400, 'VALIDATION_ERROR');
   }
 
   // Neutralidade: nenhum resultado de negócio (usuário inexistente/inativo,
   // falha de e-mail, erro interno) altera a resposta. Sempre 200 + NEUTRAL_MESSAGE.
+  // Por isso este catch NÃO propaga o erro ao errorHandler — a resposta neutra
+  // é parte do contrato (R9.3/R9.5) e não deve virar um status de erro.
   try {
     await passwordResetService.requestCode(parsed.data.email);
   } catch (err) {
     // Não propaga: registra internamente para diagnóstico e mantém a resposta
     // neutra (R9.3/R9.5).
-    console.error('[password-reset-controller] requestCode falhou', err);
+    logError('password-reset:request-code', err, req);
   }
 
   res.status(200).json({ message: NEUTRAL_MESSAGE });
@@ -83,31 +86,11 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
 
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message ?? 'Dados inválidos';
-    res.status(400).json({
-      statusCode: 400,
-      error: 'VALIDATION_ERROR',
-      message,
-    });
-    return;
+    throw new passwordResetService.ServiceError(message, 400, 'VALIDATION_ERROR');
   }
 
-  try {
-    await passwordResetService.confirmReset(parsed.data);
-    res.status(200).json({ message: RESET_SUCCESS_MESSAGE });
-  } catch (err) {
-    if (err instanceof passwordResetService.ServiceError) {
-      res.status(err.statusCode).json({
-        statusCode: err.statusCode,
-        error: err.code,
-        message: err.message,
-      });
-      return;
-    }
-    console.error('[password-reset-controller] resetPassword falhou', err);
-    res.status(500).json({
-      statusCode: 500,
-      error: 'INTERNAL_ERROR',
-      message: 'Erro ao redefinir senha',
-    });
-  }
+  // Recusas de negócio chegam como ServiceError e são mapeadas centralmente
+  // pelo errorHandler. Erros inesperados também — viram 500 INTERNAL_ERROR.
+  await passwordResetService.confirmReset(parsed.data);
+  res.status(200).json({ message: RESET_SUCCESS_MESSAGE });
 }

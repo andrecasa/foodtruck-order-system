@@ -39,6 +39,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { updateOrderStatus } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(params?: any, body?: any): Partial<AuthenticatedRequest> {
   return {
@@ -103,7 +104,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'preparando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('preparando');
@@ -132,7 +133,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'pronto' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('pronto');
@@ -166,7 +167,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'entregue' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('entregue');
@@ -185,7 +186,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'pronto' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Transição de status inválida');
@@ -197,7 +198,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'entregue' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Transição de status inválida');
@@ -211,7 +212,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'preparando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Transição de status inválida');
@@ -231,7 +232,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'aguardando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Transição de status inválida');
@@ -243,7 +244,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'aguardando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Transição de status inválida');
@@ -257,7 +258,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'non-existent-id' }, { status: 'preparando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body.message).toBe('Pedido não encontrado');
@@ -269,7 +270,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'cancelado' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -279,7 +280,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, {});
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -301,7 +302,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'preparando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'status_updated', expect.objectContaining({
@@ -325,7 +326,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'preparando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('preparando');
@@ -339,7 +340,7 @@ describe('Order Controller - updateOrderStatus', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { status: 'preparando' });
       const res = mockResponse();
 
-      await updateOrderStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(500);
       expect(res.body.error).toBe('INTERNAL_ERROR');

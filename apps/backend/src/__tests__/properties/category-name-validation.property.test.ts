@@ -22,6 +22,7 @@ vi.mock('../../config/database.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { createCategory, updateCategory } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body: any, params: any = {}): Partial<AuthenticatedRequest> {
   return {
@@ -92,7 +93,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name });
         const res = mockResponse();
 
-        await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         expect(res.statusCode).toBe(422);
       }),
@@ -108,7 +109,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name });
         const res = mockResponse();
 
-        await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         expect(res.statusCode).toBe(422);
       }),
@@ -124,7 +125,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name });
         const res = mockResponse();
 
-        await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         expect(res.statusCode).toBe(422);
       }),
@@ -173,7 +174,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name });
         const res = mockResponse();
 
-        await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         // Valid names should NOT receive 422
         expect(res.statusCode).not.toBe(422);
@@ -190,7 +191,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name }, { id: '00000000-0000-0000-0000-000000000001' });
         const res = mockResponse();
 
-        await updateCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         expect(res.statusCode).toBe(422);
       }),
@@ -206,7 +207,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name }, { id: '00000000-0000-0000-0000-000000000001' });
         const res = mockResponse();
 
-        await updateCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         expect(res.statusCode).toBe(422);
       }),
@@ -222,7 +223,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name }, { id: '00000000-0000-0000-0000-000000000001' });
         const res = mockResponse();
 
-        await updateCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         expect(res.statusCode).toBe(422);
       }),
@@ -272,7 +273,7 @@ describe('Feature: categories-crud, Property 2: Name validation', () => {
         const req = mockRequest({ name }, { id: categoryId });
         const res = mockResponse();
 
-        await updateCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         // Valid names should NOT receive 422
         expect(res.statusCode).not.toBe(422);

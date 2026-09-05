@@ -10,6 +10,7 @@ vi.mock('../../config/database.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { deleteCategory } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 /**
  * Feature: categories-crud, Property 9: Deletion guard
@@ -75,7 +76,7 @@ describe('Feature: categories-crud, Property 9: Deletion guard', () => {
             json: jsonFn,
           } as never;
 
-          await deleteCategory(req, res);
+          await invokeHandler(deleteCategory, req, res);
 
           // Property: deletion is rejected with HTTP 422
           expect(statusFn).toHaveBeenCalledWith(422);
@@ -143,7 +144,7 @@ describe('Feature: categories-crud, Property 9: Deletion guard', () => {
             json: jsonFn,
           } as never;
 
-          await deleteCategory(req, res);
+          await invokeHandler(deleteCategory, req, res);
 
           // Property: deletion succeeds with HTTP 200
           expect(statusFn).toHaveBeenCalledWith(200);

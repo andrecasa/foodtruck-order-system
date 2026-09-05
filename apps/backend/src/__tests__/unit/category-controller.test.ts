@@ -15,6 +15,7 @@ import {
   toggleCategoryStatus,
   deleteCategory,
 } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body?: any, params?: any): Partial<AuthenticatedRequest> {
   return {
@@ -73,7 +74,7 @@ describe('Category Controller', () => {
       const req = mockRequest();
       const res = mockResponse();
 
-      await listCategories(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(listCategories, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveLength(2);
@@ -120,7 +121,7 @@ describe('Category Controller', () => {
       const req = mockRequest({ name: 'Nova Categoria' });
       const res = mockResponse();
 
-      await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       expect(res.body).toEqual({
@@ -141,7 +142,7 @@ describe('Category Controller', () => {
       const req = mockRequest({ name: 'Bebidas' });
       const res = mockResponse();
 
-      await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body.error).toBe('CONFLICT');
@@ -152,7 +153,7 @@ describe('Category Controller', () => {
       const req = mockRequest({});
       const res = mockResponse();
 
-      await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -168,7 +169,7 @@ describe('Category Controller', () => {
       const req = mockRequest({ name: 'Novo Nome' }, { id: '550e8400-e29b-41d4-a716-446655440099' });
       const res = mockResponse();
 
-      await updateCategory(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateCategory, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body.error).toBe('NOT_FOUND');
@@ -181,7 +182,7 @@ describe('Category Controller', () => {
       const req = mockRequest({ categoryIds: [] });
       const res = mockResponse();
 
-      await reorderCategories(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(reorderCategories, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -211,7 +212,7 @@ describe('Category Controller', () => {
       const req = mockRequest({ action: 'deactivate' }, { id: 'cat-1' });
       const res = mockResponse();
 
-      await toggleCategoryStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleCategoryStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -237,7 +238,7 @@ describe('Category Controller', () => {
       const req = mockRequest({ action: 'deactivate' }, { id: 'cat-1' });
       const res = mockResponse();
 
-      await toggleCategoryStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleCategoryStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -259,7 +260,7 @@ describe('Category Controller', () => {
       const req = mockRequest({}, { id: 'cat-1' });
       const res = mockResponse();
 
-      await deleteCategory(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(deleteCategory, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -275,7 +276,7 @@ describe('Category Controller', () => {
       const req = mockRequest({}, { id: '550e8400-e29b-41d4-a716-446655440099' });
       const res = mockResponse();
 
-      await deleteCategory(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(deleteCategory, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body.error).toBe('NOT_FOUND');

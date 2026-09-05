@@ -34,6 +34,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { updateOrderItems } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 /**
  * Feature: edit-order, Property 5: Transaction Atomicity on Failure
@@ -225,12 +226,13 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
           const req = mockRequest({ items: requestItems }, { id: orderId });
           const res = mockResponse();
 
-          await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
           // Must return 500
           expect(res.statusCode).toBe(500);
           expect(res.body.error).toBe('INTERNAL_ERROR');
-          expect(res.body.message).toBe('Erro ao atualizar itens do pedido.');
+          // Mensagem genérica única do error middleware (não mais fallback por-endpoint).
+          expect(res.body.message).toBe('Erro ao processar requisição');
 
           // ROLLBACK must have been called
           const allCalls = mockClientQuery.mock.calls;

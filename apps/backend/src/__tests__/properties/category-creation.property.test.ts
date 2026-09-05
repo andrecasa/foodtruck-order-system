@@ -10,6 +10,7 @@ vi.mock('../../config/database.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { createCategory } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 /**
  * Feature: categories-crud, Property 4: Creation assigns correct defaults
@@ -103,7 +104,7 @@ describe('Feature: categories-crud, Property 4: Creation assigns correct default
           } as never;
 
           // Call createCategory
-          await createCategory(req, res);
+          await invokeHandler(createCategory, req, res);
 
           // Property: response status is 201
           expect(statusFn).toHaveBeenCalledWith(201);
@@ -181,7 +182,7 @@ describe('Feature: categories-crud, Property 4: Creation assigns correct default
             json: jsonFn,
           } as never;
 
-          await createCategory(req, res);
+          await invokeHandler(createCategory, req, res);
 
           // Property: response status is 201
           expect(statusFn).toHaveBeenCalledWith(201);

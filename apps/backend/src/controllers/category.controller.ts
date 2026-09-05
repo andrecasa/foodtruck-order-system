@@ -6,37 +6,20 @@ import {
 } from '@order-system/shared';
 import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as categoryService from '../services/category.service.js';
+import { parseBody } from '../http/parse-body.js';
 
-// --- Error helpers ---
-
-function handleServiceError(err: unknown, res: Response, fallbackMessage: string): void {
-  if (err instanceof categoryService.ServiceError) {
-    res.status(err.statusCode).json({
-      statusCode: err.statusCode,
-      error: err.code,
-      message: err.message,
-    });
-    return;
-  }
-  console.error('[categories]', err);
-  res.status(500).json({
-    statusCode: 500,
-    error: 'INTERNAL_ERROR',
-    message: fallbackMessage,
-  });
-}
+// Erros de validação/negócio são lançados como ServiceError e mapeados
+// centralmente pelo errorHandler (src/http/error-handler.js). A validação de
+// corpo usa parseBody (lança 422 VALIDATION_ERROR). As rotas envolvem estes
+// handlers em asyncHandler para encaminhar rejeições.
 
 /**
  * GET /api/categories
  * Returns all categories with item count, sorted by sort_order ASC then name ASC.
  */
 export async function listCategories(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const categories = await categoryService.listCategories(req.tenantId as string);
-    res.status(200).json(categories);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao processar requisição');
-  }
+  const categories = await categoryService.listCategories(req.tenantId as string);
+  res.status(200).json(categories);
 }
 
 /**
@@ -44,34 +27,15 @@ export async function listCategories(req: AuthenticatedRequest, res: Response): 
  * Create a new category with Zod validation.
  */
 export async function createCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    // Check if name field is present
-    if (req.body.name === undefined || req.body.name === null) {
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: 'Nome é obrigatório',
-      });
-      return;
-    }
-
-    // Validate with Zod
-    const parsed = createCategoryRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      const firstError = parsed.error.errors[0];
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstError?.message || 'Dados inválidos',
-      });
-      return;
-    }
-
-    const category = await categoryService.createCategory(req.tenantId as string, parsed.data.name);
-    res.status(201).json(category);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao processar requisição');
+  // Check if name field is present
+  if (req.body.name === undefined || req.body.name === null) {
+    throw new categoryService.ServiceError('Nome é obrigatório', 422, 'VALIDATION_ERROR');
   }
+
+  const data = parseBody(createCategoryRequestSchema, req.body);
+
+  const category = await categoryService.createCategory(req.tenantId as string, data.name);
+  res.status(201).json(category);
 }
 
 /**
@@ -79,36 +43,17 @@ export async function createCategory(req: AuthenticatedRequest, res: Response): 
  * Update a category name.
  */
 export async function updateCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    // Check if name field is present
-    if (req.body.name === undefined || req.body.name === null) {
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: 'Nome é obrigatório',
-      });
-      return;
-    }
-
-    // Validate with Zod
-    const parsed = updateCategoryRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      const firstError = parsed.error.errors[0];
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstError?.message || 'Dados inválidos',
-      });
-      return;
-    }
-
-    const category = await categoryService.updateCategory(req.tenantId as string, id as string, parsed.data.name);
-    res.status(200).json(category);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao processar requisição');
+  // Check if name field is present
+  if (req.body.name === undefined || req.body.name === null) {
+    throw new categoryService.ServiceError('Nome é obrigatório', 422, 'VALIDATION_ERROR');
   }
+
+  const data = parseBody(updateCategoryRequestSchema, req.body);
+
+  const category = await categoryService.updateCategory(req.tenantId as string, id as string, data.name);
+  res.status(200).json(category);
 }
 
 /**
@@ -116,24 +61,10 @@ export async function updateCategory(req: AuthenticatedRequest, res: Response): 
  * Reorder all categories atomically using a transaction.
  */
 export async function reorderCategories(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    // Validate with Zod
-    const parsed = reorderCategoriesRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      const firstError = parsed.error.errors[0];
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstError?.message || 'Dados inválidos',
-      });
-      return;
-    }
+  const data = parseBody(reorderCategoriesRequestSchema, req.body);
 
-    const categories = await categoryService.reorderCategories(req.tenantId as string, parsed.data.categoryIds);
-    res.status(200).json(categories);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao processar requisição');
-  }
+  const categories = await categoryService.reorderCategories(req.tenantId as string, data.categoryIds);
+  res.status(200).json(categories);
 }
 
 /**
@@ -142,15 +73,11 @@ export async function reorderCategories(req: AuthenticatedRequest, res: Response
  * Body: { action: 'activate' | 'deactivate' }
  */
 export async function toggleCategoryStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
-    const { action } = req.body;
+  const { id } = req.params;
+  const { action } = req.body;
 
-    const category = await categoryService.toggleCategoryStatus(req.tenantId as string, id as string, action);
-    res.status(200).json(category);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao processar requisição');
-  }
+  const category = await categoryService.toggleCategoryStatus(req.tenantId as string, id as string, action);
+  res.status(200).json(category);
 }
 
 /**
@@ -158,15 +85,11 @@ export async function toggleCategoryStatus(req: AuthenticatedRequest, res: Respo
  * Delete a category if it has no associated menu items.
  */
 export async function deleteCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    await categoryService.deleteCategory(req.tenantId as string, id as string);
+  await categoryService.deleteCategory(req.tenantId as string, id as string);
 
-    res.status(200).json({
-      message: 'Categoria excluída com sucesso',
-    });
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao processar requisição');
-  }
+  res.status(200).json({
+    message: 'Categoria excluída com sucesso',
+  });
 }

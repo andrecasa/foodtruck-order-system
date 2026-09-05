@@ -37,6 +37,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { updateOrderItems } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body?: any, params?: any): Partial<AuthenticatedRequest> {
   return {
@@ -154,7 +155,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.id).toBe(orderId);
@@ -174,7 +175,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       // 750 * 2 + 300 * 1 = 1800
@@ -189,7 +190,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.items[0].itemName).toBe('Pastel de Carne');
@@ -206,7 +207,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'order_updated', expect.objectContaining({
@@ -227,7 +228,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
     });
@@ -240,7 +241,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body.error).toBe('NOT_FOUND');
@@ -255,7 +256,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -268,7 +269,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Pedido não pode ser editado após o pagamento');
@@ -280,7 +281,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Pedido não pode ser editado após o pagamento');
@@ -294,7 +295,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
     });
@@ -307,7 +308,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
     });
@@ -318,7 +319,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest({ items: [] }, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -334,7 +335,7 @@ describe('Order Controller - updateOrderItems', () => {
       }, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -351,7 +352,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -370,7 +371,7 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Item não encontrado ou inativo');
@@ -392,11 +393,12 @@ describe('Order Controller - updateOrderItems', () => {
       const req = mockRequest(validBody, { id: orderId });
       const res = mockResponse();
 
-      await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(500);
       expect(res.body.error).toBe('INTERNAL_ERROR');
-      expect(res.body.message).toBe('Erro ao atualizar itens do pedido.');
+      // Mensagem genérica única do error middleware (não mais fallback por-endpoint).
+      expect(res.body.message).toBe('Erro ao processar requisição');
     });
   });
 });

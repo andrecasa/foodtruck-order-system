@@ -27,6 +27,7 @@ vi.mock('../../config/supabase.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { reorderCategories } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body: any): Partial<AuthenticatedRequest> {
   return {
@@ -110,8 +111,7 @@ describe('Property 5: Reorder assigns position-based sort_order', () => {
           const req = mockRequest({ categoryIds: permutation });
           const res = mockResponse();
 
-          await reorderCategories(
-            req as AuthenticatedRequest,
+          await invokeHandler(reorderCategories, req as AuthenticatedRequest,
             res as Response,
           );
 

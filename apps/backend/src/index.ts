@@ -11,6 +11,7 @@ import categoryRoutes from './routes/category.routes.js';
 import tenantRoutes from './routes/tenant.routes.js';
 import platformRoutes from './routes/platform.routes.js';
 import publicRoutes from './routes/public.routes.js';
+import { errorHandler } from './http/error-handler.js';
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 4000;
@@ -35,6 +36,13 @@ app.use('/api/platform', platformRoutes);
 // Public customer-ordering routes: NO auth. Tenant resolved from :slug, with
 // router-local hardening (rate limit + 10kb body parser) — see public.routes.ts (R11).
 app.use('/api/public', publicRoutes);
+
+// Error-handling middleware — registrado por ÚLTIMO, depois de todas as rotas.
+// Mapeia ServiceError → envelope { statusCode, error, message } e qualquer
+// outro erro → 500 INTERNAL_ERROR. Handlers async devem ser envolvidos em
+// asyncHandler (src/http/async-handler.ts) para que rejeições cheguem aqui no
+// Express 4.
+app.use(errorHandler);
 
 async function start() {
   try {

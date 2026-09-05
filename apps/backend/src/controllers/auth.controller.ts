@@ -5,92 +5,61 @@ import {
 } from '../middleware/rate-limit.middleware.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import * as authService from '../services/auth.service.js';
+import { getClientIp } from '../http/client-ip.js';
 
-function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0]?.trim() || 'unknown';
-  }
-  return req.ip || req.socket.remoteAddress || 'unknown';
-}
+// O mapeamento HTTP de erros é feito centralmente pelo errorHandler
+// (src/http/error-handler.js): estes handlers lançam ServiceError e as rotas os
+// envolvem em asyncHandler. Os fallbacks antigos (INVALID_CREDENTIALS,
+// LOGOUT_FAILED, INVALID_REFRESH_TOKEN) eram redundantes — o authService já
+// lança ServiceError com exatamente esses statusCode/code/message.
 
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    res.status(400).json({
-      statusCode: 400,
-      error: 'BAD_REQUEST',
-      message: 'E-mail e senha são obrigatórios.',
-    });
-    return;
+    throw new authService.ServiceError(
+      'E-mail e senha são obrigatórios.',
+      400,
+      'BAD_REQUEST',
+    );
   }
 
   const ip = getClientIp(req);
 
+  // Efeito colateral do rate limit: registra a tentativa falha e re-lança para
+  // o errorHandler mapear. É o ÚNICO try/catch mantido aqui, e existe apenas
+  // por causa do efeito de rate limit — não faz mapeamento HTTP.
+  let result: authService.LoginResult;
   try {
-    const result = await authService.login({ email, password });
-    resetRateLimit(ip);
-    res.status(200).json(result);
+    result = await authService.login({ email, password });
   } catch (err) {
     recordFailedAttempt(ip);
-    if (err instanceof authService.ServiceError) {
-      res.status(err.statusCode).json({
-        statusCode: err.statusCode,
-        error: err.code,
-        message: err.message,
-      });
-      return;
-    }
-    res.status(401).json({
-      statusCode: 401,
-      error: 'INVALID_CREDENTIALS',
-      message: 'E-mail ou senha incorretos',
-    });
+    throw err;
   }
+
+  resetRateLimit(ip);
+  res.status(200).json(result);
 }
 
 export async function logout(req: AuthenticatedRequest, res: Response): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({
-      statusCode: 401,
-      error: 'UNAUTHORIZED',
-      message: 'Token de autenticação não fornecido.',
-    });
-    return;
+    throw new authService.ServiceError(
+      'Token de autenticação não fornecido.',
+      401,
+      'UNAUTHORIZED',
+    );
   }
 
-  try {
-    await authService.logout();
-    res.status(200).json({ message: 'Sessão encerrada com sucesso.' });
-  } catch (err) {
-    if (err instanceof authService.ServiceError) {
-      res.status(err.statusCode).json({
-        statusCode: err.statusCode,
-        error: err.code,
-        message: err.message,
-      });
-      return;
-    }
-    res.status(500).json({
-      statusCode: 500,
-      error: 'LOGOUT_FAILED',
-      message: 'Falha ao encerrar sessão.',
-    });
-  }
+  await authService.logout();
+  res.status(200).json({ message: 'Sessão encerrada com sucesso.' });
 }
 
 export async function getSession(req: AuthenticatedRequest, res: Response): Promise<void> {
   // authMiddleware already verified the token and set req.user
   if (!req.user) {
-    res.status(401).json({
-      statusCode: 401,
-      error: 'UNAUTHORIZED',
-      message: 'Sessão inválida.',
-    });
-    return;
+    throw new authService.ServiceError('Sessão inválida.', 401, 'UNAUTHORIZED');
   }
 
   res.status(200).json({
@@ -106,30 +75,13 @@ export async function refreshToken(req: Request, res: Response): Promise<void> {
   const { refreshToken: token } = req.body;
 
   if (!token) {
-    res.status(400).json({
-      statusCode: 400,
-      error: 'BAD_REQUEST',
-      message: 'Refresh token é obrigatório.',
-    });
-    return;
+    throw new authService.ServiceError(
+      'Refresh token é obrigatório.',
+      400,
+      'BAD_REQUEST',
+    );
   }
 
-  try {
-    const result = await authService.refreshToken(token);
-    res.status(200).json(result);
-  } catch (err) {
-    if (err instanceof authService.ServiceError) {
-      res.status(err.statusCode).json({
-        statusCode: err.statusCode,
-        error: err.code,
-        message: err.message,
-      });
-      return;
-    }
-    res.status(401).json({
-      statusCode: 401,
-      error: 'INVALID_REFRESH_TOKEN',
-      message: 'Refresh token inválido ou expirado.',
-    });
-  }
+  const result = await authService.refreshToken(token);
+  res.status(200).json(result);
 }

@@ -15,6 +15,7 @@ vi.mock('../../config/supabase.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { getMenu } from '../../controllers/menu.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 /**
  * Feature: categories-crud, Property 8: Inactive categories excluded from public menu
@@ -115,7 +116,7 @@ describe('Feature: categories-crud, Property 8: Inactive categories excluded fro
           json: jsonFn,
         } as never;
 
-        await getMenu(req, res);
+        await invokeHandler(getMenu, req, res);
 
         expect(statusFn).toHaveBeenCalledWith(200);
 
@@ -180,7 +181,7 @@ describe('Feature: categories-crud, Property 8: Inactive categories excluded fro
           json: jsonFn,
         } as never;
 
-        await getMenu(req, res);
+        await invokeHandler(getMenu, req, res);
 
         expect(statusFn).toHaveBeenCalledWith(200);
 
@@ -245,7 +246,7 @@ describe('Feature: categories-crud, Property 8: Inactive categories excluded fro
           json: jsonFn,
         } as never;
 
-        await getMenu(req, res);
+        await invokeHandler(getMenu, req, res);
 
         expect(statusFn).toHaveBeenCalledWith(200);
 

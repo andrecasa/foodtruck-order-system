@@ -10,6 +10,7 @@ import {
 } from '../validation/user.validation.js';
 import * as userService from '../services/user.service.js';
 import type { UserRecord } from '../services/user.service.js';
+import { parseBody } from '../http/parse-body.js';
 
 /**
  * Admin request that also carries the tenant resolved by `tenantMiddleware`
@@ -62,24 +63,9 @@ function mapUserToResponse(user: UserRecord): UserResponse {
   };
 }
 
-// --- Error helpers ---
-
-function handleServiceError(err: unknown, res: Response, fallbackMessage: string): void {
-  if (err instanceof userService.ServiceError) {
-    res.status(err.statusCode).json({
-      statusCode: err.statusCode,
-      error: err.code,
-      message: err.message,
-    });
-    return;
-  }
-  console.error('[user-controller]', err);
-  res.status(500).json({
-    statusCode: 500,
-    error: 'INTERNAL_ERROR',
-    message: fallbackMessage,
-  });
-}
+// Erros de validação/negócio são lançados como ServiceError e mapeados
+// centralmente pelo errorHandler (src/http/error-handler.js). As rotas
+// envolvem estes handlers em asyncHandler para encaminhar rejeições.
 
 function mapZodErrorForCreate(error: ZodError): string {
   const missingFields: string[] = [];
@@ -106,24 +92,11 @@ function mapZodErrorForCreate(error: ZodError): string {
  * Creates a new user.
  */
 export async function createUser(req: TenantAdminRequest, res: Response): Promise<void> {
-  try {
-    const parsed = createUserSchema.safeParse(req.body);
+  const data = parseBody(createUserSchema, req.body, mapZodErrorForCreate);
 
-    if (!parsed.success) {
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: mapZodErrorForCreate(parsed.error),
-      });
-      return;
-    }
+  const user = await userService.createUser(requireTenantId(req), data);
 
-    const user = await userService.createUser(requireTenantId(req), parsed.data);
-
-    res.status(201).json(mapUserToResponse(user));
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao criar usuário.');
-  }
+  res.status(201).json(mapUserToResponse(user));
 }
 
 /**
@@ -131,28 +104,24 @@ export async function createUser(req: TenantAdminRequest, res: Response): Promis
  * Lists all users with optional filters.
  */
 export async function listUsers(req: TenantAdminRequest, res: Response): Promise<void> {
-  try {
-    const filters: userService.ListUsersFilters = {};
+  const filters: userService.ListUsersFilters = {};
 
-    const { role, status } = req.query;
+  const { role, status } = req.query;
 
-    if (role && typeof role === 'string' && ['admin', 'atendente', 'preparador'].includes(role)) {
-      filters.role = role as userService.ListUsersFilters['role'];
-    }
-
-    if (status && typeof status === 'string' && ['ativo', 'inativo'].includes(status)) {
-      filters.status = status as userService.ListUsersFilters['status'];
-    }
-
-    const users = await userService.listUsers(requireTenantId(req), filters);
-
-    res.status(200).json({
-      users: users.map(mapUserToResponse),
-      total: users.length,
-    });
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao listar usuários.');
+  if (role && typeof role === 'string' && ['admin', 'atendente', 'preparador'].includes(role)) {
+    filters.role = role as userService.ListUsersFilters['role'];
   }
+
+  if (status && typeof status === 'string' && ['ativo', 'inativo'].includes(status)) {
+    filters.status = status as userService.ListUsersFilters['status'];
+  }
+
+  const users = await userService.listUsers(requireTenantId(req), filters);
+
+  res.status(200).json({
+    users: users.map(mapUserToResponse),
+    total: users.length,
+  });
 }
 
 /**
@@ -160,24 +129,15 @@ export async function listUsers(req: TenantAdminRequest, res: Response): Promise
  * Retrieves a user by ID.
  */
 export async function getUserById(req: TenantAdminRequest, res: Response): Promise<void> {
-  try {
-    const id = req.params.id as string;
+  const id = req.params.id as string;
 
-    const user = await userService.getUserById(requireTenantId(req), id);
+  const user = await userService.getUserById(requireTenantId(req), id);
 
-    if (!user) {
-      res.status(404).json({
-        statusCode: 404,
-        error: 'NOT_FOUND',
-        message: 'Usuário não encontrado',
-      });
-      return;
-    }
-
-    res.status(200).json(mapUserToResponse(user));
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao buscar usuário.');
+  if (!user) {
+    throw new userService.ServiceError('Usuário não encontrado', 404, 'NOT_FOUND');
   }
+
+  res.status(200).json(mapUserToResponse(user));
 }
 
 /**
@@ -185,29 +145,15 @@ export async function getUserById(req: TenantAdminRequest, res: Response): Promi
  * Updates an existing user.
  */
 export async function updateUser(req: TenantAdminRequest, res: Response): Promise<void> {
-  try {
-    const id = req.params.id as string;
+  const id = req.params.id as string;
 
-    const parsed = updateUserSchema.safeParse(req.body);
+  const data = parseBody(updateUserSchema, req.body);
 
-    if (!parsed.success) {
-      const firstMessage = parsed.error.issues[0]?.message || 'Dados inválidos';
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstMessage,
-      });
-      return;
-    }
+  const requesterId = req.user?.id || '';
 
-    const requesterId = req.user?.id || '';
+  const user = await userService.updateUser(requireTenantId(req), id, data, requesterId);
 
-    const user = await userService.updateUser(requireTenantId(req), id, parsed.data, requesterId);
-
-    res.status(200).json(mapUserToResponse(user));
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao atualizar usuário.');
-  }
+  res.status(200).json(mapUserToResponse(user));
 }
 
 /**
@@ -215,37 +161,23 @@ export async function updateUser(req: TenantAdminRequest, res: Response): Promis
  * Toggles user status between 'ativo' and 'inativo'.
  */
 export async function toggleUserStatus(req: TenantAdminRequest, res: Response): Promise<void> {
-  try {
-    const id = req.params.id as string;
+  const id = req.params.id as string;
 
-    const parsed = toggleStatusSchema.safeParse(req.body);
+  const data = parseBody(toggleStatusSchema, req.body);
 
-    if (!parsed.success) {
-      const firstMessage = parsed.error.issues[0]?.message || 'Dados inválidos';
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstMessage,
-      });
-      return;
-    }
+  const { status } = data;
+  const requesterId = req.user?.id || '';
+  const tenantId = requireTenantId(req);
 
-    const { status } = parsed.data;
-    const requesterId = req.user?.id || '';
-    const tenantId = requireTenantId(req);
+  let user: UserRecord;
 
-    let user: UserRecord;
-
-    if (status === 'inativo') {
-      user = await userService.deactivateUser(tenantId, id, requesterId);
-    } else {
-      user = await userService.activateUser(tenantId, id);
-    }
-
-    res.status(200).json(mapUserToResponse(user));
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao alterar status do usuário.');
+  if (status === 'inativo') {
+    user = await userService.deactivateUser(tenantId, id, requesterId);
+  } else {
+    user = await userService.activateUser(tenantId, id);
   }
+
+  res.status(200).json(mapUserToResponse(user));
 }
 
 /**
@@ -253,16 +185,12 @@ export async function toggleUserStatus(req: TenantAdminRequest, res: Response): 
  * Permanently deletes a user.
  */
 export async function deleteUser(req: TenantAdminRequest, res: Response): Promise<void> {
-  try {
-    const id = req.params.id as string;
-    const requesterId = req.user?.id || '';
+  const id = req.params.id as string;
+  const requesterId = req.user?.id || '';
 
-    await userService.deleteUser(requireTenantId(req), id, requesterId);
+  await userService.deleteUser(requireTenantId(req), id, requesterId);
 
-    res.status(200).json({ message: 'Usuário excluído com sucesso' });
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao excluir usuário.');
-  }
+  res.status(200).json({ message: 'Usuário excluído com sucesso' });
 }
 
 /**
@@ -270,25 +198,11 @@ export async function deleteUser(req: TenantAdminRequest, res: Response): Promis
  * Resets a user's password.
  */
 export async function resetPassword(req: TenantAdminRequest, res: Response): Promise<void> {
-  try {
-    const id = req.params.id as string;
+  const id = req.params.id as string;
 
-    const parsed = resetPasswordSchema.safeParse(req.body);
+  const data = parseBody(resetPasswordSchema, req.body);
 
-    if (!parsed.success) {
-      const firstMessage = parsed.error.issues[0]?.message || 'Dados inválidos';
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstMessage,
-      });
-      return;
-    }
+  await userService.resetPassword(requireTenantId(req), id, data.password);
 
-    await userService.resetPassword(requireTenantId(req), id, parsed.data.password);
-
-    res.status(200).json({ message: 'Senha redefinida com sucesso' });
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao redefinir senha.');
-  }
+  res.status(200).json({ message: 'Senha redefinida com sucesso' });
 }

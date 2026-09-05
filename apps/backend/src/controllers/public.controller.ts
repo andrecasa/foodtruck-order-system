@@ -6,6 +6,8 @@ import * as menuService from '../services/menu.service.js';
 import { createOrder, getOrderById, getOrdersByIds } from '../services/order.service.js';
 import type { PublicTenantRequest } from '../middleware/public-tenant.middleware.js';
 import { NEUTRAL_PLATFORM_THEME, deepMergeTheme } from '../theme/platform-theme.js';
+import { sendError } from '../http/send-error.js';
+import { logError } from '../http/log-error.js';
 
 /**
  * Public (unauthenticated) controllers for the customer ordering flow.
@@ -113,10 +115,7 @@ export async function publicBrandingController(
     // The middleware already confirmed the tenant is active; a miss here would
     // only happen on a race (tenant deleted mid-request). Treat as not found.
     if (!row) {
-      res.status(404).json({
-        error: 'TENANT_NOT_FOUND',
-        message: 'Estabelecimento não encontrado.',
-      });
+      sendError(res, 404, 'TENANT_NOT_FOUND', 'Estabelecimento não encontrado.');
       return;
     }
 
@@ -133,8 +132,8 @@ export async function publicBrandingController(
 
     res.status(200).json(branding);
   } catch (err) {
-    console.error('[public][branding]', err);
-    res.status(500).json({ error: 'INTERNAL_ERROR' });
+    logError('public:branding', err, req);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Erro ao carregar o estabelecimento.');
   }
 }
 
@@ -174,8 +173,8 @@ export async function publicMenuController(
 
     res.status(200).json(categories);
   } catch (err) {
-    console.error('[public][menu]', err);
-    res.status(500).json({ error: 'INTERNAL_ERROR' });
+    logError('public:menu', err, req);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Erro ao carregar o cardápio.');
   }
 }
 
@@ -212,8 +211,11 @@ export async function publicCreateOrderController(
   // 1. Strict body validation (R11.4). Reject early with 400 on any deviation.
   const parsed = publicCreateOrderSchema.safeParse(req.body);
   if (!parsed.success) {
+    // Envelope padrão + `details` do Zod preservado para diagnóstico do cliente.
     res.status(400).json({
+      statusCode: 400,
       error: 'INVALID_REQUEST',
+      message: 'Dados do pedido inválidos.',
       details: parsed.error.flatten(),
     });
     return;
@@ -233,7 +235,7 @@ export async function publicCreateOrderController(
 
     const admin = adminResult.rows[0] as { id: string } | undefined;
     if (!admin) {
-      res.status(422).json({ error: 'TENANT_UNAVAILABLE' });
+      sendError(res, 422, 'TENANT_UNAVAILABLE', 'Estabelecimento indisponível no momento.');
       return;
     }
 
@@ -266,7 +268,11 @@ export async function publicCreateOrderController(
       })),
     });
   } catch (err) {
-    // Map service errors by their numeric status code (see doc comment).
+    // Mapeia erros do service pelo `.statusCode` numérico (o contrato público é
+    // o status, não a classe). Preservamos o `code` já exposto (ex.:
+    // VALIDATION_ERROR para item inválido, CONFLICT para conflito de
+    // numeração), mas usamos uma `message` pública genérica — a mensagem
+    // interna do service NÃO é repassada ao cliente anônimo.
     if (
       err &&
       typeof err === 'object' &&
@@ -275,12 +281,16 @@ export async function publicCreateOrderController(
     ) {
       const statusCode = (err as { statusCode: number }).statusCode;
       const code = (err as { code?: string }).code ?? 'VALIDATION_ERROR';
-      res.status(statusCode).json({ error: code });
+      const message =
+        statusCode === 409
+          ? 'Não foi possível registrar o pedido. Tente novamente.'
+          : 'Não foi possível criar o pedido. Verifique os itens e tente novamente.';
+      sendError(res, statusCode, code, message);
       return;
     }
 
-    console.error('[public][create-order]', err);
-    res.status(500).json({ error: 'INTERNAL_ERROR' });
+    logError('public:create-order', err, req);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Erro ao criar o pedido.');
   }
 }
 
@@ -332,14 +342,16 @@ export async function publicOrderStatusController(
 
     res.status(200).json(payload);
   } catch (err) {
-    // Map by numeric status code, not instanceof (see doc comment above).
+    // Mapeia pelo status numérico, não por instanceof. Traduz o código interno
+    // (NOT_FOUND) para o código PÚBLICO (ORDER_NOT_FOUND) — contrato público
+    // estável e intencional (design.md).
     if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: unknown }).statusCode === 404) {
-      res.status(404).json({ error: 'ORDER_NOT_FOUND' });
+      sendError(res, 404, 'ORDER_NOT_FOUND', 'Pedido não encontrado.');
       return;
     }
 
-    console.error('[public][order-status]', err);
-    res.status(500).json({ error: 'INTERNAL_ERROR' });
+    logError('public:order-status', err, req);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Erro ao consultar o pedido.');
   }
 }
 
@@ -384,17 +396,17 @@ export async function publicOrdersBatchController(
   ids = [...new Set(ids)];
 
   if (ids.length === 0) {
-    res.status(400).json({ error: 'INVALID_REQUEST' });
+    sendError(res, 400, 'INVALID_REQUEST', 'Nenhum pedido informado.');
     return;
   }
 
   if (ids.length > MAX_BATCH_IDS) {
-    res.status(400).json({ error: 'TOO_MANY_IDS' });
+    sendError(res, 400, 'TOO_MANY_IDS', 'Muitos pedidos informados de uma só vez.');
     return;
   }
 
   if (!ids.every((id) => UUID_RE.test(id))) {
-    res.status(400).json({ error: 'INVALID_REQUEST' });
+    sendError(res, 400, 'INVALID_REQUEST', 'Identificadores de pedido inválidos.');
     return;
   }
 
@@ -420,7 +432,7 @@ export async function publicOrdersBatchController(
 
     res.status(200).json(payload);
   } catch (err) {
-    console.error('[public][orders-batch]', err);
-    res.status(500).json({ error: 'INTERNAL_ERROR' });
+    logError('public:orders-batch', err, req);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Erro ao consultar os pedidos.');
   }
 }

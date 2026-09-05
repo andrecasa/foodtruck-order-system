@@ -39,6 +39,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { registerPayment } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(params?: any, body?: any): Partial<AuthenticatedRequest> {
   return {
@@ -104,7 +105,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'dinheiro' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.paymentStatus).toBe('pago');
@@ -127,7 +128,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.paymentStatus).toBe('pago');
@@ -149,7 +150,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'cartão débito' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.paymentStatus).toBe('pago');
@@ -171,7 +172,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       // Verify the UPDATE query (call index 1: findOne, update, findOne).
       // The TenantRepository composes: SET payment_status, payment_method, paid_at
@@ -202,7 +203,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body.message).toBe('Pedido já foi pago');
@@ -214,7 +215,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'cheque' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Forma de pagamento inválida');
@@ -224,7 +225,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, {});
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Forma de pagamento inválida');
@@ -234,7 +235,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: '' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Forma de pagamento inválida');
@@ -248,7 +249,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'non-existent-id' }, { paymentMethod: 'pix' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body.message).toBe('Pedido não encontrado');
@@ -271,7 +272,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'dinheiro' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(mockBroadcast).toHaveBeenCalledWith('orders:payment:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'payment_registered', expect.objectContaining({
@@ -297,7 +298,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'pix' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.paymentStatus).toBe('pago');
@@ -311,7 +312,7 @@ describe('Order Controller - registerPayment', () => {
       const req = mockRequest({ id: 'order-uuid-1' }, { paymentMethod: 'dinheiro' });
       const res = mockResponse();
 
-      await registerPayment(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(registerPayment, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(500);
       expect(res.body.error).toBe('INTERNAL_ERROR');

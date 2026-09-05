@@ -10,6 +10,7 @@ vi.mock('../../config/database.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { toggleCategoryStatus } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 /**
  * Feature: categories-crud, Property 7: Deactivation guard
@@ -88,7 +89,7 @@ describe('Feature: categories-crud, Property 7: Deactivation guard', () => {
             json: jsonFn,
           } as never;
 
-          await toggleCategoryStatus(req, res);
+          await invokeHandler(toggleCategoryStatus, req, res);
 
           // Property: deactivation is rejected with 422
           expect(statusFn).toHaveBeenCalledWith(422);
@@ -169,7 +170,7 @@ describe('Feature: categories-crud, Property 7: Deactivation guard', () => {
             json: jsonFn,
           } as never;
 
-          await toggleCategoryStatus(req, res);
+          await invokeHandler(toggleCategoryStatus, req, res);
 
           // Property: deactivation succeeds with 200
           expect(statusFn).toHaveBeenCalledWith(200);

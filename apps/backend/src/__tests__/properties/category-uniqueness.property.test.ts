@@ -23,6 +23,7 @@ vi.mock('../../config/database.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { createCategory, updateCategory } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body: any, params: Record<string, string> = {}): Partial<AuthenticatedRequest> {
   return {
@@ -107,7 +108,7 @@ describe('Feature: categories-crud, Property 3: Name uniqueness', () => {
         const req = mockRequest({ name: variant });
         const res = mockResponse();
 
-        await createCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(createCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         // Must reject with 409
         expect(res.statusCode).toBe(409);
@@ -152,7 +153,7 @@ describe('Feature: categories-crud, Property 3: Name uniqueness', () => {
         const req = mockRequest({ name: variant }, { id: categoryId });
         const res = mockResponse();
 
-        await updateCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         // Must reject with 409
         expect(res.statusCode).toBe(409);
@@ -216,7 +217,7 @@ describe('Feature: categories-crud, Property 3: Name uniqueness', () => {
         const req = mockRequest({ name: variant }, { id: categoryId });
         const res = mockResponse();
 
-        await updateCategory(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateCategory, req as AuthenticatedRequest, res as unknown as Response);
 
         // Must NOT return 409 - should succeed with 200
         expect(res.statusCode).not.toBe(409);

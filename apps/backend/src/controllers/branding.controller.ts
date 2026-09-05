@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as brandingService from '../services/branding.service.js';
+import { logError } from '../http/log-error.js';
 
 /**
  * GET /api/tenant/branding
@@ -39,7 +40,7 @@ export async function getBranding(req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    console.error('[branding-controller] Error resolving branding:', err);
+    logError('branding', err, req);
     res.status(500).json({
       statusCode: 500,
       error: 'INTERNAL_ERROR',

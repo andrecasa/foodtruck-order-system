@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { RATE_LIMIT_MAX_ATTEMPTS, RATE_LIMIT_WINDOW_MS } from '@order-system/shared';
+import { getClientIp } from '../http/client-ip.js';
 
 interface RateLimitEntry {
   attempts: number;
@@ -8,14 +9,6 @@ interface RateLimitEntry {
 
 /** In-memory store keyed by IP address */
 export const rateLimitStore = new Map<string, RateLimitEntry>();
-
-function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0]?.trim() || 'unknown';
-  }
-  return req.ip || req.socket.remoteAddress || 'unknown';
-}
 
 export function getRateLimitEntry(ip: string): RateLimitEntry | undefined {
   return rateLimitStore.get(ip);

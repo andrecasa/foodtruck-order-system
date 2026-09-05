@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { RATE_LIMIT_MAX_ATTEMPTS, RATE_LIMIT_WINDOW_MS } from '@order-system/shared';
+import { getClientIp } from '../http/client-ip.js';
 
 /**
  * Mensagem_Neutra: idêntica à resposta de sucesso do fluxo de solicitação de
@@ -18,14 +19,6 @@ interface Bucket {
 export const ipBuckets = new Map<string, Bucket>();
 /** In-memory store keyed by normalized (lowercased) e-mail. */
 export const emailBuckets = new Map<string, Bucket>();
-
-function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0]?.trim() || 'unknown';
-  }
-  return req.ip || req.socket.remoteAddress || 'unknown';
-}
 
 function normalizeEmail(value: unknown): string | null {
   if (typeof value !== 'string') {

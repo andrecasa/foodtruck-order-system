@@ -7,6 +7,7 @@ import {
   type ProvisionTenantInput,
 } from '../services/tenant-provision.service.js';
 import { logPlatformAction } from '../services/platform-audit.service.js';
+import { logError } from '../http/log-error.js';
 
 /**
  * POST /api/platform/tenants — provision a new tenant (Platform_Admin only).
@@ -76,7 +77,7 @@ export async function createTenant(
       return;
     }
 
-    console.error('[platform-tenant-controller] Unexpected error provisioning tenant:', err);
+    logError('platform-tenant:create', err, req);
     res.status(500).json({
       statusCode: 500,
       error: 'INTERNAL_ERROR',

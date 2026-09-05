@@ -3,26 +3,25 @@ import {
   createMenuItemRequestSchema,
   updateMenuItemRequestSchema,
 } from '@order-system/shared';
+import type { ZodError } from 'zod';
 import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as menuService from '../services/menu.service.js';
+import { parseBody } from '../http/parse-body.js';
 
-// --- Error helpers ---
+// Erros de validação/negócio são lançados como ServiceError e mapeados
+// centralmente pelo errorHandler (src/http/error-handler.js). A validação de
+// corpo usa parseBody. As rotas envolvem estes handlers em asyncHandler.
 
-function handleServiceError(err: unknown, res: Response, fallbackMessage: string): void {
-  if (err instanceof menuService.ServiceError) {
-    res.status(err.statusCode).json({
-      statusCode: err.statusCode,
-      error: err.code,
-      message: err.message,
-    });
-    return;
+/**
+ * Mensagem de validação do menu: preço <= 0 recebe uma mensagem específica;
+ * demais erros usam a primeira issue do Zod.
+ */
+function mapMenuValidationError(error: ZodError): string {
+  const first = error.issues[0];
+  if (first?.path.includes('price') && first.code === 'too_small') {
+    return 'Preço deve ser maior que zero';
   }
-  console.error('[menu]', err);
-  res.status(500).json({
-    statusCode: 500,
-    error: 'INTERNAL_ERROR',
-    message: fallbackMessage,
-  });
+  return first?.message ?? 'Dados inválidos';
 }
 
 /**
@@ -31,13 +30,9 @@ function handleServiceError(err: unknown, res: Response, fallbackMessage: string
  * then alphabetically by item name within each category.
  */
 export async function getMenu(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const showAll = req.query.all === 'true';
-    const menu = await menuService.getMenu(req.tenantId as string, showAll);
-    res.status(200).json(menu);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao buscar cardápio.');
-  }
+  const showAll = req.query.all === 'true';
+  const menu = await menuService.getMenu(req.tenantId as string, showAll);
+  res.status(200).json(menu);
 }
 
 /**
@@ -45,32 +40,10 @@ export async function getMenu(req: AuthenticatedRequest, res: Response): Promise
  * Create a new menu item with Zod validation.
  */
 export async function createMenuItem(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    // Validate with Zod
-    const parsed = createMenuItemRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      const firstError = parsed.error.errors[0];
-      if (firstError?.path?.includes('price') && firstError.code === 'too_small') {
-        res.status(422).json({
-          statusCode: 422,
-          error: 'VALIDATION_ERROR',
-          message: 'Preço deve ser maior que zero',
-        });
-        return;
-      }
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstError?.message || 'Dados inválidos',
-      });
-      return;
-    }
+  const data = parseBody(createMenuItemRequestSchema, req.body, mapMenuValidationError);
 
-    const item = await menuService.createMenuItem(req.tenantId as string, parsed.data);
-    res.status(201).json(item);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao criar item.');
-  }
+  const item = await menuService.createMenuItem(req.tenantId as string, data);
+  res.status(201).json(item);
 }
 
 /**
@@ -78,34 +51,12 @@ export async function createMenuItem(req: AuthenticatedRequest, res: Response): 
  * Update a menu item. Validates name collision with other active items (409).
  */
 export async function updateMenuItem(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    // Validate with Zod
-    const parsed = updateMenuItemRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      const firstError = parsed.error.errors[0];
-      if (firstError?.path?.includes('price') && firstError.code === 'too_small') {
-        res.status(422).json({
-          statusCode: 422,
-          error: 'VALIDATION_ERROR',
-          message: 'Preço deve ser maior que zero',
-        });
-        return;
-      }
-      res.status(422).json({
-        statusCode: 422,
-        error: 'VALIDATION_ERROR',
-        message: firstError?.message || 'Dados inválidos',
-      });
-      return;
-    }
+  const data = parseBody(updateMenuItemRequestSchema, req.body, mapMenuValidationError);
 
-    const item = await menuService.updateMenuItem(req.tenantId as string, id as string, parsed.data);
-    res.status(200).json(item);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao atualizar item.');
-  }
+  const item = await menuService.updateMenuItem(req.tenantId as string, id as string, data);
+  res.status(200).json(item);
 }
 
 /**
@@ -113,17 +64,13 @@ export async function updateMenuItem(req: AuthenticatedRequest, res: Response): 
  * Delete a menu item if it has no associated order items.
  */
 export async function deleteMenuItem(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    await menuService.deleteMenuItem(req.tenantId as string, id as string);
+  await menuService.deleteMenuItem(req.tenantId as string, id as string);
 
-    res.status(200).json({
-      message: 'Item excluído com sucesso',
-    });
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao excluir item.');
-  }
+  res.status(200).json({
+    message: 'Item excluído com sucesso',
+  });
 }
 
 /**
@@ -131,13 +78,9 @@ export async function deleteMenuItem(req: AuthenticatedRequest, res: Response): 
  * Toggle item status between 'ativo' and 'inativo'.
  */
 export async function toggleMenuItemStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    const { id } = req.params;
-    const requestedStatus = req.body.status;
+  const { id } = req.params;
+  const requestedStatus = req.body.status;
 
-    const item = await menuService.toggleMenuItemStatus(req.tenantId as string, id as string, requestedStatus);
-    res.status(200).json(item);
-  } catch (err) {
-    handleServiceError(err, res, 'Erro ao atualizar status.');
-  }
+  const item = await menuService.toggleMenuItemStatus(req.tenantId as string, id as string, requestedStatus);
+  res.status(200).json(item);
 }

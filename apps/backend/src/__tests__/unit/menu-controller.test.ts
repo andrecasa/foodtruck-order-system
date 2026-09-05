@@ -41,6 +41,7 @@ import {
   updateMenuItem,
   toggleMenuItemStatus,
 } from '../../controllers/menu.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body?: any, params?: any, query?: any): Partial<AuthenticatedRequest> {
   return {
@@ -100,7 +101,7 @@ describe('Menu Controller', () => {
       const req = mockRequest();
       const res = mockResponse();
 
-      await getMenu(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(getMenu, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveLength(2);
@@ -121,7 +122,7 @@ describe('Menu Controller', () => {
       const req = mockRequest();
       const res = mockResponse();
 
-      await getMenu(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(getMenu, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body).toEqual([]);
@@ -133,7 +134,7 @@ describe('Menu Controller', () => {
       const req = mockRequest();
       const res = mockResponse();
 
-      await getMenu(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(getMenu, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(500);
       expect(res.body.error).toBe('INTERNAL_ERROR');
@@ -160,7 +161,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'Novo Pastel', price: 800, category: 'Pastéis Salgados' });
       const res = mockResponse();
 
-      await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       expect(res.body.name).toBe('Novo Pastel');
@@ -172,7 +173,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ price: 800, category: 'Pastéis Salgados' });
       const res = mockResponse();
 
-      await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -182,7 +183,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'Item', price: 0, category: 'Pastéis Salgados' });
       const res = mockResponse();
 
-      await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Preço deve ser maior que zero');
@@ -192,7 +193,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'Item', price: -100, category: 'Pastéis Salgados' });
       const res = mockResponse();
 
-      await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Preço deve ser maior que zero');
@@ -205,7 +206,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'Item', price: 500, category: 'Inexistente' });
       const res = mockResponse();
 
-      await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Categoria inválida');
@@ -220,7 +221,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'PASTEL DE CARNE', price: 750, category: 'Pastéis Salgados' });
       const res = mockResponse();
 
-      await createMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body.message).toBe('Item com este nome já existe');
@@ -248,7 +249,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'Pastel Atualizado', price: 900 }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await updateMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.id).toBe('550e8400-e29b-41d4-a716-446655440001');
@@ -262,7 +263,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'New Name' }, { id: '550e8400-e29b-41d4-a716-446655440099' });
       const res = mockResponse();
 
-      await updateMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body.error).toBe('NOT_FOUND');
@@ -277,7 +278,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ name: 'Pastel de Queijo' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await updateMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body.message).toBe('Item com este nome já existe');
@@ -292,7 +293,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ category: 'Inexistente' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await updateMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Categoria inválida');
@@ -316,7 +317,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ price: 500 }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await updateMenuItem(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(updateMenuItem, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.id).toBe('550e8400-e29b-41d4-a716-446655440001');
@@ -347,7 +348,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ status: 'inativo' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await toggleMenuItemStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleMenuItemStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('inativo');
@@ -379,7 +380,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ status: 'ativo' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await toggleMenuItemStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleMenuItemStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('ativo');
@@ -552,7 +553,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ status: 'deleted' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await toggleMenuItemStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleMenuItemStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       // The controller toggles - it doesn't validate. So we get 200 with toggled status.
       expect(res.statusCode).toBe(200);
@@ -582,7 +583,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({}, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await toggleMenuItemStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleMenuItemStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe('inativo');
@@ -594,7 +595,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ status: 'inativo' }, { id: '550e8400-e29b-41d4-a716-446655440099' });
       const res = mockResponse();
 
-      await toggleMenuItemStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleMenuItemStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(404);
       expect(res.body.error).toBe('NOT_FOUND');
@@ -618,7 +619,7 @@ describe('Menu Controller', () => {
       const req = mockRequest({ status: 'ativo' }, { id: '550e8400-e29b-41d4-a716-446655440001' });
       const res = mockResponse();
 
-      await toggleMenuItemStatus(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(toggleMenuItemStatus, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body.message).toBe('Item com este nome já existe');

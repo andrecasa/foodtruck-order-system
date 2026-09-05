@@ -34,6 +34,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { updateOrderItems } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 /**
  * Feature: edit-order, Property 2: Payment Guard
@@ -145,7 +146,7 @@ describe('Property 2: Payment Guard', () => {
           const req = mockRequest({ items }, { id });
           const res = mockResponse();
 
-          await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
           // Property: response is 422 with VALIDATION_ERROR
           expect(res.statusCode).toBe(422);
@@ -197,7 +198,7 @@ describe('Property 2: Payment Guard', () => {
           const req = mockRequest({ items }, { id });
           const res = mockResponse();
 
-          await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
           // Property: no database connection was acquired for transaction
           expect(mockConnect).not.toHaveBeenCalled();

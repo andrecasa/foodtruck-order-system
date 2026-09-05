@@ -22,6 +22,7 @@ vi.mock('../../config/database.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { listCategories } from '../../controllers/category.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(): Partial<AuthenticatedRequest> {
   return {
@@ -91,7 +92,7 @@ describe('Feature: categories-crud, Property 1: Ordering invariant', () => {
         const req = mockRequest();
         const res = mockResponse();
 
-        await listCategories(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(listCategories, req as AuthenticatedRequest, res as unknown as Response);
 
         // Should succeed
         expect(res.statusCode).toBe(200);
@@ -152,7 +153,7 @@ describe('Feature: categories-crud, Property 1: Ordering invariant', () => {
           const req = mockRequest();
           const res = mockResponse();
 
-          await listCategories(req as AuthenticatedRequest, res as unknown as Response);
+          await invokeHandler(listCategories, req as AuthenticatedRequest, res as unknown as Response);
 
           expect(res.statusCode).toBe(200);
 
@@ -195,7 +196,7 @@ describe('Feature: categories-crud, Property 1: Ordering invariant', () => {
         const req = mockRequest();
         const res = mockResponse();
 
-        await listCategories(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(listCategories, req as AuthenticatedRequest, res as unknown as Response);
 
         expect(res.statusCode).toBe(200);
 

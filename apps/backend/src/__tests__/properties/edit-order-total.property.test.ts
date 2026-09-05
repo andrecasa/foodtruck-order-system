@@ -44,6 +44,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { updateOrderItems } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body: any, params: any): Partial<AuthenticatedRequest> {
   return {
@@ -210,7 +211,7 @@ describe('Property 1: Total Calculation Invariant', () => {
         const req = mockRequest({ items: requestItems }, { id: orderId });
         const res = mockResponse();
 
-        await updateOrderItems(req as AuthenticatedRequest, res as unknown as Response);
+        await invokeHandler(updateOrderItems, req as AuthenticatedRequest, res as unknown as Response);
 
         // Assert successful response
         expect(res.statusCode).toBe(200);

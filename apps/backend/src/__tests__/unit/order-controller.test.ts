@@ -37,6 +37,7 @@ vi.mock('date-fns-tz', () => ({
 }));
 
 import { createOrder } from '../../controllers/order.controller.js';
+import { invokeHandler } from '../helpers/invoke-handler.js';
 
 function mockRequest(body?: any): Partial<AuthenticatedRequest> {
   return {
@@ -146,7 +147,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       expect(res.body.id).toBe('order-uuid-1');
@@ -165,7 +166,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       // 750 * 2 + 300 * 1 = 1800
@@ -179,7 +180,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       expect(res.body.items[0].itemName).toBe('Pastel de Carne');
@@ -195,7 +196,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       expect(mockBroadcast).toHaveBeenCalledWith('orders:queue:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'new_order', expect.objectContaining({
@@ -213,7 +214,7 @@ describe('Order Controller - createOrder', () => {
       });
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -227,7 +228,7 @@ describe('Order Controller - createOrder', () => {
       });
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -240,7 +241,7 @@ describe('Order Controller - createOrder', () => {
       });
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.error).toBe('VALIDATION_ERROR');
@@ -256,7 +257,7 @@ describe('Order Controller - createOrder', () => {
       });
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Origem inválida');
@@ -273,7 +274,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Item não encontrado ou inativo');
@@ -290,7 +291,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(422);
       expect(res.body.message).toBe('Item não encontrado ou inativo');
@@ -316,7 +317,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(409);
       expect(res.body.message).toBe('Conflito de numeração, tente novamente');
@@ -371,7 +372,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(singleItemBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(201);
       // Verify the total passed to the ORDER INSERT query. Via the
@@ -400,7 +401,7 @@ describe('Order Controller - createOrder', () => {
       const req = mockRequest(validOrderBody);
       const res = mockResponse();
 
-      await createOrder(req as AuthenticatedRequest, res as unknown as Response);
+      await invokeHandler(createOrder, req as AuthenticatedRequest, res as unknown as Response);
 
       expect(res.statusCode).toBe(500);
       expect(res.body.error).toBe('INTERNAL_ERROR');

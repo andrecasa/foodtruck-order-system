@@ -318,7 +318,13 @@ describe('Public Order Status Controller', () => {
     await publicOrderStatusController(req as PublicTenantRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(404);
-    expect(res.body).toEqual({ error: 'ORDER_NOT_FOUND' });
+    // Envelope padrão; o código PÚBLICO ORDER_NOT_FOUND é preservado (tradução
+    // do NOT_FOUND interno) e a mensagem é voltada ao cliente.
+    expect(res.body).toEqual({
+      statusCode: 404,
+      error: 'ORDER_NOT_FOUND',
+      message: 'Pedido não encontrado.',
+    });
   });
 
   it('returns 500 for an unexpected (non-404) error', async () => {
@@ -444,7 +450,11 @@ describe('Public Create-Order Controller', () => {
     await publicCreateOrderController(req as PublicTenantRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(422);
-    expect(res.body).toEqual({ error: 'TENANT_UNAVAILABLE' });
+    expect(res.body).toEqual({
+      statusCode: 422,
+      error: 'TENANT_UNAVAILABLE',
+      message: 'Estabelecimento indisponível no momento.',
+    });
     expect(orderService.createOrder).not.toHaveBeenCalled();
   });
 });
@@ -546,7 +556,11 @@ describe('Public Orders Batch Controller', () => {
     await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(400);
-    expect(res.body).toEqual({ error: 'INVALID_REQUEST' });
+    expect(res.body).toEqual({
+      statusCode: 400,
+      error: 'INVALID_REQUEST',
+      message: 'Nenhum pedido informado.',
+    });
     expect(orderService.getOrdersByIds).not.toHaveBeenCalled();
   });
 
@@ -557,7 +571,11 @@ describe('Public Orders Batch Controller', () => {
     await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(400);
-    expect(res.body).toEqual({ error: 'INVALID_REQUEST' });
+    expect(res.body).toEqual({
+      statusCode: 400,
+      error: 'INVALID_REQUEST',
+      message: 'Identificadores de pedido inválidos.',
+    });
     expect(orderService.getOrdersByIds).not.toHaveBeenCalled();
   });
 
@@ -572,7 +590,11 @@ describe('Public Orders Batch Controller', () => {
     await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(400);
-    expect(res.body).toEqual({ error: 'TOO_MANY_IDS' });
+    expect(res.body).toEqual({
+      statusCode: 400,
+      error: 'TOO_MANY_IDS',
+      message: 'Muitos pedidos informados de uma só vez.',
+    });
     expect(orderService.getOrdersByIds).not.toHaveBeenCalled();
   });
 
@@ -585,6 +607,10 @@ describe('Public Orders Batch Controller', () => {
     await publicOrdersBatchController(req as PublicTenantRequest, res as unknown as Response);
 
     expect(res.statusCode).toBe(500);
-    expect(res.body).toEqual({ error: 'INTERNAL_ERROR' });
+    expect(res.body).toEqual({
+      statusCode: 500,
+      error: 'INTERNAL_ERROR',
+      message: 'Erro ao consultar os pedidos.',
+    });
   });
 });

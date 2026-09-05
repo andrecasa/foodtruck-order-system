@@ -132,7 +132,7 @@ A stack é TypeScript no backend (Express/ESM, imports com sufixo `.js`), confor
   - Confirmar que a suíte existente da feature forgot-password continua passando (não regressão — R9), sem alterar o comportamento observável de `NoopEmailProvider`/`LoggingEmailProvider`/`RetryingEmailService`
   - Ensure all tests pass, ask the user if questions arise.
 
-- [~] 11. (MANUAL / OPCIONAL — NÃO EXECUTAR COMO CÓDIGO) Validação de entrega real (R7)
+- [x] 11. (MANUAL / OPCIONAL — NÃO EXECUTAR COMO CÓDIGO) Validação de entrega real (R7)
   - Passo de validação MANUAL, fora da suíte automatizada e NÃO implementável por um agente de código (depende de credenciais e de um servidor SMTP externo real)
   - Definir `EMAIL_PROVIDER=smtp` e as variáveis `SMTP_*` apontando para um provedor real (ex.: Gmail com Senha de App) no `.env` local
   - Disparar um fluxo de forgot-password e confirmar o recebimento do código na caixa de entrada, sem alteração de código

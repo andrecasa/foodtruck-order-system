@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import { EditOrderItemsScreen } from '../../screens/EditOrderItemsScreen';
 import type { Order, MenuItem } from '@order-system/shared';
 

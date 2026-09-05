@@ -1,23 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Response } from 'express';
+import { type Response } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
-
-// Mock supabaseAdmin
-function createChain() {
-  const chain: any = {
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn().mockReturnThis(),
-    ilike: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
-    order: vi.fn().mockResolvedValue({ data: [], error: null }),
-  };
-  return chain;
-}
-
-let mockChain: ReturnType<typeof createChain>;
 
 vi.mock('../../config/supabase.js', () => ({
   supabase: { auth: { getUser: vi.fn() } },
@@ -34,7 +17,6 @@ vi.mock('../../config/database.js', () => ({
   },
 }));
 
-import { supabaseAdmin } from '../../config/supabase.js';
 import {
   getMenu,
   createMenuItem,
@@ -73,7 +55,6 @@ function mockResponse(): Partial<Response> & { statusCode: number; body: any } {
 describe('Menu Controller', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockChain = createChain();
   });
 
   describe('GET /api/menu (getMenu)', () => {

@@ -14,11 +14,13 @@ export interface ConnectionBannerProps {
  * announce the connection loss immediately.
  */
 export function ConnectionBanner({ status }: ConnectionBannerProps) {
+  // Hooks devem ser chamados incondicionalmente, antes de qualquer retorno
+  // antecipado, para manter a mesma ordem em todo render (rules-of-hooks).
+  const theme = useTheme();
+
   if (status === 'connected') {
     return null;
   }
-
-  const theme = useTheme();
 
   const bannerStyle: React.CSSProperties = {
     position: 'fixed',

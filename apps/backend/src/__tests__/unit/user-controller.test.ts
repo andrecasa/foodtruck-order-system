@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Response } from 'express';
+import { type Response } from 'express';
 import type { AdminRequest } from '../../middleware/role.middleware.js';
 
 // Mock the user service module. Reexporta a ServiceError REAL (centralizada em

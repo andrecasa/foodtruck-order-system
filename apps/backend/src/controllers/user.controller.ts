@@ -1,5 +1,5 @@
-import { Response } from 'express';
-import { ZodError } from 'zod';
+import { type Response } from 'express';
+import { type ZodError } from 'zod';
 import type { AdminRequest } from '../middleware/role.middleware.js';
 import type { TenantContext } from '../middleware/tenant.middleware.js';
 import {

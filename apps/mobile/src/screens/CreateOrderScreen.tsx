@@ -2,8 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text as RNText,
-  TextInput,
-  TouchableOpacity,
+  type TextInput,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
@@ -262,34 +261,6 @@ export function CreateOrderScreen() {
     color: theme.colors.text,
     marginBottom: 20,
   };
-
-  const originSelectorStyle: ViewStyle = {
-    flexDirection: 'row',
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    overflow: 'hidden',
-    alignItems: 'center',
-    padding: 2,
-  };
-
-  const originTabStyle = (selected: boolean): ViewStyle => ({
-    flex: 1,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: selected ? theme.colors.primary : 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  });
-
-  const originTabTextStyle = (selected: boolean): TextStyle => ({
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 13,
-    fontWeight: '400',
-    color: selected ? theme.colors.surface : theme.colors.textSecondary,
-  });
 
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,

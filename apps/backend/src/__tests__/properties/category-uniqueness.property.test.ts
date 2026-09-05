@@ -62,20 +62,6 @@ function validCategoryNameArb(): fc.Arbitrary<string> {
     .filter((s) => s.trim().length > 0 && s.trim().length <= 100);
 }
 
-/**
- * Generator: produces a case variant of a given string by randomly toggling characters.
- */
-function caseVariantArb(base: string): fc.Arbitrary<string> {
-  if (base.length === 0) return fc.constant(base);
-  return fc.array(fc.boolean(), { minLength: base.length, maxLength: base.length }).map(
-    (toggles) =>
-      base
-        .split('')
-        .map((ch, i) => (toggles[i] ? ch.toUpperCase() : ch.toLowerCase()))
-        .join('')
-  );
-}
-
 describe('Feature: categories-crud, Property 3: Name uniqueness', () => {
   beforeEach(() => {
     vi.clearAllMocks();

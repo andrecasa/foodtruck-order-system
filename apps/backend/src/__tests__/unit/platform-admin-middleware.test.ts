@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Response } from 'express';
+import { type Response } from 'express';
 
 /**
  * Unit tests for the platform admin authorization middleware (Platform_Admin).
@@ -22,7 +22,7 @@ vi.mock('../../config/database.js', () => ({
 import { pool } from '../../config/database.js';
 import {
   platformAdminMiddleware,
-  PlatformAdminRequest,
+  type PlatformAdminRequest,
 } from '../../middleware/platform-admin.middleware.js';
 
 const ADMIN_ID = '99999999-9999-9999-9999-999999999999';

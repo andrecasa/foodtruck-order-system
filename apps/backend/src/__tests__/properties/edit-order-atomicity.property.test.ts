@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
-import { Response } from 'express';
+import { type Response } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 // Mock supabaseAdmin
@@ -110,11 +110,6 @@ describe('Property 5: Transaction Atomicity on Failure', () => {
     });
 
   // The failure point index within the transaction:
-  // 0 = DELETE old items (after BEGIN), 1..N-1 = INSERT items, N = UPDATE total
-  // We use this to decide which step after BEGIN will throw
-  const failureStepArb = (maxSteps: number) =>
-    fc.integer({ min: 0, max: maxSteps });
-
   it('ROLLBACK is called and 500 is returned when DB error occurs at any point during the transaction', async () => {
     await fc.assert(
       fc.asyncProperty(orderItemsArb, async (items) => {

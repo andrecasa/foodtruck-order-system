@@ -22,7 +22,7 @@
  * TenantRepository.
  */
 
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 import { pool } from '../config/database.js';
 import { handleIncomingMessage } from './whatsapp.service.js';
 

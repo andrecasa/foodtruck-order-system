@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Response } from 'express';
+import { type Response } from 'express';
 
 /**
  * Unit tests for the tenant resolution middleware (Tenant_Resolution_Middleware).
@@ -20,7 +20,7 @@ vi.mock('../../config/database.js', () => ({
 import { pool } from '../../config/database.js';
 import {
   tenantMiddleware,
-  AuthenticatedRequest,
+  type AuthenticatedRequest,
 } from '../../middleware/tenant.middleware.js';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';

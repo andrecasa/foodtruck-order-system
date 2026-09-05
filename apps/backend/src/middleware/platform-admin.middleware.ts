@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { type Response, type NextFunction } from 'express';
 import { pool } from '../config/database.js';
 import type { AuthenticatedRequest as BaseAuthenticatedRequest } from './auth.middleware.js';
 

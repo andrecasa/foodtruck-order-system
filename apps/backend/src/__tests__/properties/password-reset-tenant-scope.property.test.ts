@@ -57,8 +57,6 @@ let store: Store;
 let codeIdCounter = 0;
 let nowMs = 0;
 
-const MAX_ATTEMPTS = 5;
-
 function param(params: unknown[], n: number): unknown {
   return params[n - 1];
 }

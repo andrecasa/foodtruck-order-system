@@ -13,7 +13,7 @@ import {
   logPlatformAction,
   setPlatformAuditSink,
   resetPlatformAuditSink,
-  PlatformAuditEntry,
+  type PlatformAuditEntry,
 } from '../../services/platform-audit.service.js';
 
 describe('Platform Audit Service - logPlatformAction', () => {

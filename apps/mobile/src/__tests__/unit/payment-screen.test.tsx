@@ -31,8 +31,6 @@ jest.mock('../../components/DrawerMenu', () => ({
   DrawerMenu: () => null,
 }));
 
-import { mockTheme } from '../helpers/mockTheme';
-
 jest.mock('../../theme', () => ({
   ...require('../helpers/mockTheme').themeMocks,
   deepMergeTheme: (base: any) => base,

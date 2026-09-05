@@ -2,6 +2,7 @@
   "name": "order-system",
   "version": "0.4.0",
   "private": true,
+  "type": "module",
   "description": "Sistema de pedidos para food truck",
   "scripts": {
     "dev:backend": "pnpm --filter @order-system/backend dev",
@@ -17,5 +18,12 @@
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.15.4"
+  "packageManager": "pnpm@9.15.4",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript-eslint": "^8"
+  }
 }

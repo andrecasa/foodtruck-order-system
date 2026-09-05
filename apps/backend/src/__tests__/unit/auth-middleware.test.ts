@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { authMiddleware, AuthenticatedRequest } from '../../middleware/auth.middleware.js';
-import { Request, Response } from 'express';
+import { authMiddleware, type AuthenticatedRequest } from '../../middleware/auth.middleware.js';
+import { type Response } from 'express';
 
 // Mock the supabase module
 vi.mock('../../config/supabase.js', () => ({

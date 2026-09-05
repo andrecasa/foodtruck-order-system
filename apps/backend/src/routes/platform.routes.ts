@@ -1,8 +1,8 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import {
   platformAdminMiddleware,
-  PlatformAdminRequest,
+  type PlatformAdminRequest,
 } from '../middleware/platform-admin.middleware.js';
 import { logPlatformAction } from '../services/platform-audit.service.js';
 import { createTenant } from '../controllers/platform-tenant.controller.js';

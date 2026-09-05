@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Animated,
-  Dimensions,
   PanResponder,
   TouchableWithoutFeedback,
   View,
@@ -23,7 +22,6 @@ export interface CalendarModalProps {
   onClose: () => void;
 }
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SHEET_HEIGHT = 480;
 const DISMISS_THRESHOLD = 120;
 

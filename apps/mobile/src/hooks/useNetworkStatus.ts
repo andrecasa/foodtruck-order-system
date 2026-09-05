@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import * as Network from 'expo-network';
 import { AppState, type AppStateStatus } from 'react-native';
 
@@ -9,7 +9,7 @@ import { AppState, type AppStateStatus } from 'react-native';
  */
 
 let isOfflineState = false;
-let listeners = new Set<() => void>();
+const listeners = new Set<() => void>();
 let initialized = false;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;

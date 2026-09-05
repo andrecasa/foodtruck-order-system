@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Response } from 'express';
+import { type Response } from 'express';
 
 /**
  * Unit tests for the public tenant resolution middleware (customer-ordering).
@@ -21,7 +21,7 @@ vi.mock('../../config/database.js', () => ({
 import { pool } from '../../config/database.js';
 import {
   publicTenantMiddleware,
-  PublicTenantRequest,
+  type PublicTenantRequest,
 } from '../../middleware/public-tenant.middleware.js';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';

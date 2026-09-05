@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, KeyboardAvoidingView, Keyboard, Platform, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Keyboard, Platform, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { Header } from './Layout';

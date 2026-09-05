@@ -26,10 +26,6 @@ const SMTP_CONFIG_ERROR = 'SMTP_CONFIG_ERROR';
  * vazias que contêm ao menos um caractere não-espaço (para não colidirem com o
  * caso de valor ausente/vazio/só-espaços que estamos testando).
  */
-const presentValueArb = fc
-  .string({ minLength: 1, maxLength: 40 })
-  .filter((s) => s.trim() !== '');
-
 /**
  * Gera valores "ausentes/vazios/só-espaços" para uma variável obrigatória:
  * - `undefined` (variável ausente do ambiente)

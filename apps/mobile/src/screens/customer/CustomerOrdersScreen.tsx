@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, ScrollView, View, Text as RNText, type ImageS
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme';
-import { Button, Text } from '../../components';
+import { Button } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { CustomerOrderCard } from '../../components/customer/CustomerOrderCard';
@@ -58,14 +58,6 @@ export function CustomerOrdersScreen({ slug }: CustomerOrdersScreenProps) {
 
   const contentStyle: ViewStyle = {
     padding: theme.spacing.md,
-    gap: theme.spacing.md,
-  };
-
-  const centeredStyle: ViewStyle = {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.xl,
     gap: theme.spacing.md,
   };
 

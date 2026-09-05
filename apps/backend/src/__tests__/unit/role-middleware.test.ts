@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Response, NextFunction } from 'express';
+import { type Response } from 'express';
 
 // Mock the database module
 const mockQuery = vi.fn();
@@ -10,7 +10,7 @@ vi.mock('../../config/database.js', () => ({
   },
 }));
 
-import { adminMiddleware, AdminRequest } from '../../middleware/role.middleware.js';
+import { adminMiddleware, type AdminRequest } from '../../middleware/role.middleware.js';
 
 function mockRequest(user?: { id: string; email: string }): Partial<AdminRequest> {
   return {

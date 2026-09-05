@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, View, type ViewStyle } from 'react-native';
+import { ScrollView, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen, Header, Button, HomeHero } from '../components';
 import { useTheme } from '../theme';

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, TouchableOpacity, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, type TextInput, TouchableOpacity, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Screen, Input } from '../components';

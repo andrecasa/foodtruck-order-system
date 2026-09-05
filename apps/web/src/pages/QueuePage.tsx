@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useTheme } from '../theme';
-import { Screen, Header, ScrollContainer, Card, Text, FilterChips } from '../components';
+import { Screen, Header, ScrollContainer, Card, FilterChips } from '../components';
 import type { FilterChipOption } from '../components';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { OfflineIllustration } from '../components/OfflineIllustration';
@@ -293,7 +293,7 @@ export function QueuePage() {
       const fetched = await apiClient.getOrders({ status: selectedFilters as OrderStatus[] });
       setOrders(fetched);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Não foi possível carregar os pedidos. Verifique sua conexão.');
     } finally {
       setLoading(false);
@@ -612,13 +612,6 @@ export function QueuePage() {
     fontFamily,
     fontSize: `${theme.typography.sizes.lg}px`,
     color: theme.colors.text,
-  };
-
-  const emptyStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '50vh',
   };
 
   const staleNoteStyle: React.CSSProperties = {

@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { type Response } from 'express';
 import { createOrderRequestSchema, updateOrderStatusRequestSchema, registerPaymentRequestSchema, updateOrderItemsRequestSchema } from '@order-system/shared';
 import type { OrderStatus } from '@order-system/shared';
 import type { ZodError } from 'zod';

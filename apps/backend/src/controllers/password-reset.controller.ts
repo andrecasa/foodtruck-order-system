@@ -20,7 +20,7 @@
  * propagar ao middleware. As rotas envolvem estes handlers em asyncHandler.
  */
 
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 import {
   forgotPasswordSchema,
   resetPasswordSchema,

@@ -16,11 +16,19 @@ const THEME_CACHE_KEY = '@order-system/tenant-theme';
  * Simple storage adapter that works on both web and native.
  * On native, falls back to a simple in-memory store if persistent storage is unavailable.
  */
+/** Subconjunto mínimo do `localStorage` do browser usado por este módulo. */
+interface WebStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
 const storage = (() => {
-  if (Platform.OS === 'web' && typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
-    const ls = (globalThis as any).localStorage;
+  const globalWithStorage = globalThis as unknown as { localStorage?: WebStorage };
+  if (Platform.OS === 'web' && typeof globalThis !== 'undefined' && globalWithStorage.localStorage) {
+    const ls = globalWithStorage.localStorage;
     return {
-      getItem: (key: string): Promise<string | null> => Promise.resolve(ls.getItem(key) as string | null),
+      getItem: (key: string): Promise<string | null> => Promise.resolve(ls.getItem(key)),
       setItem: (key: string, value: string): Promise<void> => {
         ls.setItem(key, value);
         return Promise.resolve();

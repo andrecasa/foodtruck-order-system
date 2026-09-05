@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
-import type { Order, OrderStatus, OrderOrigin } from '@order-system/shared';
+import type { OrderStatus, OrderOrigin } from '@order-system/shared';
 
 /**
  * Feature: food-truck-order-system, Property 10: Card contém número, nome, origem, itens, status

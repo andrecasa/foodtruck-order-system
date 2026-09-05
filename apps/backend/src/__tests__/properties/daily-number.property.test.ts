@@ -105,7 +105,7 @@ describe('Property 19: Numeração sequencial sem lacunas/duplicatas', () => {
       fc.property(
         fc.integer({ min: 1, max: 20 }),
         dateArb,
-        dateArb.filter((d) => true), // second date (will be made different below)
+        dateArb, // second date (will be made different below)
         (ordersDay1, date1, date2Raw) => {
           // Ensure dates are different
           const date2 = date1 === date2Raw
@@ -145,7 +145,7 @@ describe('Property 19: Numeração sequencial sem lacunas/duplicatas', () => {
         }
 
         // Property: for each day, numbers form a gap-free sequence [1..N]
-        for (const [date, numbers] of numbersByDate.entries()) {
+        for (const [, numbers] of numbersByDate.entries()) {
           const expected = Array.from({ length: numbers.length }, (_, i) => i + 1);
           expect(numbers).toEqual(expected);
 

@@ -21,7 +21,7 @@ vi.mock('../../config/supabase.js', () => ({
 
 import { pool } from '../../config/database.js';
 import { supabaseAdmin } from '../../config/supabase.js';
-import { deactivateUser, activateUser, ServiceError } from '../../services/user.service.js';
+import { deactivateUser, activateUser } from '../../services/user.service.js';
 import { adminMiddleware } from '../../middleware/role.middleware.js';
 
 /**

@@ -77,9 +77,6 @@ const validNameArb = fc
   .map((chars) => chars.join(''))
   .filter((s) => s.trim().length >= 1 && s.trim().length <= 100);
 
-// Combined generator for all invalid names
-const invalidNameArb = fc.oneof(emptyStringArb, whitespaceOnlyArb, tooLongAfterTrimArb);
-
 describe('Feature: categories-crud, Property 2: Name validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();

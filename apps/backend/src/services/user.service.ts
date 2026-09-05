@@ -115,7 +115,7 @@ export async function createUser(tenantId: string, input: CreateUserInput): Prom
     });
 
     return mapToUserRecord(row);
-  } catch (dbError) {
+  } catch {
     // 4. Rollback: remove from Supabase Auth if local DB insert fails.
     await supabaseAdmin.auth.admin.deleteUser(authUserId);
     throw new ServiceError(
@@ -194,7 +194,7 @@ export async function updateUser(
   tenantId: string,
   id: string,
   input: UpdateUserInput,
-  requesterId: string,
+  _requesterId: string,
 ): Promise<UserRecord> {
   const repo = tenantRepository(tenantId);
 

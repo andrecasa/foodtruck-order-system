@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { type Response } from 'express';
 import type { PlatformAdminRequest } from '../middleware/platform-admin.middleware.js';
 import {
   provisionTenant,

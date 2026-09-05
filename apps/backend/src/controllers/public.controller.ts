@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { type Response } from 'express';
 import { publicCreateOrderSchema } from '@order-system/shared';
 import type { ThemeConfig } from '@order-system/shared';
 import { pool } from '../config/database.js';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { CategoriesListScreen } from '../../screens/CategoriesListScreen';
 import type { Category } from '@order-system/shared';
@@ -51,8 +51,6 @@ jest.mock('../../components/DrawerMenu', () => ({
 jest.mock('../../hooks/useNetworkStatus', () => ({
   useNetworkStatus: () => ({ isOffline: false }),
 }));
-
-import { mockTheme } from '../helpers/mockTheme';
 
 jest.mock('../../theme', () => ({
   ...require('../helpers/mockTheme').themeMocks,

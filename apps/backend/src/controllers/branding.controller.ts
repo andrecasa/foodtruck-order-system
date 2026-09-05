@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { type Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/tenant.middleware.js';
 import * as brandingService from '../services/branding.service.js';
 import { logError } from '../http/log-error.js';

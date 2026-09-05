@@ -7,7 +7,7 @@ import {
   rateLimitMiddleware,
 } from '../../middleware/rate-limit.middleware.js';
 import { RATE_LIMIT_MAX_ATTEMPTS, RATE_LIMIT_WINDOW_MS } from '@order-system/shared';
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 
 function mockRequest(ip = '127.0.0.1'): Partial<Request> {
   return {

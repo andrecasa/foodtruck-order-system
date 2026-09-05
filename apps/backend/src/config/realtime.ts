@@ -1,4 +1,4 @@
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { type RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase.js';
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Response } from 'express';
+import { type Response } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/tenant.middleware.js';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';

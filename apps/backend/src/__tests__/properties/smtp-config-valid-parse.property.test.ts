@@ -24,11 +24,6 @@ const requiredValueArb = fc
   .string({ minLength: 1, maxLength: 40 })
   .filter((s) => s.trim() !== '');
 
-// Porta válida: inteiro em 1..65535 representado como string decimal.
-const validPortArb = fc
-  .integer({ min: MIN_PORT, max: MAX_PORT })
-  .map((n) => String(n));
-
 // SMTP_SECURE: mapeia o valor bruto ao booleano esperado.
 // ausente / '' / 'false' / '0' → false ; 'true' / '1' → true (case-insensitive).
 const secureCaseArb = fc.oneof(

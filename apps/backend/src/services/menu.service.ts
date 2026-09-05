@@ -67,27 +67,27 @@ export async function getMenu(tenantId: string, showAll: boolean): Promise<MenuG
        WHERE mi.tenant_id = $1 AND mi.status = 'ativo' AND c.status = 'ativo'
        ORDER BY c.sort_order ASC, mi.name ASC`;
 
-  const rows = await repo.raw<Record<string, any>>(query, [tenantId]);
+  const rows = await repo.raw<Record<string, unknown>>(query, [tenantId]);
 
   // Group by category
   const grouped: Record<string, { category: string; sortOrder: number; items: MenuItemRecord[] }> = {};
 
   for (const row of rows) {
-    const categoryName = row.category_name || 'Sem categoria';
-    const sortOrder = row.category_sort_order ?? 999;
+    const categoryName = (row.category_name as string | null) || 'Sem categoria';
+    const sortOrder = (row.category_sort_order as number | null) ?? 999;
 
     if (!grouped[categoryName]) {
       grouped[categoryName] = { category: categoryName, sortOrder, items: [] };
     }
 
     grouped[categoryName].items.push({
-      id: row.id,
-      name: row.name,
-      price: row.price_cents,
+      id: row.id as string,
+      name: row.name as string,
+      price: row.price_cents as number,
       category: categoryName,
-      status: row.status,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      status: row.status as string,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string,
     });
   }
 

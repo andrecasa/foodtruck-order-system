@@ -55,10 +55,13 @@ describe('EditMenuItemScreen', () => {
     ]);
   });
 
-  it('renders form pre-filled with item data', () => {
+  it('renders form pre-filled with item data', async () => {
     const { getByTestId } = render(
       <EditMenuItemScreen id="item-1" name="Pastel de Carne" price={800} category="Pastéis" />,
     );
+
+    // Wait for the async categories load + setState to settle inside act()
+    await waitFor(() => expect(mockGetCategories).toHaveBeenCalled());
 
     const nameInput = getByTestId('input-item-name');
     expect(nameInput.props.value).toBe('Pastel de Carne');
@@ -74,6 +77,9 @@ describe('EditMenuItemScreen', () => {
     const { getByTestId } = render(
       <EditMenuItemScreen id="item-1" name="Pastel de Carne" price={800} category="Pastéis" />,
     );
+
+    // Wait for the initial async categories load to settle before interacting
+    await waitFor(() => expect(mockGetCategories).toHaveBeenCalled());
 
     // Change the name
     fireEvent.changeText(getByTestId('input-item-name'), 'Pastel de Frango');

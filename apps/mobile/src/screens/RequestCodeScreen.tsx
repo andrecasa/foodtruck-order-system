@@ -1,10 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, type ViewStyle, type TextStyle } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
+import { CustomerHeader } from '../components/customer/CustomerHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { apiClient } from '../services/api-client';
+import { validateEmail, MAX_EMAIL_LENGTH } from '../services/email-validation';
 
 /**
  * Tela de solicitação de código de verificação (fluxo "Esqueceu sua senha?").
@@ -33,6 +36,15 @@ export function RequestCodeScreen() {
       emailRef.current?.focus();
       return false;
     }
+
+    // Light client-side format check; the backend remains authoritative.
+    const result = validateEmail(email);
+    if (!result.valid) {
+      setEmailError(result.error ?? 'Formato de e-mail inválido');
+      emailRef.current?.focus();
+      return false;
+    }
+
     setEmailError('');
     return true;
   }
@@ -130,8 +142,21 @@ export function RequestCodeScreen() {
     textAlign: 'center',
   };
 
+  const versionTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  };
+
+  // App version, read from the Expo config (app.json → expo.version) so it
+  // stays in sync with the release without a hardcoded string.
+  const appVersion = Constants.expoConfig?.version ?? '';
+
   return (
     <Screen padding={false}>
+      <CustomerHeader title="Esqueceu sua senha?" onBack={() => router.back()} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -143,8 +168,14 @@ export function RequestCodeScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={headerStyle}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={{ width: 150, height: 150, borderRadius: 12 } as ImageStyle}
+              accessibilityLabel={`Logo ${theme.businessName}`}
+              resizeMode="contain"
+            />
             <RNText style={titleStyle}>
-              Esqueceu sua senha?
+              {theme.businessName}
             </RNText>
             <RNText style={subtitleStyle}>
               Informe seu e-mail e enviaremos um código de verificação para redefinir a senha.
@@ -171,9 +202,10 @@ export function RequestCodeScreen() {
             <Input
               accessibilityLabel="E-mail"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => setEmail(text.slice(0, MAX_EMAIL_LENGTH))}
               placeholder="seu@email.com"
               keyboardType="email-address"
+              maxLength={MAX_EMAIL_LENGTH}
               autoCapitalize="none"
               icon="mail"
               error={emailError}
@@ -192,6 +224,13 @@ export function RequestCodeScreen() {
               testID="request-code-submit-button"
             />
           </View>
+
+          {/* App version — below the card, uses theme colors */}
+          {appVersion ? (
+            <RNText style={versionTextStyle} testID="request-code-app-version">
+              version {appVersion}
+            </RNText>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

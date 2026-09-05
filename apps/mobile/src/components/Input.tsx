@@ -38,6 +38,8 @@ export interface InputProps {
   secureTextEntry?: boolean;
   /** Auto-capitalization behavior */
   autoCapitalize?: TextInputProps['autoCapitalize'];
+  /** Maximum number of characters allowed in the input (forwarded to TextInput). */
+  maxLength?: number;
   /** Optional leading icon name (Material Symbols Outlined) */
   icon?: string;
   /** Optional icon color override (defaults to textSecondary #8B6B5A) */
@@ -110,6 +112,7 @@ export function Input({
   keyboardType,
   secureTextEntry,
   autoCapitalize,
+  maxLength,
   icon,
   iconColor,
   backgroundColor,
@@ -226,6 +229,7 @@ export function Input({
           keyboardType={resolvedKeyboardType}
           secureTextEntry={showPasswordToggle ? !passwordVisible : secureTextEntry}
           autoCapitalize={autoCapitalize}
+          maxLength={maxLength}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           accessibilityLabel={accessibilityLabel ?? label}

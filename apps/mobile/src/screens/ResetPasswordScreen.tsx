@@ -1,8 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, type ViewStyle, type TextStyle } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Text as RNText, TextInput, Image, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import Constants from 'expo-constants';
 import { Screen, Input } from '../components';
 import { Button } from '../components/Button';
+import { CustomerHeader } from '../components/customer/CustomerHeader';
 import { useTheme } from '../theme/ThemeProvider';
 import { apiClient } from '../services/api-client';
 import { validateNewPassword } from '../services/password-reset-validation';
@@ -163,8 +165,21 @@ export function ResetPasswordScreen() {
     textAlign: 'center',
   };
 
+  const versionTextStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    fontWeight: '400',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  };
+
+  // App version, read from the Expo config (app.json → expo.version) so it
+  // stays in sync with the release without a hardcoded string.
+  const appVersion = Constants.expoConfig?.version ?? '';
+
   return (
     <Screen padding={false}>
+      <CustomerHeader title="Redefinir senha" onBack={() => router.back()} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -176,8 +191,14 @@ export function ResetPasswordScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={headerStyle}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={{ width: 150, height: 150, borderRadius: 12 } as ImageStyle}
+              accessibilityLabel={`Logo ${theme.businessName}`}
+              resizeMode="contain"
+            />
             <RNText style={titleStyle}>
-              Redefinir senha
+              {theme.businessName}
             </RNText>
             <RNText style={subtitleStyle}>
               Informe o código enviado para o seu e-mail e escolha uma nova senha.
@@ -204,9 +225,10 @@ export function ResetPasswordScreen() {
             <Input
               accessibilityLabel="Código de verificação"
               value={code}
-              onChangeText={setCode}
+              onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
               placeholder="000000"
               keyboardType="number-pad"
+              maxLength={6}
               autoCapitalize="none"
               icon="pin"
               error={codeError}
@@ -249,6 +271,13 @@ export function ResetPasswordScreen() {
               testID="reset-password-submit-button"
             />
           </View>
+
+          {/* App version — below the card, uses theme colors */}
+          {appVersion ? (
+            <RNText style={versionTextStyle} testID="reset-password-app-version">
+              version {appVersion}
+            </RNText>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

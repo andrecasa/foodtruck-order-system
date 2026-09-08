@@ -221,7 +221,7 @@ export async function publicCreateOrderController(
     return;
   }
 
-  const { customerName, items } = parsed.data;
+  const { customerName, items, latitude, longitude } = parsed.data;
 
   try {
     // 2. The order needs an owner. Use the tenant's oldest active admin.
@@ -245,6 +245,9 @@ export async function publicCreateOrderController(
       origin: 'web',
       items,
       createdBy: admin.id,
+      // Coordenadas opcionais do cliente (podem faltar se a permissão foi negada).
+      latitude,
+      longitude,
     });
 
     // 4. Return the full public order shape (PublicOrderResponse) so the

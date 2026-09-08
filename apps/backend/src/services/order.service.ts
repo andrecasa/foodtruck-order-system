@@ -34,6 +34,10 @@ export interface CreateOrderInput {
   origin: string;
   items: OrderItemInput[];
   createdBy: string;
+  /** Latitude opcional capturada no cliente ao confirmar o pedido. */
+  latitude?: number;
+  /** Longitude opcional capturada no cliente ao confirmar o pedido. */
+  longitude?: number;
 }
 
 export interface OrderItemRecord {
@@ -59,6 +63,8 @@ export interface OrderRecord {
   readyAt: string | null;
   deliveredAt: string | null;
   paidAt: string | null;
+  latitude: number | null;
+  longitude: number | null;
   items?: OrderItemRecord[];
 }
 
@@ -94,7 +100,7 @@ export async function getOrders(tenantId: string, statuses: string[], date?: str
     ordersRows = await repo.raw<Record<string, unknown>>(
       `SELECT o.id, o.daily_number, o.customer_name, o.origin, o.status, o.payment_status,
               o.payment_method, o.total_amount_cents, o.order_date, o.created_at,
-              o.started_at, o.ready_at, o.delivered_at, o.paid_at
+              o.started_at, o.ready_at, o.delivered_at, o.paid_at, o.latitude, o.longitude
        FROM orders o
        WHERE o.tenant_id = $1 AND o.order_date = $2 AND o.status = ANY($3::text[])
        ORDER BY o.created_at ASC`,
@@ -104,7 +110,7 @@ export async function getOrders(tenantId: string, statuses: string[], date?: str
     ordersRows = await repo.raw<Record<string, unknown>>(
       `SELECT o.id, o.daily_number, o.customer_name, o.origin, o.status, o.payment_status,
               o.payment_method, o.total_amount_cents, o.order_date, o.created_at,
-              o.started_at, o.ready_at, o.delivered_at, o.paid_at
+              o.started_at, o.ready_at, o.delivered_at, o.paid_at, o.latitude, o.longitude
        FROM orders o
        WHERE o.tenant_id = $1 AND o.order_date = $2
        ORDER BY o.created_at ASC`,
@@ -150,6 +156,8 @@ export async function getOrders(tenantId: string, statuses: string[], date?: str
     readyAt: o.ready_at as string | null,
     deliveredAt: o.delivered_at as string | null,
     paidAt: o.paid_at as string | null,
+    latitude: (o.latitude as number | null) ?? null,
+    longitude: (o.longitude as number | null) ?? null,
     items: itemsMap[o.id as string] || [],
   }));
 }
@@ -170,7 +178,7 @@ export async function getOrdersByIds(tenantId: string, orderIds: string[]): Prom
   const ordersRows = await repo.raw<Record<string, unknown>>(
     `SELECT o.id, o.daily_number, o.customer_name, o.origin, o.status, o.payment_status,
             o.payment_method, o.total_amount_cents, o.order_date, o.created_at,
-            o.started_at, o.ready_at, o.delivered_at, o.paid_at
+            o.started_at, o.ready_at, o.delivered_at, o.paid_at, o.latitude, o.longitude
      FROM orders o
      WHERE o.tenant_id = $1 AND o.id = ANY($2::uuid[])
      ORDER BY o.created_at ASC`,
@@ -215,6 +223,8 @@ export async function getOrdersByIds(tenantId: string, orderIds: string[]): Prom
     readyAt: o.ready_at as string | null,
     deliveredAt: o.delivered_at as string | null,
     paidAt: o.paid_at as string | null,
+    latitude: (o.latitude as number | null) ?? null,
+    longitude: (o.longitude as number | null) ?? null,
     items: itemsMap[o.id as string] || [],
   }));
 }
@@ -261,6 +271,8 @@ export async function getOrderById(tenantId: string, orderId: string): Promise<O
     readyAt: o.ready_at as string | null,
     deliveredAt: o.delivered_at as string | null,
     paidAt: o.paid_at as string | null,
+    latitude: (o.latitude as number | null) ?? null,
+    longitude: (o.longitude as number | null) ?? null,
     items,
   };
 }
@@ -272,7 +284,7 @@ export async function getOrderById(tenantId: string, orderId: string): Promise<O
  * the order and its items (R3.2, R3.7).
  */
 export async function createOrder(tenantId: string, input: CreateOrderInput): Promise<OrderRecord> {
-  const { customerName, origin, items, createdBy } = input;
+  const { customerName, origin, items, createdBy, latitude, longitude } = input;
   const repo = tenantRepository(tenantId);
 
   // Validate all menu items exist and are active within the tenant.
@@ -333,6 +345,9 @@ export async function createOrder(tenantId: string, input: CreateOrderInput): Pr
         order_date: orderDate,
         created_by: createdBy,
         created_at: now,
+        // Coordenadas opcionais; `undefined` vira NULL na coluna nulável.
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
       });
 
       // Insert order items (tenant_id injected by the repository).
@@ -369,6 +384,8 @@ export async function createOrder(tenantId: string, input: CreateOrderInput): Pr
         readyAt: null,
         deliveredAt: null,
         paidAt: null,
+        latitude: (order.latitude as number | null) ?? null,
+        longitude: (order.longitude as number | null) ?? null,
         items: insertedItems,
       };
 
@@ -455,6 +472,8 @@ export async function updateOrderStatus(tenantId: string, orderId: string, newSt
     readyAt: updatedOrder.ready_at as string | null,
     deliveredAt: updatedOrder.delivered_at as string | null,
     paidAt: (updatedOrder.paid_at as string | null) ?? null,
+    latitude: (updatedOrder.latitude as number | null) ?? null,
+    longitude: (updatedOrder.longitude as number | null) ?? null,
   };
 
   // Publish event to the tenant-namespaced queue channel (R12.7, R12.8).
@@ -515,6 +534,8 @@ export async function registerPayment(tenantId: string, orderId: string, payment
     readyAt: updatedOrder.ready_at as string | null,
     deliveredAt: updatedOrder.delivered_at as string | null,
     paidAt: updatedOrder.paid_at as string | null,
+    latitude: (updatedOrder.latitude as number | null) ?? null,
+    longitude: (updatedOrder.longitude as number | null) ?? null,
   };
 
   // Publish event to the tenant-namespaced payment channel (R12.7, R12.8).
@@ -634,6 +655,8 @@ export async function updateOrderItems(tenantId: string, orderId: string, items:
     readyAt: order.ready_at as string | null,
     deliveredAt: order.delivered_at as string | null,
     paidAt: order.paid_at as string | null,
+    latitude: (order.latitude as number | null) ?? null,
+    longitude: (order.longitude as number | null) ?? null,
     items: insertedItems,
   };
 

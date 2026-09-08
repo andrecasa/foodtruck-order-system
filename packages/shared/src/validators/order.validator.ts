@@ -11,6 +11,10 @@ export const createOrderRequestSchema = z.object({
       })
     )
     .min(1),
+  // Coordenadas opcionais capturadas no cliente ao confirmar o pedido. Podem
+  // faltar (permissão negada, dispositivo sem GPS, origem presencial/whatsapp).
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 });
 
 export const updateOrderStatusRequestSchema = z.object({

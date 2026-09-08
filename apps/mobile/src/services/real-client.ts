@@ -207,6 +207,8 @@ function mapOrder(raw: any): Order {
     readyAt: raw.readyAt ?? raw.ready_at ?? undefined,
     deliveredAt: raw.deliveredAt ?? raw.delivered_at ?? undefined,
     paidAt: raw.paidAt ?? raw.paid_at ?? undefined,
+    latitude: raw.latitude ?? undefined,
+    longitude: raw.longitude ?? undefined,
   };
 }
 

@@ -15,6 +15,7 @@ import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { useCart } from '../../hooks/customer/useCart';
 import { useCreateOrder } from '../../hooks/customer/useCreateOrder';
+import { getCurrentCoordinates } from '../../services/geolocation';
 import { useSessionOrders } from '../../hooks/customer/useSessionOrders';
 import { ordersHref, qrcodeHref, menuHref } from '../../components/customer/customerNavHref';
 
@@ -72,9 +73,14 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     setNameError(null);
     reset();
 
+    // Captura opcional da localização: se o cliente negar a permissão (ou não
+    // estiver disponível), `coords` é null e o pedido segue sem coordenadas.
+    const coords = await getCurrentCoordinates();
+
     const order = await submit({
       customerName: trimmed,
       items: cart.items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity })),
+      ...(coords ?? {}),
     });
 
     if (order) {

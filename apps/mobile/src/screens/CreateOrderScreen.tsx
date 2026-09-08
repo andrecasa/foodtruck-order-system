@@ -16,6 +16,7 @@ import { MenuItemsCard } from '../components/MenuItemsCard';
 import { TotalRow } from '../components/TotalRow';
 import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
+import { getCurrentCoordinates } from '../services/geolocation';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
 
 /** Map of menuItemId → quantity for selected items */
@@ -192,10 +193,13 @@ export function CreateOrderScreen() {
 
     try {
       setLoading(true);
+      // Captura opcional da localização; ausente se a permissão for negada.
+      const coords = await getCurrentCoordinates();
       const order = await apiClient.createOrder({
         customerName: customerName.trim(),
         origin,
         items,
+        ...(coords ?? {}),
       });
       // Reset form and navigate directly to payment
       setCustomerName('');

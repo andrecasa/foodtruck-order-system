@@ -25,12 +25,20 @@ export interface Order {
   readyAt?: string;
   deliveredAt?: string;
   paidAt?: string;
+  /** Latitude capturada no cliente ao confirmar o pedido (opcional). */
+  latitude?: number;
+  /** Longitude capturada no cliente ao confirmar o pedido (opcional). */
+  longitude?: number;
 }
 
 export interface CreateOrderRequest {
   customerName: string;
   origin: OrderOrigin;
   items: { menuItemId: string; quantity: number }[];
+  /** Latitude opcional; ausente quando o cliente nega a localização. */
+  latitude?: number;
+  /** Longitude opcional; ausente quando o cliente nega a localização. */
+  longitude?: number;
 }
 
 export interface UpdateOrderStatusRequest {

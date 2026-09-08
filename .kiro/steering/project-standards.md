@@ -96,7 +96,9 @@ consistência ao escrever ou alterar código. Estas orientações complementam
 - **Property tests (backend):** `describe/it/expect` do Vitest + `import * as fc
   from 'fast-check'`, com JSDoc enunciando a propriedade formal e
   `**Validates: Requirements X.Y**`. Ficam em `src/__tests__/properties/`.
-- **Não adicione testes automaticamente** a menos que o usuário peça.
+- **Sempre adicione testes** ao criar ou alterar código, seguindo o estilo
+  existente (property tests com fast-check + Vitest no backend; Testing Library
+  no mobile). Cubra o comportamento novo/alterado e os casos de borda relevantes.
 
 ## Linting (ESLint)
 

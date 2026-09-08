@@ -9,6 +9,7 @@ import {
   updateMenuItemRequestSchema,
 } from '../validators/menu.validator';
 import { registerPaymentRequestSchema } from '../validators/payment.validator';
+import { publicCreateOrderSchema } from '../validators/public-order.validator';
 import {
   createCategoryRequestSchema,
   updateCategoryRequestSchema,
@@ -69,6 +70,88 @@ describe('createOrderRequestSchema', () => {
       ...validOrder,
       items: [{ menuItemId: 'not-a-uuid', quantity: 1 }],
     });
+    expect(result.success).toBe(false);
+  });
+
+  // ── Geolocalização opcional (latitude/longitude) ──
+  it('accepts order without coordinates (opcionais)', () => {
+    expect(createOrderRequestSchema.safeParse(validOrder).success).toBe(true);
+  });
+
+  it('accepts valid latitude/longitude', () => {
+    const result = createOrderRequestSchema.safeParse({
+      ...validOrder,
+      latitude: -23.5613,
+      longitude: -46.6565,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.latitude).toBe(-23.5613);
+      expect(result.data.longitude).toBe(-46.6565);
+    }
+  });
+
+  it('accepts the coordinate range boundaries', () => {
+    expect(
+      createOrderRequestSchema.safeParse({ ...validOrder, latitude: -90, longitude: -180 }).success,
+    ).toBe(true);
+    expect(
+      createOrderRequestSchema.safeParse({ ...validOrder, latitude: 90, longitude: 180 }).success,
+    ).toBe(true);
+  });
+
+  it('rejects latitude out of range', () => {
+    expect(createOrderRequestSchema.safeParse({ ...validOrder, latitude: -90.1 }).success).toBe(false);
+    expect(createOrderRequestSchema.safeParse({ ...validOrder, latitude: 90.1 }).success).toBe(false);
+  });
+
+  it('rejects longitude out of range', () => {
+    expect(createOrderRequestSchema.safeParse({ ...validOrder, longitude: -180.1 }).success).toBe(false);
+    expect(createOrderRequestSchema.safeParse({ ...validOrder, longitude: 180.1 }).success).toBe(false);
+  });
+
+  it('rejects non-numeric coordinates', () => {
+    expect(createOrderRequestSchema.safeParse({ ...validOrder, latitude: '-23.5' }).success).toBe(false);
+  });
+});
+
+describe('publicCreateOrderSchema', () => {
+  const validPublicOrder = {
+    customerName: 'João',
+    items: [{ menuItemId: '550e8400-e29b-41d4-a716-446655440000', quantity: 2 }],
+  };
+
+  it('accepts a public order without coordinates', () => {
+    expect(publicCreateOrderSchema.safeParse(validPublicOrder).success).toBe(true);
+  });
+
+  it('accepts valid latitude/longitude', () => {
+    const result = publicCreateOrderSchema.safeParse({
+      ...validPublicOrder,
+      latitude: -23.5613,
+      longitude: -46.6565,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts the coordinate range boundaries', () => {
+    expect(
+      publicCreateOrderSchema.safeParse({ ...validPublicOrder, latitude: -90, longitude: -180 }).success,
+    ).toBe(true);
+    expect(
+      publicCreateOrderSchema.safeParse({ ...validPublicOrder, latitude: 90, longitude: 180 }).success,
+    ).toBe(true);
+  });
+
+  it('rejects coordinates out of range', () => {
+    expect(publicCreateOrderSchema.safeParse({ ...validPublicOrder, latitude: 91 }).success).toBe(false);
+    expect(publicCreateOrderSchema.safeParse({ ...validPublicOrder, longitude: -181 }).success).toBe(false);
+  });
+
+  // O schema é `.strict()`: campos desconhecidos continuam sendo rejeitados,
+  // mas latitude/longitude agora são reconhecidos.
+  it('still rejects unknown fields (strict)', () => {
+    const result = publicCreateOrderSchema.safeParse({ ...validPublicOrder, origin: 'web' });
     expect(result.success).toBe(false);
   });
 });

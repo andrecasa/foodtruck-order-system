@@ -55,8 +55,8 @@ describe('constants', () => {
     expect(PAYMENT_STATUSES).toEqual(['pendente', 'pago']);
   });
 
-  it('ORDER_ORIGINS contains presencial and whatsapp', () => {
-    expect(ORDER_ORIGINS).toEqual(['presencial', 'whatsapp']);
+  it('ORDER_ORIGINS contains presencial, whatsapp and web', () => {
+    expect(ORDER_ORIGINS).toEqual(['presencial', 'whatsapp', 'web']);
   });
 
   it('PAYMENT_METHODS contains dinheiro, pix, cartão débito, cartão crédito', () => {

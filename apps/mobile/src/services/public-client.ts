@@ -19,6 +19,9 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 export interface CreatePublicOrderBody {
   customerName: string;
   items: { menuItemId: string; quantity: number }[];
+  /** Coordenadas opcionais; omitidas quando o cliente nega a localização. */
+  latitude?: number;
+  longitude?: number;
 }
 
 /**

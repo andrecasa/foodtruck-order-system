@@ -56,10 +56,9 @@ melhoria, para o usuário decidir. Correções dentro do escopo devem ser aplica
   - Lint: `pnpm --filter @order-system/<app> lint` (ou `pnpm -r lint`). O ESLint
     está configurado na raiz (`eslint.config.js`); a área alterada não deve
     introduzir novos erros nem novos warnings.
-- Não adicione testes automaticamente a menos que o usuário peça. Quando
-  adicionar (ou quando a tarefa for corrigir bug/adicionar feature e o usuário
-  pedir cobertura), siga o estilo existente (property tests com fast-check +
-  Vitest no backend; Testing Library no mobile).
+- Sempre adicione testes ao criar ou alterar código, cobrindo o comportamento
+  novo/alterado e os casos de borda relevantes. Siga o estilo existente
+  (property tests com fast-check + Vitest no backend; Testing Library no mobile).
 - Se não for possível verificar algo (dependência ausente, ambiente), diga
   explicitamente o que ficou sem validar.
 

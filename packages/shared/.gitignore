@@ -1,0 +1,9 @@
+# Saída de build do TypeScript (a config emite em ./dist).
+dist/
+
+# Artefatos compilados co-localizados em src/ não devem ser versionados:
+# o fonte é sempre o .ts. (Removidos em favor do build em dist/.)
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map

@@ -14,6 +14,7 @@ import { DrawerMenu } from './DrawerMenu';
 import { ConnectionBanner } from './ConnectionBanner';
 import { OfflineIllustration } from './OfflineIllustration';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useResponsiveColumns } from '../hooks/useResponsiveColumns';
 
 // ─── Screen ─────────────────────────────────────────────────────────────────
 
@@ -209,19 +210,47 @@ export function ScrollContainer({ children, padding = true, style, fillHeight = 
 
 export interface GridProps {
   children: React.ReactNode;
-  /** Number of columns. Defaults to 2. */
+  /**
+   * Número fixo de colunas. Usado por grids estáticos (ex.: 2×2 dos resumos).
+   * Ignorado quando `minItemWidth` é informado (modo responsivo). Padrão: 2.
+   */
   columns?: number;
+  /**
+   * Quando informado, ativa o modo responsivo: o número de colunas é calculado
+   * pela largura disponível via `useResponsiveColumns` (fonte única da regra),
+   * usando esta largura-alvo por item. No celular resulta em 1 coluna; em
+   * tablets, múltiplas. Tem precedência sobre `columns`.
+   */
+  minItemWidth?: number;
+  /** Teto de colunas no modo responsivo (repassado ao hook). */
+  maxColumns?: number;
   /** Gap between items. Uses theme.spacing.md if not specified. */
   gap?: number;
 }
 
 /**
- * Simple flex-based grid layout using flexDirection:'row' and flexWrap:'wrap'.
- * Each child is sized based on the columns prop.
+ * Layout em grade baseado em flex (`flexDirection: 'row'` + `flexWrap: 'wrap'`).
+ *
+ * Dois modos:
+ * - Fixo: passe `columns` (ex.: grids 2×2 estáticos).
+ * - Responsivo: passe `minItemWidth` para que o número de colunas seja derivado
+ *   da largura da tela (1 coluna no celular, mais colunas em tablets). A regra
+ *   vive no hook `useResponsiveColumns`, não aqui.
+ *
+ * Observação: em modo responsivo o cálculo usa a largura da janela. Quando a
+ * área útil descontar paddings relevantes, prefira calcular as colunas na tela
+ * com `useResponsiveColumns({ availableWidth })` e passar via `columns`.
  */
-export function Grid({ children, columns = 2, gap }: GridProps) {
+export function Grid({ children, columns = 2, minItemWidth, maxColumns, gap }: GridProps) {
   const theme = useTheme();
   const resolvedGap = gap ?? theme.spacing.md;
+
+  const responsiveColumns = useResponsiveColumns({
+    minItemWidth: minItemWidth ?? Number.POSITIVE_INFINITY,
+    maxColumns,
+  });
+  // `minItemWidth` ativa o modo responsivo; senão respeita o `columns` fixo.
+  const effectiveColumns = minItemWidth != null ? responsiveColumns : columns;
 
   const containerStyle: ViewStyle = {
     flexDirection: 'row',
@@ -234,7 +263,7 @@ export function Grid({ children, columns = 2, gap }: GridProps) {
     <View style={containerStyle}>
       {React.Children.map(children, (child) => {
         if (!React.isValidElement(child)) return child;
-        const itemWidth = `${100 / columns}%` as unknown as number;
+        const itemWidth = `${100 / effectiveColumns}%` as unknown as number;
         return (
           <View
             style={{

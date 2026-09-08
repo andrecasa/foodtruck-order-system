@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, TouchableOpacity, Text as RNText, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import type { Order, OrderStatus, PaymentStatus } from '@order-system/shared';
 import {
   Screen,
   Header,
   ScrollContainer,
+  Grid,
   Text,
   FilterChips,
   Badge,
@@ -20,6 +21,7 @@ import { apiClient } from '../services/api-client';
 import { useRealtime } from '../hooks/useRealtime';
 import { useNetworkError } from '../hooks/useNetworkError';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useResponsiveColumns } from '../hooks/useResponsiveColumns';
 import { useAuth } from '../hooks/useAuth';
 import { formatPrice, formatOrderAge, formatOrderItemLine } from '../utils/format';
 
@@ -79,6 +81,13 @@ export function OrderQueueScreen() {
   const router = useRouter();
   const { isAuthenticated, tenantId } = useAuth();
   const { isOffline } = useNetworkStatus();
+
+  // Layout responsivo: largura útil = janela menos os paddings horizontais do
+  // ScrollContainer (theme.spacing.md em cada lado). No celular resulta em 1
+  // coluna; em tablets, mais de um card por linha (melhoria de UI R-tablet).
+  const { width: windowWidth } = useWindowDimensions();
+  const availableWidth = windowWidth - theme.spacing.md * 2;
+  const columns = useResponsiveColumns({ availableWidth });
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
@@ -344,6 +353,7 @@ export function OrderQueueScreen() {
         key={order.id}
         accessibilityLabel={`Pedido ${order.dailyNumber}, ${order.customerName}, status ${order.status}`}
         style={{
+          width: '100%',
           backgroundColor: theme.colors.surface,
           borderRadius: 14,
           borderWidth: 1,
@@ -695,9 +705,11 @@ export function OrderQueueScreen() {
           </Pressable>
         </View>
 
-        {orders
-          .filter(order => paymentFilters.length === 0 || paymentFilters.length === 2 || paymentFilters.includes(order.paymentStatus))
-          .map((order) => renderOrderCard(order))}
+        <Grid columns={columns} gap={12}>
+          {orders
+            .filter(order => paymentFilters.length === 0 || paymentFilters.length === 2 || paymentFilters.includes(order.paymentStatus))
+            .map((order) => renderOrderCard(order))}
+        </Grid>
       </ScrollContainer>
 
       {/* Calendar Modal */}

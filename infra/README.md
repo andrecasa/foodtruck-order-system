@@ -631,6 +631,9 @@ Para fazer deploy de uma nova versão:
 ```bash
 cd /opt/order-system
 git pull origin main
+# Reinstale as dependências após o pull (obrigatório quando o release trouxe
+# deps novas; sem isso o build falha com ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL).
+pnpm install --frozen-lockfile
 # Bumpe a versão do cache do Service Worker A CADA RELEASE (ver nota abaixo):
 #   apps/mobile/public/sw.js → const CACHE_VERSION = 'v3'  (v2 → v3, etc.)
 pnpm build:pwa
@@ -1069,6 +1072,12 @@ docker compose start evolution-api
 ssh -i ~/.ssh/order-system-key.pem ec2-user@SEU_IP
 cd /opt/order-system
 git pull origin main
+
+# SEMPRE reinstale as dependências após o pull. Se um release adicionou uma
+# dependência nova (ex.: expo-location), pular este passo faz o build do PWA
+# falhar com ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL (módulo não encontrado).
+pnpm install --frozen-lockfile
+
 docker compose up -d --build backend
 
 # Se mudou o frontend (painel admin):
@@ -1223,6 +1232,22 @@ cd /opt/order-system && pnpm --filter @order-system/web build
 ### APK não aponta para a API pública
 
 O EAS Build não lê o `.env` local. As variáveis `EXPO_PUBLIC_*` precisam estar no bloco `env` do perfil em `apps/mobile/eas.json`. Depois rebuilde o APK.
+
+### Build do PWA falha com `ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL`
+
+Geralmente significa que as dependências não foram reinstaladas após o `git pull`
+— um release adicionou uma dependência nova (ex.: `expo-location`) que ainda não
+está em `node_modules`, e o `expo export` falha ao resolver o import. Rode o
+install (na **raiz** do monorepo) antes de buildar:
+
+```bash
+cd /opt/order-system
+pnpm install --frozen-lockfile
+pnpm build:pwa
+```
+
+> Para ver a causa real por trás do erro genérico do pnpm, rode o export sem o
+> wrapper: `cd apps/mobile && npx expo export --platform web --clear`.
 
 ### Container não sobe
 

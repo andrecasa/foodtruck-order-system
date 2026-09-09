@@ -20,6 +20,20 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Operador" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <!--
+      Leaflet CSS (mapa do Resumo do Dia). Carregado via CDN em vez de
+      `import 'leaflet/dist/leaflet.css'` porque o Metro (bundler do Expo web)
+      não resolve os `url(images/...)` internos do CSS e quebra o bundle. O CDN
+      serve tanto o CSS quanto seus assets relativos. Versão fixada em 1.9.4
+      (mesma do pacote `leaflet` instalado) + SRI para integridade.
+    -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       /* These styles make the body full-height */

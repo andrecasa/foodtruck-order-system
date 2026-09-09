@@ -59,3 +59,54 @@ export async function getMonthlySummary(req: AuthenticatedRequest, res: Response
     });
   }
 }
+
+/**
+ * Valida os parâmetros `year`/`month` da query, comuns aos endpoints mensais.
+ * Retorna os números validados ou `null` (nesse caso já respondeu 400).
+ */
+function parseYearMonth(req: AuthenticatedRequest, res: Response): { year: number; month: number } | null {
+  const yearParam = req.query.year;
+  const monthParam = req.query.month;
+
+  if (!yearParam || !monthParam) {
+    res.status(400).json({
+      error: 'INVALID_PARAMS',
+      message: 'Os parâmetros "year" e "month" são obrigatórios.',
+    });
+    return null;
+  }
+
+  const year = Number(yearParam);
+  const month = Number(monthParam);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    res.status(400).json({
+      error: 'INVALID_PARAMS',
+      message: 'O parâmetro "year" deve ser um inteiro e "month" deve ser um inteiro entre 1 e 12.',
+    });
+    return null;
+  }
+
+  return { year, month };
+}
+
+/**
+ * GET /api/summary/monthly/heatmap
+ * Retorna os pontos do mapa de calor (só pedidos geolocalizados) e os
+ * contadores total/geolocalizado do mês para um year/month.
+ */
+export async function getMonthlyHeatmap(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const parsed = parseYearMonth(req, res);
+    if (!parsed) return;
+
+    const response = await summaryService.getMonthlyHeatmap(req.tenantId as string, parsed.year, parsed.month);
+    res.status(200).json(response);
+  } catch {
+    res.status(500).json({
+      statusCode: 500,
+      error: 'INTERNAL_ERROR',
+      message: 'Erro ao calcular o mapa de calor mensal.',
+    });
+  }
+}

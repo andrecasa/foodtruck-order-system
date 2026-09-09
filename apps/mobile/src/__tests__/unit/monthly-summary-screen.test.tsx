@@ -34,16 +34,32 @@ jest.mock('../../hooks/useAuth', () => ({
 }));
 
 const mockGetMonthlySummary = jest.fn();
+const mockGetMonthlyHeatmap = jest.fn();
 
 jest.mock('../../services/api-client', () => ({
   apiClient: {
     getMonthlySummary: (...args: any[]) => mockGetMonthlySummary(...args),
+    getMonthlyHeatmap: (...args: any[]) => mockGetMonthlyHeatmap(...args),
   },
 }));
 
 jest.mock('../../components/DrawerMenu', () => ({
   DrawerMenu: () => null,
 }));
+
+// Mock do heatmap: expõe a contagem de pontos sem montar Leaflet/WebView.
+const mockMonthlyHeatmap = jest.fn();
+jest.mock('../../components', () => {
+  const actual = jest.requireActual('../../components');
+  const { View } = require('react-native');
+  return {
+    ...actual,
+    MonthlyHeatmap: (props: any) => {
+      mockMonthlyHeatmap(props);
+      return <View testID="monthly-heatmap-mock" accessibilityLabel={String(props.points.length)} />;
+    },
+  };
+});
 
 jest.mock('../../theme', () => ({
   ...require('../helpers/mockTheme').themeMocks,
@@ -76,9 +92,25 @@ function createMonthlySummary(): MonthlySummaryResponse {
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
+function createHeatmap(overrides: Partial<any> = {}): any {
+  return {
+    year: 2024,
+    month: 1,
+    totalOrders: 45,
+    geolocatedOrders: 12,
+    points: [
+      { latitude: -23.5, longitude: -46.6, weight: 3 },
+      { latitude: -22.9, longitude: -43.2, weight: 1 },
+    ],
+    ...overrides,
+  };
+}
+
 describe('MonthlySummaryScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Padrão: heatmap vazio para os testes que não o exercitam.
+    mockGetMonthlyHeatmap.mockResolvedValue(createHeatmap({ geolocatedOrders: 0, points: [] }));
   });
 
   it('renders monthly totals', async () => {
@@ -114,5 +146,38 @@ describe('MonthlySummaryScreen', () => {
       expect.any(Number),
       expect.any(Number),
     );
+  });
+
+  it('busca o heatmap no carregamento e passa os pontos ao mapa', async () => {
+    mockGetMonthlySummary.mockResolvedValue(createMonthlySummary());
+    mockGetMonthlyHeatmap.mockResolvedValue(createHeatmap());
+
+    const { findByTestId } = render(<MonthlySummaryScreen />);
+
+    const mapMock = await findByTestId('monthly-heatmap-mock');
+    // 2 pontos passados ao componente.
+    expect(mapMock.props.accessibilityLabel).toBe('2');
+    expect(mockGetMonthlyHeatmap).toHaveBeenCalledWith(expect.any(Number), expect.any(Number));
+  });
+
+  it('mostra o contador "X de Y pedidos com localização"', async () => {
+    mockGetMonthlySummary.mockResolvedValue(createMonthlySummary());
+    mockGetMonthlyHeatmap.mockResolvedValue(createHeatmap({ geolocatedOrders: 12, totalOrders: 45 }));
+
+    const { findByText } = render(<MonthlySummaryScreen />);
+
+    await findByText('12 de 45 pedidos com localização');
+  });
+
+  it('não derruba os números quando a busca do heatmap falha', async () => {
+    mockGetMonthlySummary.mockResolvedValue(createMonthlySummary());
+    mockGetMonthlyHeatmap.mockRejectedValue(new Error('falha'));
+
+    const { findByText, findByTestId } = render(<MonthlySummaryScreen />);
+
+    // Totais continuam renderizando; heatmap fica vazio (0 pontos).
+    await findByText('45');
+    const mapMock = await findByTestId('monthly-heatmap-mock');
+    expect(mapMock.props.accessibilityLabel).toBe('0');
   });
 });

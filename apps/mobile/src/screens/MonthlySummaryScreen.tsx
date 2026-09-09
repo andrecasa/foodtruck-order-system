@@ -9,9 +9,9 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import type { MonthlySummaryResponse } from '@order-system/shared';
+import type { MonthlySummaryResponse, MonthlyHeatmapResponse } from '@order-system/shared';
 import { useRouter } from 'expo-router';
-import { Screen, Header } from '../components';
+import { Screen, Header, MonthlyHeatmap } from '../components';
 import { ErrorState } from '../components/ErrorState';
 import { CalendarModal } from '../components/CalendarModal';
 import { useTheme } from '../theme';
@@ -42,6 +42,7 @@ export function MonthlySummaryScreen() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummaryResponse | null>(null);
+  const [heatmap, setHeatmap] = useState<MonthlyHeatmapResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,13 +67,29 @@ export function MonthlySummaryScreen() {
     }
   }, []);
 
+  // Busca os pontos do mapa de calor. DESACOPLADO do realtime de propósito:
+  // rebuscar/re-renderizar o heatmap do mês inteiro a cada evento seria caro e
+  // faria o mapa piscar. Carrega no mount e no pull-to-refresh. Tolerante a
+  // falha: um erro aqui zera o heatmap e NÃO derruba os números do resumo.
+  const fetchHeatmap = useCallback(async (fetchYear: number, fetchMonth: number) => {
+    try {
+      const data = await apiClient.getMonthlyHeatmap(fetchYear, fetchMonth);
+      setHeatmap(data);
+    } catch {
+      setHeatmap(null);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       try {
-        const data = await apiClient.getMonthlySummary(year, month);
+        const [data] = await Promise.all([
+          apiClient.getMonthlySummary(year, month),
+          fetchHeatmap(year, month),
+        ]);
         if (!cancelled) setMonthlySummary(data);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao carregar resumo');
@@ -103,15 +120,18 @@ export function MonthlySummaryScreen() {
     setMonth(selectedMonth);
     setYear(selectedYear);
     setLoading(true);
-    await fetchMonthlySummary(selectedYear, selectedMonth);
+    await Promise.all([
+      fetchMonthlySummary(selectedYear, selectedMonth),
+      fetchHeatmap(selectedYear, selectedMonth),
+    ]);
     setLoading(false);
-  }, [fetchMonthlySummary]);
+  }, [fetchMonthlySummary, fetchHeatmap]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchMonthlySummary(year, month);
+    await Promise.all([fetchMonthlySummary(year, month), fetchHeatmap(year, month)]);
     setRefreshing(false);
-  }, [fetchMonthlySummary, year, month]);
+  }, [fetchMonthlySummary, fetchHeatmap, year, month]);
 
   const handleRetry = useCallback(async () => {
     setLoading(true);
@@ -136,6 +156,14 @@ export function MonthlySummaryScreen() {
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.text,
+  };
+
+  const heatmapCaptionStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: -8,
   };
 
   const gridContainerStyle: ViewStyle = {
@@ -203,6 +231,14 @@ export function MonthlySummaryScreen() {
         }
         showsVerticalScrollIndicator
       >
+        {/* Mapa de calor dos pedidos do mês com localização (primeiro item) */}
+        <MonthlyHeatmap points={heatmap?.points ?? []} />
+        {heatmap && (
+          <RNText style={heatmapCaptionStyle} testID="heatmap-caption">
+            {`${heatmap.geolocatedOrders} de ${heatmap.totalOrders} pedidos com localização`}
+          </RNText>
+        )}
+
         {/* Sub-cards grid 2×2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>

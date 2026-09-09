@@ -15,12 +15,7 @@ jest.mock('expo-router', () => ({
     back: mockBack,
     replace: mockReplace,
   }),
-  useFocusEffect: (cb: () => void) => {
-    const { useEffect } = require('react');
-    useEffect(() => {
-      cb();
-    }, []);
-  },
+  useFocusEffect: require('../helpers/mockExpoRouter').useMockFocusEffect,
 }));
 
 jest.mock('../../hooks/useRealtime', () => ({
@@ -41,17 +36,40 @@ jest.mock('../../hooks/useAuth', () => ({
 
 const mockGetDailySummary = jest.fn();
 const mockGetMonthlySummary = jest.fn();
+const mockGetOrders = jest.fn();
 
 jest.mock('../../services/api-client', () => ({
   apiClient: {
     getDailySummary: (...args: any[]) => mockGetDailySummary(...args),
     getMonthlySummary: (...args: any[]) => mockGetMonthlySummary(...args),
+    getOrders: (...args: any[]) => mockGetOrders(...args),
   },
 }));
 
 jest.mock('../../components/DrawerMenu', () => ({
   DrawerMenu: () => null,
 }));
+
+// Mock do mapa: renderiza um testID por ponto para asserir a fiação sem montar
+// o Leaflet (que exige DOM). Reflete o contrato { points }.
+const mockDailyOrdersMap = jest.fn();
+jest.mock('../../components', () => {
+  const actual = jest.requireActual('../../components');
+  const { View } = require('react-native');
+  return {
+    ...actual,
+    DailyOrdersMap: (props: any) => {
+      mockDailyOrdersMap(props);
+      return (
+        <View testID="daily-orders-map-mock">
+          {props.points.map((p: any) => (
+            <View key={p.id} testID={`map-point-${p.id}`} />
+          ))}
+        </View>
+      );
+    },
+  };
+});
 
 jest.mock('../../theme', () => ({
   ...require('../helpers/mockTheme').themeMocks,
@@ -77,11 +95,30 @@ function createDailySummary(): DailySummary {
   } as DailySummary;
 }
 
+function createOrder(overrides: Partial<any> = {}): any {
+  return {
+    id: overrides.id ?? 'order-1',
+    dailyNumber: overrides.dailyNumber ?? 1,
+    customerName: overrides.customerName ?? 'Cliente',
+    origin: 'web',
+    status: overrides.status ?? 'aguardando',
+    paymentStatus: 'pendente',
+    items: [],
+    totalAmount: 1000,
+    createdAt: '2024-01-15T10:00:00.000Z',
+    latitude: overrides.latitude,
+    longitude: overrides.longitude,
+    ...overrides,
+  };
+}
+
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('DailySummaryScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Padrão: sem pedidos, para os testes que não exercitam o mapa.
+    mockGetOrders.mockResolvedValue([]);
   });
 
   it('renders summary with totals', async () => {
@@ -119,5 +156,71 @@ describe('DailySummaryScreen', () => {
     // R$ 20,00 appears in both Cartão Crédito and Dinheiro rows
     const twentyElements = await findAllByText('R$ 20,00');
     expect(twentyElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('busca os pedidos do dia com a data corrente para montar o mapa', async () => {
+    mockGetDailySummary.mockResolvedValue(createDailySummary());
+    mockGetMonthlySummary.mockResolvedValue({ days: [], totals: {} });
+
+    const { findByTestId } = render(<DailySummaryScreen />);
+
+    await findByTestId('daily-orders-map-mock');
+    expect(mockGetOrders).toHaveBeenCalledWith(
+      expect.objectContaining({ date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }),
+    );
+  });
+
+  it('plota apenas pedidos com coordenadas e descarta os sem localização', async () => {
+    mockGetDailySummary.mockResolvedValue(createDailySummary());
+    mockGetMonthlySummary.mockResolvedValue({ days: [], totals: {} });
+    mockGetOrders.mockResolvedValue([
+      createOrder({ id: 'com-geo', latitude: -23.55, longitude: -46.63 }),
+      createOrder({ id: 'sem-geo', latitude: undefined, longitude: undefined }),
+    ]);
+
+    const { findByTestId, queryByTestId } = render(<DailySummaryScreen />);
+
+    // O pedido com coordenadas vira ponto; o sem coordenadas é filtrado.
+    await findByTestId('map-point-com-geo');
+    expect(queryByTestId('map-point-sem-geo')).toBeNull();
+  });
+
+  it('mostra o contador "X de Y pedidos com localização"', async () => {
+    mockGetDailySummary.mockResolvedValue(createDailySummary());
+    mockGetMonthlySummary.mockResolvedValue({ days: [], totals: {} });
+    mockGetOrders.mockResolvedValue([
+      createOrder({ id: 'com-geo', latitude: -23.55, longitude: -46.63 }),
+      createOrder({ id: 'sem-geo', latitude: undefined, longitude: undefined }),
+    ]);
+
+    const { findByText } = render(<DailySummaryScreen />);
+
+    // 1 dos 2 pedidos do dia tem localização.
+    await findByText('1 de 2 pedidos com localização');
+  });
+
+  it('renderiza o mapa mesmo quando nenhum pedido tem localização', async () => {
+    mockGetDailySummary.mockResolvedValue(createDailySummary());
+    mockGetMonthlySummary.mockResolvedValue({ days: [], totals: {} });
+    mockGetOrders.mockResolvedValue([
+      createOrder({ id: 'sem-geo', latitude: undefined, longitude: undefined }),
+    ]);
+
+    const { findByTestId, queryByTestId } = render(<DailySummaryScreen />);
+
+    await findByTestId('daily-orders-map-mock');
+    expect(queryByTestId('map-point-sem-geo')).toBeNull();
+  });
+
+  it('não derruba o resumo quando a busca de pedidos do mapa falha', async () => {
+    mockGetDailySummary.mockResolvedValue(createDailySummary());
+    mockGetMonthlySummary.mockResolvedValue({ days: [], totals: {} });
+    mockGetOrders.mockRejectedValue(new Error('falha de rede'));
+
+    const { findByText, findByTestId } = render(<DailySummaryScreen />);
+
+    // Resumo continua renderizando normalmente; mapa fica vazio.
+    await findByText('12');
+    await findByTestId('daily-orders-map-mock');
   });
 });

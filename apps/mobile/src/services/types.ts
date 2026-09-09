@@ -10,6 +10,7 @@ import type {
   RegisterPaymentRequest,
   DailySummary,
   MonthlySummaryResponse,
+  MonthlyHeatmapResponse,
   Category,
   CreateCategoryRequest,
   UpdateCategoryRequest,
@@ -55,6 +56,7 @@ export interface ApiClient {
   // Summary
   getDailySummary(date?: string): Promise<DailySummary>;
   getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse>;
+  getMonthlyHeatmap(year: number, month: number): Promise<MonthlyHeatmapResponse>;
 
   // Categories
   getCategories(): Promise<Category[]>;

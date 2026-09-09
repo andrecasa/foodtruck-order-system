@@ -18,7 +18,13 @@ export type {
   UpdateMenuItemRequest,
 } from './menu';
 
-export type { DailySummary, MonthlySummaryResponse, DayBreakdown } from './summary';
+export type {
+  DailySummary,
+  MonthlySummaryResponse,
+  DayBreakdown,
+  HeatmapPoint,
+  MonthlyHeatmapResponse,
+} from './summary';
 
 export type { ThemeConfig } from './theme';
 

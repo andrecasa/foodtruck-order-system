@@ -16,6 +16,8 @@ export type {
   DailySummary,
   MonthlySummaryResponse,
   DayBreakdown,
+  HeatmapPoint,
+  MonthlyHeatmapResponse,
   ThemeConfig,
   CategoryStatus,
   Category,

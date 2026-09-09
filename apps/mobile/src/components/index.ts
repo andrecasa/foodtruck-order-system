@@ -38,3 +38,7 @@ export { MenuItemsCard } from './MenuItemsCard';
 export type { MenuItemsCardProps, MenuItemsCardItem } from './MenuItemsCard';
 export { TotalRow } from './TotalRow';
 export type { TotalRowProps } from './TotalRow';
+export { DailyOrdersMap } from './DailyOrdersMap';
+export type { DailyOrdersMapProps, OrderMapPoint } from './DailyOrdersMap.types';
+export { MonthlyHeatmap } from './MonthlyHeatmap';
+export type { MonthlyHeatmapProps, HeatmapPoint } from './MonthlyHeatmap.types';

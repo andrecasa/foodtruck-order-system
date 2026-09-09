@@ -10,7 +10,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import type { DailySummary } from '@order-system/shared';
+import type { DailySummary, Order } from '@order-system/shared';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Screen, Header } from '../components';
 import { ErrorState } from '../components/ErrorState';
@@ -22,6 +22,30 @@ import { useAuth } from '../hooks/useAuth';
 import { formatPrice } from '../utils/format';
 import { SubCard } from '../components/SubCard';
 import { PaymentRow } from '../components/PaymentRow';
+import { DailyOrdersMap, type OrderMapPoint } from '../components';
+
+/**
+ * Converte os pedidos do dia em pontos plotáveis no mapa, mantendo apenas os
+ * que têm coordenadas válidas (latitude/longitude não nulas). Pedidos sem
+ * localização (presenciais/whatsapp ou clientes que negaram a permissão) são
+ * descartados — o mapa só mostra quem tem posição.
+ */
+function toMapPoints(orders: Order[]): OrderMapPoint[] {
+  const points: OrderMapPoint[] = [];
+  for (const o of orders) {
+    if (typeof o.latitude === 'number' && typeof o.longitude === 'number') {
+      points.push({
+        id: o.id,
+        dailyNumber: o.dailyNumber,
+        latitude: o.latitude,
+        longitude: o.longitude,
+        customerName: o.customerName,
+        status: o.status,
+      });
+    }
+  }
+  return points;
+}
 
 /**
  * Resumo do Dia — Daily financial summary screen.
@@ -42,6 +66,10 @@ export function DailySummaryScreen() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [day, setDay] = useState(now.getDate());
   const [summary, setSummary] = useState<DailySummary | null>(null);
+  const [mapPoints, setMapPoints] = useState<OrderMapPoint[]>([]);
+  // Total de pedidos do dia (com ou sem localização), para o contador do mapa.
+  // `null` = ainda não carregado (não mostra o texto).
+  const [mapTotalOrders, setMapTotalOrders] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +116,21 @@ export function DailySummaryScreen() {
     }
   }, []);
 
+  // Busca os pedidos do dia só para plotar os pins do mapa (Opção A: reusa
+  // GET /api/orders, sem tocar no endpoint de resumo). É tolerante a falha: um
+  // erro aqui zera os pontos e NÃO derruba o resumo, que é a informação
+  // principal da tela.
+  const fetchMapPoints = useCallback(async (targetDate: string) => {
+    try {
+      const orders = await apiClient.getOrders({ date: targetDate });
+      setMapPoints(toMapPoints(orders));
+      setMapTotalOrders(orders.length);
+    } catch {
+      setMapPoints([]);
+      setMapTotalOrders(null);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -96,6 +139,7 @@ export function DailySummaryScreen() {
         const [summaryData] = await Promise.all([
           apiClient.getDailySummary(dateStr),
           fetchDaysWithOrders(year, month),
+          fetchMapPoints(dateStr),
         ]);
         if (!cancelled) setSummary(summaryData);
       } catch (err) {
@@ -115,8 +159,8 @@ export function DailySummaryScreen() {
   );
   useRealtime({
     channels: realtimeChannels,
-    onEvent: useCallback(() => { fetchSummary(dateStr); }, [fetchSummary, dateStr]),
-    onReconnect: useCallback(() => { fetchSummary(dateStr); }, [fetchSummary, dateStr]),
+    onEvent: useCallback(() => { fetchSummary(dateStr); fetchMapPoints(dateStr); }, [fetchSummary, fetchMapPoints, dateStr]),
+    onReconnect: useCallback(() => { fetchSummary(dateStr); fetchMapPoints(dateStr); }, [fetchSummary, fetchMapPoints, dateStr]),
     enabled: tenantId !== null,
   });
 
@@ -124,16 +168,17 @@ export function DailySummaryScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchSummary(dateStr);
-    }, [fetchSummary, dateStr])
+      fetchMapPoints(dateStr);
+    }, [fetchSummary, fetchMapPoints, dateStr])
   );
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchSummary(dateStr);
+    await Promise.all([fetchSummary(dateStr), fetchMapPoints(dateStr)]);
     setRefreshing(false);
-  }, [fetchSummary, dateStr]);
+  }, [fetchSummary, fetchMapPoints, dateStr]);
 
   const handleDaySelect = useCallback(async (selectedDay: number, selectedMonth: number, selectedYear: number) => {
     setCalendarModalVisible(false);
@@ -145,7 +190,8 @@ export function DailySummaryScreen() {
     }
     const newDateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
     fetchSummary(newDateStr);
-  }, [year, month, fetchDaysWithOrders, fetchSummary]);
+    fetchMapPoints(newDateStr);
+  }, [year, month, fetchDaysWithOrders, fetchSummary, fetchMapPoints]);
 
   const handleRetry = useCallback(async () => {
     setLoading(true);
@@ -164,6 +210,14 @@ export function DailySummaryScreen() {
     fontSize: 14,
     fontWeight: '400',
     color: theme.colors.text,
+  };
+
+  const mapCaptionStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: -8,
   };
 
   const gridContainerStyle: ViewStyle = {
@@ -235,6 +289,14 @@ export function DailySummaryScreen() {
         }
         showsVerticalScrollIndicator
       >
+        {/* Mapa dos pedidos do dia com localização (primeiro item da tela) */}
+        <DailyOrdersMap points={mapPoints} />
+        {mapTotalOrders !== null && (
+          <RNText style={mapCaptionStyle} testID="map-caption">
+            {`${mapPoints.length} de ${mapTotalOrders} pedidos com localização`}
+          </RNText>
+        )}
+
         {/* Sub-cards grid 2x2 */}
         <View style={gridContainerStyle}>
           <View style={rowStyle}>

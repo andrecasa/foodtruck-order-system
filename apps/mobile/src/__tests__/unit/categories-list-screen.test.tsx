@@ -16,13 +16,7 @@ jest.mock('expo-router', () => ({
     back: mockBack,
     replace: mockReplace,
   }),
-  useFocusEffect: (cb: () => void) => {
-    // Execute the callback immediately on render
-    const { useEffect } = require('react');
-    useEffect(() => {
-      cb();
-    }, []);
-  },
+  useFocusEffect: require('../helpers/mockExpoRouter').useMockFocusEffect,
   useNavigation: () => ({
     canGoBack: () => true,
   }),

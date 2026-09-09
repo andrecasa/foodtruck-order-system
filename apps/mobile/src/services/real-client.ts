@@ -1,16 +1,22 @@
 import type {
   MenuItem,
+  MenuItemStatus,
   CreateMenuItemRequest,
   UpdateMenuItemRequest,
   Order,
   OrderStatus,
+  OrderOrigin,
+  PaymentStatus,
+  PaymentMethod,
   CreateOrderRequest,
   UpdateOrderStatusRequest,
   UpdateOrderItemsRequest,
   RegisterPaymentRequest,
   DailySummary,
   MonthlySummaryResponse,
+  MonthlyHeatmapResponse,
   Category,
+  CategoryStatus,
   CreateCategoryRequest,
   UpdateCategoryRequest,
   ReorderCategoriesRequest,
@@ -18,6 +24,15 @@ import type {
 import type { ApiClient } from './types';
 import { tokenStorage } from './token-storage';
 import { authEvents } from './auth-events';
+import {
+  asRecord,
+  asRecordArray,
+  pickNumber,
+  pickOptionalNumber,
+  pickOptionalString,
+  pickString,
+  type RawRecord,
+} from './api-parsing';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -163,81 +178,105 @@ export class NetworkError extends Error {
 }
 
 /**
- * Maps backend menu response (grouped by category) to flat MenuItem array.
+ * Mapeia um registro cru de item de menu (camelCase ou snake_case) para
+ * `MenuItem`. Aceita a `category` do grupo como fallback (usado no formato
+ * agrupado). O `status` vem do backend, a autoridade final do domínio.
  */
-function flattenMenuResponse(grouped: { category: string; items: any[] }[]): MenuItem[] {
+function mapMenuItemRecord(raw: RawRecord, groupCategory?: string): MenuItem {
+  return {
+    id: pickString(raw, 'id'),
+    name: pickString(raw, 'name'),
+    price: pickNumber(raw, ['price_cents', 'priceCents', 'price']),
+    category: pickString(raw, 'category') || (groupCategory ?? ''),
+    status: pickString(raw, 'status') as MenuItemStatus,
+    createdAt: pickString(raw, 'createdAt', 'created_at'),
+    updatedAt: pickString(raw, 'updatedAt', 'updated_at'),
+  };
+}
+
+/**
+ * Achata a resposta agrupada do menu (`[{ category, items }]`) em uma lista
+ * plana de `MenuItem`.
+ */
+function flattenMenuResponse(grouped: RawRecord[]): MenuItem[] {
   const result: MenuItem[] = [];
   for (const group of grouped) {
-    for (const item of group.items) {
-      result.push({
-        id: item.id,
-        name: item.name,
-        price: item.price_cents ?? item.priceCents ?? item.price,
-        category: item.category ?? group.category,
-        status: item.status,
-        createdAt: item.createdAt ?? item.created_at,
-        updatedAt: item.updatedAt ?? item.updated_at,
-      });
+    const groupCategory = pickString(group, 'category');
+    for (const item of asRecordArray(group.items)) {
+      result.push(mapMenuItemRecord(item, groupCategory));
     }
   }
   return result;
 }
 
 /**
- * Maps backend order response to the shared Order interface.
+ * Mapeia a resposta crua de pedido para a interface compartilhada `Order`,
+ * tolerando camelCase e snake_case. Os campos de union (`origin`, `status`,
+ * `paymentStatus`, `paymentMethod`) vêm validados pelo backend.
  */
-function mapOrder(raw: any): Order {
+function mapOrder(value: unknown): Order {
+  const raw = asRecord(value);
+  const paymentMethod = pickOptionalString(raw, 'paymentMethod', 'payment_method');
   return {
-    id: raw.id,
-    dailyNumber: raw.dailyNumber ?? raw.daily_number,
-    customerName: raw.customerName ?? raw.customer_name,
-    origin: raw.origin,
-    status: raw.status,
-    paymentStatus: raw.paymentStatus ?? raw.payment_status,
-    paymentMethod: raw.paymentMethod ?? raw.payment_method ?? undefined,
-    items: (raw.items || []).map((i: any) => ({
-      menuItemId: i.menuItemId ?? i.menu_item_id,
-      name: i.itemName ?? i.item_name ?? i.name,
-      quantity: i.quantity,
-      unitPrice: i.unitPriceCents ?? i.unit_price_cents ?? i.unitPrice,
+    id: pickString(raw, 'id'),
+    dailyNumber: pickNumber(raw, ['dailyNumber', 'daily_number']),
+    customerName: pickString(raw, 'customerName', 'customer_name'),
+    origin: pickString(raw, 'origin') as OrderOrigin,
+    status: pickString(raw, 'status') as OrderStatus,
+    paymentStatus: pickString(raw, 'paymentStatus', 'payment_status') as PaymentStatus,
+    paymentMethod: paymentMethod as PaymentMethod | undefined,
+    items: asRecordArray(raw.items).map((i) => ({
+      menuItemId: pickString(i, 'menuItemId', 'menu_item_id'),
+      name: pickString(i, 'itemName', 'item_name', 'name'),
+      quantity: pickNumber(i, ['quantity']),
+      unitPrice: pickNumber(i, ['unitPriceCents', 'unit_price_cents', 'unitPrice']),
     })),
-    totalAmount: raw.totalAmountCents ?? raw.total_amount_cents ?? raw.totalAmount,
-    createdAt: raw.createdAt ?? raw.created_at,
-    startedAt: raw.startedAt ?? raw.started_at ?? undefined,
-    readyAt: raw.readyAt ?? raw.ready_at ?? undefined,
-    deliveredAt: raw.deliveredAt ?? raw.delivered_at ?? undefined,
-    paidAt: raw.paidAt ?? raw.paid_at ?? undefined,
-    latitude: raw.latitude ?? undefined,
-    longitude: raw.longitude ?? undefined,
+    totalAmount: pickNumber(raw, ['totalAmountCents', 'total_amount_cents', 'totalAmount']),
+    createdAt: pickString(raw, 'createdAt', 'created_at'),
+    startedAt: pickOptionalString(raw, 'startedAt', 'started_at'),
+    readyAt: pickOptionalString(raw, 'readyAt', 'ready_at'),
+    deliveredAt: pickOptionalString(raw, 'deliveredAt', 'delivered_at'),
+    paidAt: pickOptionalString(raw, 'paidAt', 'paid_at'),
+    latitude: pickOptionalNumber(raw, 'latitude'),
+    longitude: pickOptionalNumber(raw, 'longitude'),
   };
 }
 
 /**
- * Maps a single backend menu item response to the shared MenuItem interface.
+ * Mapeia a resposta crua de um item de menu individual para `MenuItem`.
  */
-function mapMenuItem(raw: any): MenuItem {
-  return {
-    id: raw.id,
-    name: raw.name,
-    price: raw.price_cents ?? raw.priceCents ?? raw.price,
-    category: raw.category,
-    status: raw.status,
-    createdAt: raw.createdAt ?? raw.created_at,
-    updatedAt: raw.updatedAt ?? raw.updated_at,
-  };
+function mapMenuItem(value: unknown): MenuItem {
+  return mapMenuItemRecord(asRecord(value));
 }
 
 /**
- * Maps a backend category response to the shared Category interface.
+ * Interpreta a resposta do menu, que vem em um de dois formatos:
+ * - agrupada por categoria (`[{ category, items }]`) — o formato padrão;
+ * - já plana (`[MenuItem, ...]`) — fallback.
+ * Detecta o formato agrupado pela presença de `items` no primeiro elemento.
  */
-function mapCategory(raw: any): Category {
+function parseMenuResponse(value: unknown): MenuItem[] {
+  const list = asRecordArray(value);
+  const first = list[0];
+  const isGrouped = first !== undefined && 'items' in first;
+  if (isGrouped) {
+    return flattenMenuResponse(list);
+  }
+  return list.map((item) => mapMenuItemRecord(item));
+}
+
+/**
+ * Mapeia a resposta crua de categoria para a interface compartilhada `Category`.
+ */
+function mapCategory(value: unknown): Category {
+  const raw = asRecord(value);
   return {
-    id: raw.id,
-    name: raw.name,
-    sortOrder: raw.sortOrder ?? raw.sort_order,
-    status: raw.status,
-    itemCount: raw.itemCount ?? raw.item_count ?? 0,
-    createdAt: raw.createdAt ?? raw.created_at,
+    id: pickString(raw, 'id'),
+    name: pickString(raw, 'name'),
+    sortOrder: pickNumber(raw, ['sortOrder', 'sort_order']),
+    status: pickString(raw, 'status') as CategoryStatus,
+    itemCount: pickNumber(raw, ['itemCount', 'item_count']),
+    createdAt: pickString(raw, 'createdAt', 'created_at'),
   };
 }
 
@@ -330,23 +369,14 @@ export const realClient: ApiClient = {
 
   async getMenu(): Promise<MenuItem[]> {
     const response = await authFetch('/api/menu');
-    const data = await response.json();
-    // Backend returns grouped format: [{category, items}]
-    if (Array.isArray(data) && data.length > 0 && data[0].items) {
-      return flattenMenuResponse(data);
-    }
-    // Fallback: already flat
-    return (data as any[]).map(mapMenuItem);
+    const data: unknown = await response.json();
+    return parseMenuResponse(data);
   },
 
   async getAllMenuItems(): Promise<MenuItem[]> {
     const response = await authFetch('/api/menu?all=true');
-    const data = await response.json();
-    // Backend returns grouped format: [{category, items}]
-    if (Array.isArray(data) && data.length > 0 && data[0].items) {
-      return flattenMenuResponse(data);
-    }
-    return (data as any[]).map(mapMenuItem);
+    const data: unknown = await response.json();
+    return parseMenuResponse(data);
   },
 
   async createMenuItem(data: CreateMenuItemRequest): Promise<MenuItem> {
@@ -394,8 +424,10 @@ export const realClient: ApiClient = {
     const query = params.toString();
     if (query) url += `?${query}`;
     const response = await authFetch(url);
-    const data = await response.json();
-    const orders: Order[] = (Array.isArray(data) ? data : data.orders || []).map(mapOrder);
+    const data: unknown = await response.json();
+    // A rota pode responder um array direto ou `{ orders: [...] }`.
+    const rawOrders = Array.isArray(data) ? data : asRecord(data).orders;
+    const orders: Order[] = asRecordArray(rawOrders).map(mapOrder);
 
     // Sort delivered orders by deliveredAt descending, others by createdAt ascending
     if (filter?.status?.includes('entregue') && filter.status.length === 1) {
@@ -482,10 +514,26 @@ export const realClient: ApiClient = {
     return response.json();
   },
 
+  async getMonthlyHeatmap(year: number, month: number): Promise<MonthlyHeatmapResponse> {
+    const response = await authFetch(`/api/summary/monthly/heatmap?year=${year}&month=${month}`);
+    const raw = asRecord(await response.json());
+    return {
+      year: pickNumber(raw, ['year'], year),
+      month: pickNumber(raw, ['month'], month),
+      totalOrders: pickNumber(raw, ['totalOrders', 'total_orders']),
+      geolocatedOrders: pickNumber(raw, ['geolocatedOrders', 'geolocated_orders']),
+      points: asRecordArray(raw.points).map((p) => ({
+        latitude: pickNumber(p, ['latitude', 'lat']),
+        longitude: pickNumber(p, ['longitude', 'lng']),
+        weight: pickNumber(p, ['weight'], 1),
+      })),
+    };
+  },
+
   async getCategories(): Promise<Category[]> {
     const response = await authFetch('/api/categories');
-    const data = await response.json();
-    return (data as any[]).map(mapCategory);
+    const data: unknown = await response.json();
+    return asRecordArray(data).map(mapCategory);
   },
 
   async createCategory(data: CreateCategoryRequest): Promise<Category> {
@@ -511,8 +559,8 @@ export const realClient: ApiClient = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    const rawList = await response.json();
-    return (rawList as any[]).map(mapCategory);
+    const rawList: unknown = await response.json();
+    return asRecordArray(rawList).map(mapCategory);
   },
 
   async toggleCategoryStatus(id: string, action: 'activate' | 'deactivate'): Promise<Category> {

@@ -15,12 +15,7 @@ jest.mock('expo-router', () => ({
     back: mockBack,
     replace: mockReplace,
   }),
-  useFocusEffect: (cb: () => void) => {
-    const { useEffect } = require('react');
-    useEffect(() => {
-      cb();
-    }, []);
-  },
+  useFocusEffect: require('../helpers/mockExpoRouter').useMockFocusEffect,
 }));
 
 jest.mock('../../hooks/useRealtime', () => ({

@@ -241,22 +241,29 @@ export function OrderQueueScreen() {
   const { status: realtimeStatus } = useRealtime({
     channels: realtimeChannels,
     onEvent: useCallback((event) => {
+      // `event.payload` é `unknown` (o formato varia por emissor): fazemos o
+      // narrowing para extrair o `id` do pedido, se houver.
       const payload = event.payload;
-      if (!payload || !payload.id) {
+      const orderId =
+        typeof payload === 'object' && payload !== null && typeof (payload as { id?: unknown }).id === 'string'
+          ? (payload as { id: string }).id
+          : null;
+
+      if (!orderId) {
         refetchOrders();
         return;
       }
 
       // Handle order deletion
       if (event.event === 'order_deleted') {
-        setOrders((prev) => prev.filter((o) => o.id !== payload.id));
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
         fetchDaysWithOrders(year, month);
         return;
       }
 
       // For realtime updates, just refetch to avoid stale filter issues
       refetchOrders();
-    }, [refetchOrders]),
+    }, [refetchOrders, fetchDaysWithOrders, year, month]),
     onReconnect: useCallback(() => {
       refetchOrders();
     }, [refetchOrders]),

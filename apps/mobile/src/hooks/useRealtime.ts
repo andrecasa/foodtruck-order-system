@@ -10,7 +10,12 @@ export type RealtimeStatus = 'connected' | 'disconnected' | 'reconnecting';
 export interface RealtimeEvent {
   channel: string;
   event: string;
-  payload: any;
+  /**
+   * Corpo do evento de broadcast. O formato depende do emissor no backend, por
+   * isso é `unknown`: o consumidor faz o narrowing do que precisa (ex.: checar
+   * `payload.id` antes de usar).
+   */
+  payload: unknown;
 }
 
 interface UseRealtimeOptions {
@@ -189,6 +194,11 @@ export function useRealtime({ channels, onEvent, onReconnect, enabled = true }: 
       }
       channelsRef.current = [];
     };
+    // `channels` é lido aqui, mas a dependência correta é `channelKey`
+    // (`channels.join(',')`): reassinar apenas quando o CONJUNTO de canais muda,
+    // não a cada novo array com o mesmo conteúdo. Reassinar por identidade de
+    // array reconectaria o Realtime a cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, channelKey, doSubscribe]);
 
   // ─── AppState: reload data when returning from background ─────────────

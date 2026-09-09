@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDailySummary, getMonthlySummary } from '../controllers/summary.controller.js';
+import { getDailySummary, getMonthlySummary, getMonthlyHeatmap } from '../controllers/summary.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { syncUserMiddleware } from '../middleware/sync-user.middleware.js';
 import { tenantMiddleware } from '../middleware/tenant.middleware.js';
@@ -11,5 +11,8 @@ router.get('/today', authMiddleware, syncUserMiddleware, tenantMiddleware, getDa
 
 // GET /api/summary/monthly - Get monthly summary with per-day breakdown
 router.get('/monthly', authMiddleware, syncUserMiddleware, tenantMiddleware, getMonthlySummary);
+
+// GET /api/summary/monthly/heatmap - Heatmap points + total/geolocated counters
+router.get('/monthly/heatmap', authMiddleware, syncUserMiddleware, tenantMiddleware, getMonthlyHeatmap);
 
 export default router;

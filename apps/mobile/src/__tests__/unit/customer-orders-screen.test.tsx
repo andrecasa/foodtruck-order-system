@@ -11,10 +11,7 @@ const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), replace: mockReplace, back: jest.fn() }),
   // Run the focus callback immediately (like a mount effect).
-  useFocusEffect: (cb: () => void) => {
-    const { useEffect } = require('react');
-    useEffect(() => cb(), []);
-  },
+  useFocusEffect: require('../helpers/mockExpoRouter').useMockFocusEffect,
 }));
 
 jest.mock('../../hooks/customer/usePublicBranding', () => ({

@@ -1,6 +1,12 @@
 import { tenantRepository } from '../db/tenant-repository.js';
 import { toZonedTime, format } from 'date-fns-tz';
-import type { DailySummary, MonthlySummaryResponse, DayBreakdown } from '@order-system/shared';
+import type {
+  DailySummary,
+  MonthlySummaryResponse,
+  DayBreakdown,
+  MonthlyHeatmapResponse,
+  HeatmapPoint,
+} from '@order-system/shared';
 
 // --- Constants ---
 
@@ -17,6 +23,15 @@ const monthlyCache = new Map<string, CacheEntry>();
 const CACHE_TTL_CURRENT_MONTH = 60_000; // 1 minute for current month
 const CACHE_TTL_PAST_MONTH = 3600_000;  // 1 hour for past months
 
+// Cache do heatmap mensal, separado do de totais (chave sufixada com :heatmap)
+// para não colidir. Segue a mesma política de TTL: mês corrente muda (TTL curto),
+// meses passados são imutáveis (TTL longo).
+interface HeatmapCacheEntry {
+  data: MonthlyHeatmapResponse;
+  expiresAt: number;
+}
+const heatmapCache = new Map<string, HeatmapCacheEntry>();
+
 /**
  * Cache key is scoped to the tenant so one tenant's monthly summary can never
  * be served to another (R6.1). Different tenants keep independent cache entries
@@ -24,6 +39,11 @@ const CACHE_TTL_PAST_MONTH = 3600_000;  // 1 hour for past months
  */
 function getCacheKey(tenantId: string, year: number, month: number): string {
   return `${tenantId}:${year}-${month}`;
+}
+
+/** Chave do cache do heatmap (sufixo :heatmap para não colidir com os totais). */
+function getHeatmapCacheKey(tenantId: string, year: number, month: number): string {
+  return `${tenantId}:${year}-${month}:heatmap`;
 }
 
 function isCurrentMonth(year: number, month: number): boolean {
@@ -39,11 +59,17 @@ function isCurrentMonth(year: number, month: number): boolean {
 export function invalidateMonthlySummaryCache(tenantId: string, year?: number, month?: number): void {
   if (year && month) {
     monthlyCache.delete(getCacheKey(tenantId, year, month));
+    heatmapCache.delete(getHeatmapCacheKey(tenantId, year, month));
   } else {
     const prefix = `${tenantId}:`;
     for (const key of monthlyCache.keys()) {
       if (key.startsWith(prefix)) {
         monthlyCache.delete(key);
+      }
+    }
+    for (const key of heatmapCache.keys()) {
+      if (key.startsWith(prefix)) {
+        heatmapCache.delete(key);
       }
     }
   }
@@ -216,6 +242,82 @@ export async function getMonthlySummary(
   // requested month is the current month (shorter) or a past month (longer).
   const ttl = isCurrentMonth(year, month) ? CACHE_TTL_CURRENT_MONTH : CACHE_TTL_PAST_MONTH;
   monthlyCache.set(cacheKey, { data: response, expiresAt: Date.now() + ttl });
+
+  return response;
+}
+
+/**
+ * Retorna os dados do mapa de calor (heatmap) do mês para um tenant: pontos
+ * agregados por coordenada (somente pedidos geolocalizados) e os contadores de
+ * total geral vs. geolocalizados. Escopo por tenant via TenantRepository (R6.1):
+ * `tenant_id = $1` é obrigatório nas queries `raw()`.
+ *
+ * Os pontos são agregados por coordenada arredondada (4 casas ≈ ~11m) para
+ * reduzir o payload quando muitos pedidos partem do mesmo local; `weight` é a
+ * contagem de pedidos naquele ponto. O heatmap usa só quem tem coordenada, mas
+ * `totalOrders` conta TODOS os pedidos do mês (com ou sem localização).
+ *
+ * Resultados são cacheados por tenant/mês (chave :heatmap), com TTL curto no
+ * mês corrente e longo em meses passados.
+ */
+export async function getMonthlyHeatmap(
+  tenantId: string,
+  year: number,
+  month: number,
+): Promise<MonthlyHeatmapResponse> {
+  const repo = tenantRepository(tenantId);
+
+  // Serve do cache tenant-scoped quando ainda fresco.
+  const cacheKey = getHeatmapCacheKey(tenantId, year, month);
+  const cached = heatmapCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
+  // Contadores: total geral do mês e quantos têm coordenada (tenant_id = $1).
+  const countRows = await repo.raw<{ total_orders: number; geolocated_orders: number }>(
+    `SELECT
+      COUNT(*)::int AS total_orders,
+      COUNT(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL)::int AS geolocated_orders
+    FROM orders
+    WHERE tenant_id = $1 AND order_date >= $2 AND order_date <= $3`,
+    [tenantId, firstDay, lastDay],
+  );
+
+  // Pontos agregados por coordenada arredondada (só geolocalizados).
+  const pointRows = await repo.raw<{ lat: string; lng: string; weight: number }>(
+    `SELECT
+      ROUND(latitude::numeric, 4) AS lat,
+      ROUND(longitude::numeric, 4) AS lng,
+      COUNT(*)::int AS weight
+    FROM orders
+    WHERE tenant_id = $1 AND order_date >= $2 AND order_date <= $3
+      AND latitude IS NOT NULL AND longitude IS NOT NULL
+    GROUP BY ROUND(latitude::numeric, 4), ROUND(longitude::numeric, 4)`,
+    [tenantId, firstDay, lastDay],
+  );
+
+  const countRow = countRows[0]!;
+  const points: HeatmapPoint[] = pointRows.map((row) => ({
+    latitude: Number(row.lat),
+    longitude: Number(row.lng),
+    weight: row.weight,
+  }));
+
+  const response: MonthlyHeatmapResponse = {
+    year,
+    month,
+    totalOrders: countRow.total_orders,
+    geolocatedOrders: countRow.geolocated_orders,
+    points,
+  };
+
+  const ttl = isCurrentMonth(year, month) ? CACHE_TTL_CURRENT_MONTH : CACHE_TTL_PAST_MONTH;
+  heatmapCache.set(cacheKey, { data: response, expiresAt: Date.now() + ttl });
 
   return response;
 }

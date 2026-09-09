@@ -1,8 +1,8 @@
 import {
   computeMapBounds,
   DEFAULT_CENTER,
-  DEFAULT_ZOOM,
   COUNTRY_ZOOM,
+  SINGLE_LOCATION_ZOOM,
 } from '../../components/DailyOrdersMap.bounds';
 import type { OrderMapPoint } from '../../components/DailyOrdersMap.types';
 
@@ -26,11 +26,11 @@ describe('computeMapBounds', () => {
     expect(result.fallbackZoom).toBe(COUNTRY_ZOOM);
   });
 
-  it('um ponto: centra no ponto com zoom padrão e sem bounding box', () => {
+  it('um ponto: centra no ponto com zoom de rua/bairro e sem bounding box', () => {
     const result = computeMapBounds([point({ latitude: -23.55, longitude: -46.63 })]);
     expect(result.center).toEqual([-23.55, -46.63]);
     expect(result.boundingBox).toBeNull();
-    expect(result.fallbackZoom).toBe(DEFAULT_ZOOM);
+    expect(result.fallbackZoom).toBe(SINGLE_LOCATION_ZOOM);
   });
 
   it('dois ou mais pontos: bounding box englobando todos e centro no meio', () => {
@@ -43,5 +43,17 @@ describe('computeMapBounds', () => {
       [-23.0, -46.0],
     ]);
     expect(result.center).toEqual([-24.0, -47.0]);
+  });
+
+  it('vários pontos TODOS no mesmo local: zoom de rua/bairro e sem bounding box', () => {
+    // Caso food truck / venda presencial: N pedidos na mesma coordenada.
+    const result = computeMapBounds([
+      point({ id: 'a', latitude: -25.4756, longitude: -49.1935 }),
+      point({ id: 'b', latitude: -25.4756, longitude: -49.1935 }),
+      point({ id: 'c', latitude: -25.4756, longitude: -49.1935 }),
+    ]);
+    expect(result.boundingBox).toBeNull();
+    expect(result.fallbackZoom).toBe(SINGLE_LOCATION_ZOOM);
+    expect(result.center).toEqual([-25.4756, -49.1935]);
   });
 });

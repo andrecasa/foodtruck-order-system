@@ -18,10 +18,16 @@ export interface LatLngLike {
 
 /** Coordenada central padrão (Brasil) usada quando não há pontos. */
 export const DEFAULT_CENTER: readonly [number, number] = [-14.235, -51.925];
-/** Zoom padrão quando não há pontos ou há apenas um. */
+/** Zoom padrão de fallback (usado com pontos dispersos, quando há bounding box). */
 export const DEFAULT_ZOOM = 13;
 /** Zoom usado quando o país inteiro é exibido (sem pontos). */
 export const COUNTRY_ZOOM = 4;
+/**
+ * Zoom usado quando todos os pontos coincidem (mesmo local): sem dispersão para
+ * dar `fitBounds`, aproximamos ao nível de rua/bairro em vez de deixar o Leaflet
+ * dar zoom máximo num bounding box degenerado (área zero).
+ */
+export const SINGLE_LOCATION_ZOOM = 16;
 
 export interface MapBounds {
   /** Centro [lat, lng]. */
@@ -33,10 +39,14 @@ export interface MapBounds {
 }
 
 /**
- * Deriva centro e bounding box dos pontos.
+ * Deriva centro e bounding box dos pontos. Comportamento compartilhado por
+ * todos os mapas (pins do dia e heatmap do mês) para enquadramento consistente:
  * - 0 pontos: centro no Brasil, zoom de país, sem bounding box.
- * - 1 ponto: centraliza no ponto com zoom padrão, sem bounding box.
- * - 2+ pontos: bounding box englobando todos, centro no meio.
+ * - 1 ponto: centraliza no ponto com zoom de rua/bairro (`SINGLE_LOCATION_ZOOM`).
+ * - 2+ pontos TODOS no mesmo local: centraliza com `SINGLE_LOCATION_ZOOM`, sem
+ *   bounding box — evita o zoom máximo que o Leaflet daria num bounding box de
+ *   área zero.
+ * - 2+ pontos dispersos: bounding box englobando todos, centro no meio.
  */
 export function computeMapBounds(points: LatLngLike[]): MapBounds {
   if (points.length === 0) {
@@ -52,7 +62,7 @@ export function computeMapBounds(points: LatLngLike[]): MapBounds {
     return {
       center: [first.latitude, first.longitude],
       boundingBox: null,
-      fallbackZoom: DEFAULT_ZOOM,
+      fallbackZoom: SINGLE_LOCATION_ZOOM,
     };
   }
 
@@ -66,6 +76,16 @@ export function computeMapBounds(points: LatLngLike[]): MapBounds {
     if (p.latitude > maxLat) maxLat = p.latitude;
     if (p.longitude < minLng) minLng = p.longitude;
     if (p.longitude > maxLng) maxLng = p.longitude;
+  }
+
+  // Todos os pontos no mesmo lugar → bounding box degenerado. Trata como
+  // "local único" com zoom aproximado, em vez de deixar o fitBounds colar.
+  if (minLat === maxLat && minLng === maxLng) {
+    return {
+      center: [first.latitude, first.longitude],
+      boundingBox: null,
+      fallbackZoom: SINGLE_LOCATION_ZOOM,
+    };
   }
 
   return {

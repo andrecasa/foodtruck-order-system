@@ -10,10 +10,17 @@
  * mesmo ponto (um único ponto com peso alto que, sem isso, ficava fraco).
  */
 import type { HeatmapPoint } from './MonthlyHeatmap.types';
-import { computeMapBounds, type MapBounds } from './DailyOrdersMap.bounds';
+import { computeMapBounds, SINGLE_LOCATION_ZOOM, type MapBounds } from './DailyOrdersMap.bounds';
 
 /** Tupla [lat, lng, intensidade 0..1] no formato do Leaflet.heat. */
 export type HeatTuple = [number, number, number];
+
+/**
+ * Reexportado por compatibilidade: o zoom de "local único" agora vive em
+ * `DailyOrdersMap.bounds` e é aplicado pelo próprio `computeMapBounds`, para que
+ * o enquadramento seja idêntico entre o mapa de pins (diário) e o heatmap (mensal).
+ */
+export { SINGLE_LOCATION_ZOOM };
 
 /**
  * Opções visuais do heatmap, calibradas para boa visibilidade sobre tiles
@@ -39,33 +46,17 @@ export const HEAT_OPTIONS = {
   },
 } as const;
 
-/**
- * Zoom usado quando todos os pontos coincidem (mesmo local) ou há um só ponto:
- * sem dispersão para dar `fitBounds`, aproximamos o suficiente para o calor
- * aparecer com contexto de rua/bairro.
- */
-export const SINGLE_LOCATION_ZOOM = 16;
-
 export interface HeatmapData {
   /** Tuplas [lat, lng, intensidade] prontas para `L.heatLayer`. */
   tuples: HeatTuple[];
-  /** Enquadramento; `boundingBox` é null quando os pontos coincidem. */
+  /** Enquadramento (mesmo cálculo do mapa de pins, via `computeMapBounds`). */
   bounds: MapBounds;
 }
 
-/** Verdadeiro quando todos os pontos estão praticamente no mesmo lugar. */
-function pointsCoincide(points: HeatmapPoint[]): boolean {
-  if (points.length <= 1) return true;
-  const first = points[0]!;
-  return points.every(
-    (p) => p.latitude === first.latitude && p.longitude === first.longitude,
-  );
-}
-
 /**
- * Normaliza os pesos para 0..1 e resolve o enquadramento. Quando os pontos
- * coincidem, força um zoom aproximado (`SINGLE_LOCATION_ZOOM`) em vez do bounding
- * box degenerado, para o calor não ficar minúsculo.
+ * Normaliza os pesos para 0..1 e resolve o enquadramento via `computeMapBounds`
+ * (o mesmo do mapa de pins — inclusive o tratamento de "todos no mesmo local"),
+ * garantindo zoom consistente entre as telas.
  */
 export function prepareHeatmapData(points: HeatmapPoint[]): HeatmapData {
   const maxWeight = points.reduce((m, p) => Math.max(m, p.weight), 1);
@@ -75,11 +66,5 @@ export function prepareHeatmapData(points: HeatmapPoint[]): HeatmapData {
     p.weight / maxWeight,
   ]);
 
-  const base = computeMapBounds(points);
-  const bounds: MapBounds =
-    pointsCoincide(points) && points.length > 0
-      ? { center: base.center, boundingBox: null, fallbackZoom: SINGLE_LOCATION_ZOOM }
-      : base;
-
-  return { tuples, bounds };
+  return { tuples, bounds: computeMapBounds(points) };
 }

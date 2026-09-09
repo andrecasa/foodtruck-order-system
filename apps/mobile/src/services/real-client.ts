@@ -15,6 +15,8 @@ import type {
   DailySummary,
   MonthlySummaryResponse,
   MonthlyHeatmapResponse,
+  TopProductsResponse,
+  TopProduct,
   Category,
   CategoryStatus,
   CreateCategoryRequest,
@@ -280,8 +282,54 @@ function mapCategory(value: unknown): Category {
   };
 }
 
+/**
+ * Mapeia um produto cru do ranking "Top mais vendidos" para `TopProduct`,
+ * tolerando tanto camelCase quanto snake_case (mesma convenção dos outros
+ * mapeadores do client).
+ */
+function mapTopProduct(value: unknown): TopProduct {
+  const raw = asRecord(value);
+  return {
+    menuItemId: pickString(raw, 'menuItemId', 'menu_item_id'),
+    name: pickString(raw, 'name'),
+    categoryId: pickString(raw, 'categoryId', 'category_id'),
+    quantitySold: pickNumber(raw, ['quantitySold', 'quantity_sold']),
+    revenueCents: pickNumber(raw, ['revenueCents', 'revenue_cents']),
+  };
+}
+
+/**
+ * Monta a query string dos rankings diários a partir de `date`/`categoryIds`
+ * opcionais. `categoryIds` é serializado como CSV (`?categoryIds=a,b`).
+ */
+function buildTopProductsQuery(options: { date?: string; categoryIds?: string[] }): string {
+  const params = new URLSearchParams();
+  if (options.date) {
+    params.set('date', options.date);
+  }
+  if (options.categoryIds && options.categoryIds.length > 0) {
+    params.set('categoryIds', options.categoryIds.join(','));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+/**
+ * Normaliza a resposta crua do ranking para `TopProductsResponse`. Faz fallback
+ * de `categoryIds` para o filtro requisitado quando o backend não o ecoa.
+ */
+function parseTopProductsResponse(value: unknown, requestedCategoryIds: string[]): TopProductsResponse {
+  const raw = asRecord(value);
+  const products = asRecordArray(raw.products).map(mapTopProduct);
+  const echoed = raw.categoryIds ?? raw.category_ids;
+  const categoryIds = Array.isArray(echoed)
+    ? echoed.filter((id): id is string => typeof id === 'string')
+    : requestedCategoryIds;
+  return { products, categoryIds };
+}
+
 export const realClient: ApiClient = {
-  async login(email: string, password: string): Promise<{ token: string }> {
+  async login(email, password) {
     let response: Response;
     try {
       response = await fetch(`${API_URL}/api/auth/login`, {
@@ -313,7 +361,7 @@ export const realClient: ApiClient = {
     // Store tokens
     await tokenStorage.setTokens(data.accessToken, data.refreshToken, data.expiresIn);
 
-    return { token: data.accessToken };
+    return { token: data.accessToken, role: data.user?.role };
   },
 
   async logout(): Promise<void> {
@@ -528,6 +576,21 @@ export const realClient: ApiClient = {
         weight: pickNumber(p, ['weight'], 1),
       })),
     };
+  },
+
+  async getDailyTopProducts(options: { date?: string; categoryIds?: string[] } = {}): Promise<TopProductsResponse> {
+    const query = buildTopProductsQuery(options);
+    const response = await authFetch(`/api/summary/top-products/daily${query}`);
+    return parseTopProductsResponse(await response.json(), options.categoryIds ?? []);
+  },
+
+  async getMonthlyTopProducts(options: { year: number; month: number; categoryIds?: string[] }): Promise<TopProductsResponse> {
+    const params = new URLSearchParams({ year: String(options.year), month: String(options.month) });
+    if (options.categoryIds && options.categoryIds.length > 0) {
+      params.set('categoryIds', options.categoryIds.join(','));
+    }
+    const response = await authFetch(`/api/summary/top-products/monthly?${params.toString()}`);
+    return parseTopProductsResponse(await response.json(), options.categoryIds ?? []);
   },
 
   async getCategories(): Promise<Category[]> {

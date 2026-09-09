@@ -5,6 +5,11 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
+    /**
+     * Papel do usuário na aplicação. Preenchido pelo `syncUserMiddleware` a
+     * partir da linha em `users`; fica indefinido até essa sincronização.
+     */
+    role?: 'admin' | 'atendente' | 'preparador';
   };
 }
 

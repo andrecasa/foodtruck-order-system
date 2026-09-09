@@ -6,6 +6,7 @@ import {
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import * as authService from '../services/auth.service.js';
 import { getClientIp } from '../http/client-ip.js';
+import { findUserRoleById } from '../db/user-repository.js';
 
 // O mapeamento HTTP de erros é feito centralmente pelo errorHandler
 // (src/http/error-handler.js): estes handlers lançam ServiceError e as rotas os
@@ -38,7 +39,16 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 
   resetRateLimit(ip);
-  res.status(200).json(result);
+
+  // O login autentica via Supabase, que não conhece o papel do usuário. O papel
+  // vive na tabela `users` (autoridade para as áreas restritas a admin no
+  // cliente), então o resolvemos aqui e o incluímos na resposta.
+  const role = await findUserRoleById(result.user.id);
+
+  res.status(200).json({
+    ...result,
+    user: { ...result.user, ...(role ? { role } : {}) },
+  });
 }
 
 export async function logout(req: AuthenticatedRequest, res: Response): Promise<void> {

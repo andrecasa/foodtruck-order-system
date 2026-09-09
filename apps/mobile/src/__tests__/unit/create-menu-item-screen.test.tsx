@@ -104,5 +104,10 @@ describe('CreateMenuItemScreen', () => {
         category: 'Pastéis',
       });
     });
+
+    // Após criar, volta imediatamente ao cardápio (sem tela intermediária de sucesso)
+    await waitFor(() => {
+      expect(mockBack).toHaveBeenCalled();
+    });
   });
 });

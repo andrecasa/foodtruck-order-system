@@ -65,3 +65,31 @@ export interface MonthlyHeatmapResponse {
   /** Pontos agregados por coordenada (somente pedidos geolocalizados). */
   points: HeatmapPoint[];
 }
+
+/**
+ * Produto no ranking "Top mais vendidos" do resumo (diário/mensal). A métrica
+ * principal é a quantidade vendida (`quantitySold`); o faturamento
+ * (`revenueCents`) acompanha para a UI poder exibir ambos. Contabiliza TODOS os
+ * pedidos do período, independentemente do status de pagamento.
+ */
+export interface TopProduct {
+  menuItemId: string;
+  name: string;
+  categoryId: string;
+  /** Soma das quantidades vendidas no período (métrica de ordenação). */
+  quantitySold: number;
+  /** Faturamento do produto no período em centavos (SUM(quantity * unit_price_cents)). */
+  revenueCents: number;
+}
+
+/**
+ * Resposta do ranking "Top 10 produtos mais vendidos". É um ranking único
+ * agregado (até 10 itens), ordenado por quantidade vendida desc (desempate por
+ * faturamento desc). Quando `categoryIds` não é vazio, o ranking considera
+ * apenas produtos dessas categorias; vazio = todas as categorias.
+ */
+export interface TopProductsResponse {
+  products: TopProduct[];
+  /** Filtro de categorias aplicado (ecoa a requisição); `[]` = todas. */
+  categoryIds: string[];
+}

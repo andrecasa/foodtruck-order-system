@@ -15,6 +15,12 @@ export interface LoginResult {
   user: {
     id: string;
     email: string | undefined;
+    /**
+     * Papel do usuário na aplicação. Preenchido pelo controller a partir da
+     * tabela `users` (o Supabase Auth não conhece o papel). Indefinido quando o
+     * usuário ainda não está provisionado.
+     */
+    role?: 'admin' | 'atendente' | 'preparador';
   };
 }
 

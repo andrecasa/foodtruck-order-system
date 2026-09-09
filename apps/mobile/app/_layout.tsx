@@ -90,6 +90,7 @@ function ThemedApp() {
             */}
             <Stack.Screen name="payment" />
             <Stack.Screen name="edit-order-items" />
+            <Stack.Screen name="menu" />
             <Stack.Screen name="create-menu-item" />
             <Stack.Screen name="edit-menu-item" />
             <Stack.Screen name="categories-list" />

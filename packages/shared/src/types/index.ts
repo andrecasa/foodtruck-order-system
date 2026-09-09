@@ -24,6 +24,8 @@ export type {
   DayBreakdown,
   HeatmapPoint,
   MonthlyHeatmapResponse,
+  TopProduct,
+  TopProductsResponse,
 } from './summary';
 
 export type { ThemeConfig } from './theme';

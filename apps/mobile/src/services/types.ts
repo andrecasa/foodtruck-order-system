@@ -11,6 +11,7 @@ import type {
   DailySummary,
   MonthlySummaryResponse,
   MonthlyHeatmapResponse,
+  TopProductsResponse,
   Category,
   CreateCategoryRequest,
   UpdateCategoryRequest,
@@ -23,11 +24,12 @@ import type {
   UpdateUserInput,
   UserFilters,
   UserStatus,
+  UserRole,
 } from '../types/user';
 
 export interface ApiClient {
   // Auth
-  login(email: string, password: string): Promise<{ token: string }>;
+  login(email: string, password: string): Promise<{ token: string; role?: UserRole }>;
   logout(): Promise<void>;
 
   // Password reset (unauthenticated flow)
@@ -57,6 +59,8 @@ export interface ApiClient {
   getDailySummary(date?: string): Promise<DailySummary>;
   getMonthlySummary(year: number, month: number): Promise<MonthlySummaryResponse>;
   getMonthlyHeatmap(year: number, month: number): Promise<MonthlyHeatmapResponse>;
+  getDailyTopProducts(options?: { date?: string; categoryIds?: string[] }): Promise<TopProductsResponse>;
+  getMonthlyTopProducts(options: { year: number; month: number; categoryIds?: string[] }): Promise<TopProductsResponse>;
 
   // Categories
   getCategories(): Promise<Category[]>;

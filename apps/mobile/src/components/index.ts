@@ -42,3 +42,5 @@ export { DailyOrdersMap } from './DailyOrdersMap';
 export type { DailyOrdersMapProps, OrderMapPoint } from './DailyOrdersMap.types';
 export { MonthlyHeatmap } from './MonthlyHeatmap';
 export type { MonthlyHeatmapProps, HeatmapPoint } from './MonthlyHeatmap.types';
+export { TopProductsSection } from './TopProductsSection';
+export type { TopProductsSectionProps } from './TopProductsSection';

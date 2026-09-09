@@ -56,87 +56,92 @@ describe('Summary Controller - getMonthlySummary', () => {
     invalidateMonthlySummaryCache(TENANT);
   });
 
+  // Parâmetros inválidos agora lançam ServiceError(..., 400, 'INVALID_PARAMS');
+  // o mapeamento HTTP fica a cargo do errorHandler central (via asyncHandler nas
+  // rotas). O controller não responde 400 manualmente.
   describe('Parameter validation', () => {
-    it('should return 400 when year param is missing', async () => {
+    it('should throw ServiceError 400 when year param is missing', async () => {
       const req = mockRequest({ month: '8' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
-      expect(res.body.message).toContain('year');
-      expect(res.body.message).toContain('month');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: 'INVALID_PARAMS',
+        message: expect.stringContaining('year'),
+      });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('should return 400 when month param is missing', async () => {
+    it('should throw ServiceError 400 when month param is missing', async () => {
       const req = mockRequest({ year: '2026' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('should return 400 when both year and month params are missing', async () => {
+    it('should throw ServiceError 400 when both year and month params are missing', async () => {
       const req = mockRequest({});
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('should return 400 for month = 0 (below valid range)', async () => {
+    it('should throw ServiceError 400 for month = 0 (below valid range)', async () => {
       const req = mockRequest({ year: '2026', month: '0' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('should return 400 for month = 13 (above valid range)', async () => {
+    it('should throw ServiceError 400 for month = 13 (above valid range)', async () => {
       const req = mockRequest({ year: '2026', month: '13' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('should return 400 for non-integer month (e.g. "3.5")', async () => {
+    it('should throw ServiceError 400 for non-integer month (e.g. "3.5")', async () => {
       const req = mockRequest({ year: '2026', month: '3.5' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('should return 400 for non-numeric month (e.g. "abc")', async () => {
+    it('should throw ServiceError 400 for non-numeric month (e.g. "abc")', async () => {
       const req = mockRequest({ year: '2026', month: 'abc' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('should return 400 for non-integer year (e.g. "20.5")', async () => {
+    it('should throw ServiceError 400 for non-integer year (e.g. "20.5")', async () => {
       const req = mockRequest({ year: '20.5', month: '8' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
   });
 
@@ -310,18 +315,19 @@ describe('Summary Controller - getMonthlySummary', () => {
     });
   });
 
+  // O controller não engole mais o erro: erros inesperados sobem e o asyncHandler
+  // os encaminha ao errorHandler central, que responde 500 INTERNAL_ERROR.
   describe('Internal server error', () => {
-    it('should return 500 when database query fails', async () => {
+    it('should propagate the error when the database query fails', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Connection refused'));
 
       const req = mockRequest({ year: '2026', month: '8' });
       const res = mockResponse();
 
-      await getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(500);
-      expect(res.body.error).toBe('INTERNAL_ERROR');
-      expect(res.body.message).toBe('Erro ao calcular resumo mensal.');
+      await expect(
+        getMonthlySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toThrow('Connection refused');
+      expect(res.statusCode).toBe(0);
     });
   });
 });

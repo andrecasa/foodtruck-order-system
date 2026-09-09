@@ -92,5 +92,36 @@ describe('EditMenuItemScreen', () => {
         name: 'Pastel de Frango',
       });
     });
+
+    // Após salvar, volta imediatamente ao cardápio (sem tela intermediária de sucesso)
+    await waitFor(() => {
+      expect(mockBack).toHaveBeenCalled();
+    });
+  });
+
+  it('exclui o item e volta ao cardápio', async () => {
+    mockDeleteMenuItem.mockResolvedValue(undefined);
+
+    const { getByTestId, getAllByLabelText } = render(
+      <EditMenuItemScreen id="item-1" name="Pastel de Carne" price={800} category="Pastéis" />,
+    );
+
+    await waitFor(() => expect(mockGetCategories).toHaveBeenCalled());
+
+    // Abre o modal de exclusão (o gatilho e o botão de confirmar compartilham o rótulo "Excluir")
+    fireEvent.press(getByTestId('delete-menu-item'));
+
+    // Confirma na modal: o botão de confirmação é o último rótulo "Excluir" renderizado
+    const excluirButtons = getAllByLabelText('Excluir');
+    fireEvent.press(excluirButtons[excluirButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(mockDeleteMenuItem).toHaveBeenCalledWith('item-1');
+    });
+
+    // Após excluir, volta imediatamente ao cardápio (sem tela intermediária de sucesso)
+    await waitFor(() => {
+      expect(mockBack).toHaveBeenCalled();
+    });
   });
 });

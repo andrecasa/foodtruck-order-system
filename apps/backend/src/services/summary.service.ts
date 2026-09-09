@@ -6,6 +6,8 @@ import type {
   DayBreakdown,
   MonthlyHeatmapResponse,
   HeatmapPoint,
+  TopProduct,
+  TopProductsResponse,
 } from '@order-system/shared';
 
 // --- Constants ---
@@ -320,4 +322,132 @@ export async function getMonthlyHeatmap(
   heatmapCache.set(cacheKey, { data: response, expiresAt: Date.now() + ttl });
 
   return response;
+}
+
+// --- Top produtos mais vendidos (ranking único agregado) ---
+
+/** Limite fixo do ranking "Top produtos mais vendidos". */
+const TOP_PRODUCTS_LIMIT = 10;
+
+/** Regex de data ISO (YYYY-MM-DD), mesma convenção do resumo diário. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Resolve a data-alvo do resumo diário: usa `dateParam` se for uma data ISO
+ * válida; caso contrário, "hoje" no fuso America/Sao_Paulo (R12.6). Extraído
+ * para ser reutilizado pelo ranking diário de produtos sem duplicar a lógica.
+ */
+function resolveDailyDate(dateParam?: string): string {
+  if (dateParam && ISO_DATE_RE.test(dateParam)) {
+    return dateParam;
+  }
+  const zonedDate = toZonedTime(new Date(), SAO_PAULO_TZ);
+  return format(zonedDate, 'yyyy-MM-dd', { timeZone: SAO_PAULO_TZ });
+}
+
+/** Primeiro e último dia (YYYY-MM-DD) de um dado ano/mês. */
+function resolveMonthRange(year: number, month: number): { firstDay: string; lastDay: string } {
+  const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  return { firstDay, lastDay };
+}
+
+/**
+ * Função interna compartilhada pelos rankings diário e mensal (Opção B): dado
+ * um intervalo de datas já resolvido (`fromDate`/`toDate`, inclusivos sobre
+ * `order_date`) e uma lista opcional de categorias, retorna o Top N produtos
+ * mais vendidos como um ranking ÚNICO AGREGADO.
+ *
+ * Regras (R — decisões acordadas):
+ * - Métrica principal: quantidade vendida (`SUM(oi.quantity)`), com desempate
+ *   por faturamento (`SUM(oi.quantity * oi.unit_price_cents)`) desc.
+ * - Contabiliza TODOS os pedidos do período (sem filtro de `payment_status`).
+ * - `categoryIds` vazio = todas as categorias; não vazio = apenas produtos das
+ *   categorias informadas (`mi.category_id = ANY($4::uuid[])`), agregados num
+ *   único ranking.
+ *
+ * Escopo por tenant via TenantRepository (R6.1): `tenant_id = $1` é obrigatório
+ * na query `raw()`. O JOIN usa as chaves compostas `(order_id, tenant_id)` e
+ * `(menu_item_id, tenant_id)` para não cruzar dados entre tenants.
+ */
+async function queryTopProducts(
+  tenantId: string,
+  fromDate: string,
+  toDate: string,
+  categoryIds: string[],
+): Promise<TopProduct[]> {
+  const repo = tenantRepository(tenantId);
+
+  const hasCategoryFilter = categoryIds.length > 0;
+  // $4 só é referenciado quando há filtro; caso contrário a cláusula some.
+  const categoryClause = hasCategoryFilter ? 'AND mi.category_id = ANY($4::uuid[])' : '';
+  const params: unknown[] = hasCategoryFilter
+    ? [tenantId, fromDate, toDate, categoryIds]
+    : [tenantId, fromDate, toDate];
+
+  const rows = await repo.raw<{
+    menu_item_id: string;
+    name: string;
+    category_id: string;
+    quantity_sold: number;
+    revenue_cents: string;
+  }>(
+    `SELECT
+      oi.menu_item_id AS menu_item_id,
+      mi.name AS name,
+      mi.category_id AS category_id,
+      SUM(oi.quantity)::int AS quantity_sold,
+      COALESCE(SUM(oi.quantity * oi.unit_price_cents), 0)::bigint AS revenue_cents
+    FROM order_items oi
+    JOIN orders o
+      ON o.id = oi.order_id AND o.tenant_id = oi.tenant_id
+    JOIN menu_items mi
+      ON mi.id = oi.menu_item_id AND mi.tenant_id = oi.tenant_id
+    WHERE oi.tenant_id = $1
+      AND o.order_date >= $2
+      AND o.order_date <= $3
+      ${categoryClause}
+    GROUP BY oi.menu_item_id, mi.name, mi.category_id
+    ORDER BY quantity_sold DESC, revenue_cents DESC
+    LIMIT ${TOP_PRODUCTS_LIMIT}`,
+    params,
+  );
+
+  return rows.map((row) => ({
+    menuItemId: row.menu_item_id,
+    name: row.name,
+    categoryId: row.category_id,
+    quantitySold: row.quantity_sold,
+    revenueCents: Number(row.revenue_cents),
+  }));
+}
+
+/**
+ * Retorna o Top 10 produtos mais vendidos de um DIA para um tenant. Se `date`
+ * não for uma data ISO válida, usa hoje no fuso America/Sao_Paulo (R12.6).
+ * O filtro `categoryIds` (multi-seleção) é opcional; vazio = todas.
+ */
+export async function getDailyTopProducts(
+  tenantId: string,
+  options: { date?: string; categoryIds?: string[] } = {},
+): Promise<TopProductsResponse> {
+  const targetDate = resolveDailyDate(options.date);
+  const categoryIds = options.categoryIds ?? [];
+  const products = await queryTopProducts(tenantId, targetDate, targetDate, categoryIds);
+  return { products, categoryIds };
+}
+
+/**
+ * Retorna o Top 10 produtos mais vendidos de um MÊS para um tenant. O filtro
+ * `categoryIds` (multi-seleção) é opcional; vazio = todas.
+ */
+export async function getMonthlyTopProducts(
+  tenantId: string,
+  options: { year: number; month: number; categoryIds?: string[] },
+): Promise<TopProductsResponse> {
+  const { firstDay, lastDay } = resolveMonthRange(options.year, options.month);
+  const categoryIds = options.categoryIds ?? [];
+  const products = await queryTopProducts(tenantId, firstDay, lastDay, categoryIds);
+  return { products, categoryIds };
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text as RNText, type ViewStyle } from 'react-native';
+import { useTheme } from '../theme';
 
 export interface SubCardProps {
   icon: string;
@@ -15,6 +16,8 @@ export interface SubCardProps {
  * Used in Resumo do Dia, Resumo do Mês, and similar screens.
  */
 export function SubCard({ icon, color, backgroundColor, value, label, labelColor }: SubCardProps) {
+  const theme = useTheme();
+
   const subCardStyle: ViewStyle = {
     flex: 1,
     flexDirection: 'row',
@@ -42,8 +45,8 @@ export function SubCard({ icon, color, backgroundColor, value, label, labelColor
         <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18, color }}>{icon}</RNText>
       </View>
       <View style={{ flex: 1 }}>
-        <RNText style={{ fontSize: 15, fontWeight: '600', color }} numberOfLines={1}>{value}</RNText>
-        <RNText style={{ fontSize: 10, fontWeight: '400', color: labelColor }}>{label}</RNText>
+        <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 15, fontWeight: '600', color }} numberOfLines={1}>{value}</RNText>
+        <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, fontWeight: '400', color: labelColor }}>{label}</RNText>
       </View>
     </View>
   );

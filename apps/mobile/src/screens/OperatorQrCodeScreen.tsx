@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen, Header, Button, HomeHero } from '../components';
+import { Screen, Header, HomeHero } from '../components';
 import { useTheme } from '../theme';
 
 /** Public ordering URL a customer reaches by scanning the QR code. */
@@ -56,12 +56,6 @@ export function OperatorQrCodeScreen() {
           logoAccessibilityLabel={`Logo ${theme.businessName ?? ''}`.trim()}
         />
 
-        <Button
-          title="Novo Pedido"
-          variant="primary"
-          onPress={() => router.push('/(tabs)/new-order')}
-          testID="home-new-order-button"
-        />
       </ScrollView>
     </Screen>
   );

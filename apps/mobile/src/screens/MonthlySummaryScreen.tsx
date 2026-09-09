@@ -9,9 +9,9 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import type { MonthlySummaryResponse, MonthlyHeatmapResponse } from '@order-system/shared';
+import type { MonthlySummaryResponse, MonthlyHeatmapResponse, TopProductsResponse } from '@order-system/shared';
 import { useRouter } from 'expo-router';
-import { Screen, Header, MonthlyHeatmap } from '../components';
+import { Screen, Header, MonthlyHeatmap, TopProductsSection } from '../components';
 import { ErrorState } from '../components/ErrorState';
 import { CalendarModal } from '../components/CalendarModal';
 import { useTheme } from '../theme';
@@ -79,6 +79,14 @@ export function MonthlySummaryScreen() {
       setHeatmap(null);
     }
   }, []);
+
+  // Busca o Top 10 produtos do mês com o filtro de categorias escolhido na seção.
+  // Depende de `year`/`month` para que a troca de mês rebusque o ranking.
+  const fetchTopProducts = useCallback(
+    (categoryIds: string[]): Promise<TopProductsResponse> =>
+      apiClient.getMonthlyTopProducts({ year, month, categoryIds }),
+    [year, month],
+  );
 
   // Initial load
   useEffect(() => {
@@ -154,7 +162,7 @@ export function MonthlySummaryScreen() {
   const sectionTitleStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: theme.colors.text,
   };
 
@@ -166,10 +174,10 @@ export function MonthlySummaryScreen() {
     marginTop: -8,
   };
 
+  // Grid 2×2 dos sub-cards sem "box" branco em volta: cada SubCard já tem seu
+  // próprio fundo colorido e cantos arredondados, então o agrupador só mantém o
+  // espaçamento entre as linhas.
   const gridContainerStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: 14,
     gap: 10,
   };
 
@@ -288,6 +296,9 @@ export function MonthlySummaryScreen() {
           <PaymentRow icon="credit_card" iconColor={theme.colors.preparando} label="Cartão Crédito" value={formatPrice(monthlySummary?.byPaymentMethod?.['cartão crédito'] ?? 0)} textColor={theme.colors.primary} />
           <PaymentRow icon="payments" iconColor={theme.colors.primary} label="Dinheiro" value={formatPrice(monthlySummary?.byPaymentMethod?.dinheiro ?? 0)} textColor={theme.colors.primary} />
         </View>
+
+        {/* Section: Top 10 produtos mais vendidos (com filtro por categoria) */}
+        <TopProductsSection fetchTopProducts={fetchTopProducts} periodKey={`${year}-${month}`} />
       </ScrollView>
 
       {/* Calendar Modal — user picks any day, we use its month/year */}

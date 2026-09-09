@@ -43,6 +43,25 @@ describe('MonthlyHeatmap (nativo/WebView)', () => {
     expect(html).toContain('OpenStreetMap');
   });
 
+  it('enquadra o mapa após o container ter tamanho (whenReady + invalidateSize)', () => {
+    // Regressão: dentro do WebView, chamar fitBounds/setView antes do layout
+    // estabilizar calcula o zoom errado (viewport de tamanho zero). O HTML deve
+    // adiar o enquadramento para whenReady e forçar invalidateSize antes.
+    const { getByTestId } = render(
+      <MonthlyHeatmap
+        points={[
+          point({ latitude: -23.5, longitude: -46.6, weight: 4 }),
+          point({ latitude: -25.0, longitude: -49.2, weight: 1 }),
+        ]}
+      />,
+    );
+    const html = getByTestId('monthly-heatmap-webview').props.accessibilityLabel as string;
+    expect(html).toContain('whenReady');
+    expect(html).toContain('invalidateSize');
+    // O enquadramento continua usando fitBounds para pontos dispersos.
+    expect(html).toContain('fitBounds');
+  });
+
   it('mostra o estado vazio quando não há pontos', () => {
     const { getByTestId, queryByTestId } = render(<MonthlyHeatmap points={[]} />);
     expect(getByTestId('monthly-heatmap-empty')).toBeTruthy();

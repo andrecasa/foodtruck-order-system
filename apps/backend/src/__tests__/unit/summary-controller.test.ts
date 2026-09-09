@@ -359,18 +359,19 @@ describe('Summary Controller - getDailySummary', () => {
     });
   });
 
+  // O controller não engole mais o erro: erros inesperados sobem e o asyncHandler
+  // os encaminha ao errorHandler central, que responde 500 INTERNAL_ERROR.
   describe('Internal server error', () => {
-    it('should return 500 when database query fails', async () => {
+    it('should propagate the error when the database query fails', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Connection failed'));
 
       const req = mockRequest();
       const res = mockResponse();
 
-      await getDailySummary(req as AuthenticatedRequest, res as unknown as Response);
-
-      expect(res.statusCode).toBe(500);
-      expect(res.body.error).toBe('INTERNAL_ERROR');
-      expect(res.body.message).toBe('Erro ao calcular resumo do dia.');
+      await expect(
+        getDailySummary(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toThrow('Connection failed');
+      expect(res.statusCode).toBe(0);
     });
   });
 

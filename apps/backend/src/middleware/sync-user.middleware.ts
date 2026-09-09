@@ -53,8 +53,14 @@ export async function syncUserMiddleware(
     // Verify the user already has a tenant-consistent row. We do NOT create a
     // row here because the tenant cannot be determined at this point in the
     // chain — user rows are provisioned (with their tenant_id) by onboarding.
-    const existing = await pool.query(
-      'SELECT id, tenant_id FROM users WHERE id = $1',
+    // Também lemos o `role` para expô-lo em `req.user`, permitindo que a sessão
+    // (e o front) conheçam o papel real do usuário em vez de assumir 'admin'.
+    const existing = await pool.query<{
+      id: string;
+      tenant_id: string;
+      role: 'admin' | 'atendente' | 'preparador';
+    }>(
+      'SELECT id, tenant_id, role FROM users WHERE id = $1',
       [user.id],
     );
 
@@ -66,6 +72,9 @@ export async function syncUserMiddleware(
         `[sync-user-middleware] Authenticated user ${user.id} has no provisioned row; ` +
           'tenant cannot be resolved. Deferring to tenantMiddleware.',
       );
+    } else {
+      // Expõe o papel real do usuário para os handlers a jusante (ex.: sessão).
+      req.user = { ...user, role: existing.rows[0]!.role };
     }
 
     next();

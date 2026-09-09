@@ -54,21 +54,25 @@ describe('Summary Controller - getMonthlyHeatmap', () => {
     invalidateMonthlySummaryCache(TENANT);
   });
 
+  // Validação/erros agora lançam ServiceError; o mapeamento HTTP fica a cargo
+  // do errorHandler central (via asyncHandler nas rotas), não do controller.
   describe('Validação de parâmetros', () => {
-    it('retorna 400 quando year está ausente', async () => {
+    it('lança ServiceError 400 INVALID_PARAMS quando year está ausente', async () => {
       const req = mockRequest({ month: '8' });
       const res = mockResponse();
-      await getMonthlyHeatmap(req as AuthenticatedRequest, res as unknown as Response);
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlyHeatmap(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
 
-    it('retorna 400 para month fora do intervalo (13)', async () => {
+    it('lança ServiceError 400 INVALID_PARAMS para month fora do intervalo (13)', async () => {
       const req = mockRequest({ year: '2026', month: '13' });
       const res = mockResponse();
-      await getMonthlyHeatmap(req as AuthenticatedRequest, res as unknown as Response);
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('INVALID_PARAMS');
+      await expect(
+        getMonthlyHeatmap(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_PARAMS' });
+      expect(res.statusCode).toBe(0);
     });
   });
 
@@ -131,14 +135,18 @@ describe('Summary Controller - getMonthlyHeatmap', () => {
     });
   });
 
+  // Erros inesperados sobem sem serem engolidos; o asyncHandler os encaminha ao
+  // errorHandler central, que responde 500 INTERNAL_ERROR. O controller não
+  // captura mais o erro nem responde 500 manualmente.
   describe('Erro interno', () => {
-    it('retorna 500 quando a query falha', async () => {
+    it('propaga o erro quando a query falha (mapeado a 500 pelo errorHandler)', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Connection refused'));
       const req = mockRequest({ year: '2026', month: '8' });
       const res = mockResponse();
-      await getMonthlyHeatmap(req as AuthenticatedRequest, res as unknown as Response);
-      expect(res.statusCode).toBe(500);
-      expect(res.body.error).toBe('INTERNAL_ERROR');
+      await expect(
+        getMonthlyHeatmap(req as AuthenticatedRequest, res as unknown as Response),
+      ).rejects.toThrow('Connection refused');
+      expect(res.statusCode).toBe(0);
     });
   });
 });

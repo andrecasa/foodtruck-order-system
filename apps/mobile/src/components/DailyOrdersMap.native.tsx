@@ -84,12 +84,6 @@ function buildMapHtml(points: WebViewPoint[], bounds: ReturnType<typeof computeM
       var map = L.map('map', { attributionControl: true, scrollWheelZoom: true });
       L.tileLayer(cfg.tileUrl, { attribution: cfg.attribution, maxZoom: 19 }).addTo(map);
 
-      if (cfg.bounds.boundingBox) {
-        map.fitBounds(cfg.bounds.boundingBox, { padding: [32, 32] });
-      } else {
-        map.setView(cfg.bounds.center, cfg.bounds.fallbackZoom);
-      }
-
       cfg.points.forEach(function (p) {
         var icon = L.icon({
           iconUrl: p.iconUrl,
@@ -100,6 +94,24 @@ function buildMapHtml(points: WebViewPoint[], bounds: ReturnType<typeof computeM
           .addTo(map)
           .bindPopup('#' + p.dailyNumber + ' — ' + p.customerName);
       });
+
+      // Enquadra o mapa SÓ depois que o container tem tamanho real. Dentro do
+      // WebView, este script roda antes de o layout estabilizar; se chamarmos
+      // fitBounds/setView com viewport de tamanho zero, o Leaflet calcula o
+      // zoom errado (tipicamente o máximo). invalidateSize() força o Leaflet a
+      // reler as dimensões antes de enquadrar, e reaplicamos em load/resize.
+      function frame() {
+        map.invalidateSize(false);
+        if (cfg.bounds.boundingBox) {
+          map.fitBounds(cfg.bounds.boundingBox, { padding: [32, 32] });
+        } else {
+          map.setView(cfg.bounds.center, cfg.bounds.fallbackZoom);
+        }
+      }
+
+      map.whenReady(function () { setTimeout(frame, 0); });
+      window.addEventListener('load', frame);
+      window.addEventListener('resize', frame);
     })();
   </script>
 </body>

@@ -18,6 +18,8 @@ export type {
   DayBreakdown,
   HeatmapPoint,
   MonthlyHeatmapResponse,
+  TopProduct,
+  TopProductsResponse,
   ThemeConfig,
   CategoryStatus,
   Category,

@@ -92,12 +92,12 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
   const menuItems: DrawerMenuItem[] = [
     { icon: 'receipt_long', label: 'Pedidos', route: '/(tabs)' },
     { icon: 'add_circle', label: 'Novo Pedido', route: '/(tabs)/new-order' },
-    { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
-    { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
     { icon: 'qr_code', label: 'QrCode', route: '/(tabs)/qrcode' },
+    { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
     ...(user?.role === 'admin'
       ? [
           { icon: 'category', label: 'Categorias', route: '/categories-list' },
+          { icon: 'restaurant_menu', label: 'Cardápio', route: '/menu' },         
           { icon: 'group', label: 'Usuários', route: '/users-list' },
         ]
       : []),

@@ -224,7 +224,7 @@ describe('DrawerMenu', () => {
       const menuItems = [
         { icon: 'receipt_long', label: 'Pedidos', route: '/(tabs)' },
         { icon: 'add_circle', label: 'Novo Pedido', route: '/(tabs)/new-order' },
-        { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
+        { icon: 'restaurant_menu', label: 'Cardápio', route: '/menu' },
         { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
         ...(user?.role === 'admin'
           ? [
@@ -251,7 +251,7 @@ describe('DrawerMenu', () => {
     const menuItems = [
       { icon: 'receipt_long', label: 'Pedidos', route: '/(tabs)' },
       { icon: 'add_circle', label: 'Novo Pedido', route: '/(tabs)/new-order' },
-      { icon: 'restaurant_menu', label: 'Cardápio', route: '/(tabs)/menu' },
+      { icon: 'restaurant_menu', label: 'Cardápio', route: '/menu' },
       { icon: 'monitoring', label: 'Resumo Financeiro', route: '/(tabs)/summary' },
       ...(user?.role === 'admin'
         ? [

@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
-import { Screen, Header } from '../components/Layout';
 import { FormScreen } from '../components/FormScreen';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
@@ -86,11 +85,9 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
   const [priceError, setPriceError] = useState('');
   const [categoryError, setCategoryError] = useState('');
   const [apiError, setApiError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deleted, setDeleted] = useState(false);
 
   // Refs for focus management
   const nameRef = useRef<TextInput>(null);
@@ -184,14 +181,11 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     try {
       setLoading(true);
       await apiClient.updateMenuItem(id, updates);
-      setSuccess(true);
-      setTimeout(() => {
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          router.replace('/(tabs)/menu');
-        }
-      }, 1500);
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/menu');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao atualizar item';
       if (message.includes('409')) {
@@ -217,15 +211,11 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     try {
       await apiClient.deleteMenuItem(id);
       setDeleteModalVisible(false);
-      setDeleted(true);
-      setSuccess(true);
-      setTimeout(() => {
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          router.replace('/(tabs)/menu');
-        }
-      }, 1500);
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/menu');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao excluir item';
       setDeleteError(message);
@@ -362,48 +352,6 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
-  // Success state
-  if (success) {
-    return (
-      <Screen padding={false}>
-        <Header title="Cardápio" onBack={() => router.back()} />
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 32,
-            gap: 12,
-          }}
-        >
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 18,
-              fontWeight: '500',
-              color: theme.colors.text,
-              textAlign: 'center',
-            }}
-          >
-            Item {deleted ? 'excluído' : 'atualizado'} com sucesso!
-          </RNText>
-          <RNText
-            style={{
-              fontFamily: theme.typography.fontFamily,
-              fontSize: 14,
-              fontWeight: '400',
-              color: theme.colors.textSecondary,
-              textAlign: 'center',
-              marginTop: 8,
-            }}
-          >
-            Voltando ao cardápio...
-          </RNText>
-        </View>
-      </Screen>
-    );
-  }
-
   return (
     <FormScreen
       title="Cardápio"
@@ -475,6 +423,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
               accessibilityLabel="Nome do item"
               color={theme.colors.text}
               placeholderColor={theme.colors.textSecondary}
+              fontFamily={theme.typography.fontFamily}
             />
           </View>
           {nameError ? (
@@ -497,6 +446,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
               accessibilityLabel="Preço"
               color={theme.colors.text}
               placeholderColor={theme.colors.textSecondary}
+              fontFamily={theme.typography.fontFamily}
             />
           </View>
           {priceError ? (
@@ -572,6 +522,7 @@ interface InputInlineProps {
   accessibilityLabel?: string;
   color: string;
   placeholderColor: string;
+  fontFamily: string;
 }
 
 /**
@@ -582,7 +533,7 @@ interface InputInlineProps {
  */
 const InputInline = React.forwardRef<TextInput, InputInlineProps>(
   function InputInline(
-    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color, placeholderColor },
+    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color, placeholderColor, fontFamily },
     ref,
   ) {
     return (
@@ -590,7 +541,7 @@ const InputInline = React.forwardRef<TextInput, InputInlineProps>(
         ref={ref}
         style={{
           flex: 1,
-          fontFamily: 'Inter',
+          fontFamily,
           fontSize: 14,
           fontWeight: '400',
           color: color,

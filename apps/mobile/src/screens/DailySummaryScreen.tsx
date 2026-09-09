@@ -4,7 +4,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  TouchableOpacity,
   View,
   Text as RNText,
   type ViewStyle,
@@ -22,7 +21,8 @@ import { useAuth } from '../hooks/useAuth';
 import { formatPrice } from '../utils/format';
 import { SubCard } from '../components/SubCard';
 import { PaymentRow } from '../components/PaymentRow';
-import { DailyOrdersMap, type OrderMapPoint } from '../components';
+import { DailyOrdersMap, type OrderMapPoint, TopProductsSection, FloatingButton } from '../components';
+import type { TopProductsResponse } from '@order-system/shared';
 
 /**
  * Converte os pedidos do dia em pontos plotáveis no mapa, mantendo apenas os
@@ -131,6 +131,14 @@ export function DailySummaryScreen() {
     }
   }, []);
 
+  // Busca o Top 10 produtos do dia com o filtro de categorias escolhido na seção.
+  // Depende de `dateStr` para que a troca de data rebusque o ranking.
+  const fetchTopProducts = useCallback(
+    (categoryIds: string[]): Promise<TopProductsResponse> =>
+      apiClient.getDailyTopProducts({ date: dateStr, categoryIds }),
+    [dateStr],
+  );
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -202,7 +210,9 @@ export function DailySummaryScreen() {
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
-  const contentStyle: ViewStyle = { flexGrow: 1, padding: 16, gap: 16 };
+  // paddingBottom reserva espaço para o FloatingButton (altura 44 + offset 16)
+  // não cobrir o último item da lista ao rolar até o fim.
+  const contentStyle: ViewStyle = { flexGrow: 1, padding: 16, gap: 16, paddingBottom: 76 };
   const loadingContainerStyle: ViewStyle = { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 };
 
   const sectionTitleStyle: TextStyle = {
@@ -220,10 +230,10 @@ export function DailySummaryScreen() {
     marginTop: -8,
   };
 
+  // Grid 2×2 dos sub-cards sem "box" branco em volta: cada SubCard já tem seu
+  // próprio fundo colorido e cantos arredondados, então o agrupador só mantém o
+  // espaçamento entre as linhas.
   const gridContainerStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: 14,
     gap: 10,
   };
 
@@ -234,21 +244,6 @@ export function DailySummaryScreen() {
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: 14,
     paddingVertical: 4,
-  };
-
-  const ctaButtonStyle: ViewStyle = {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 22,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const ctaTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.surface,
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -319,17 +314,18 @@ export function DailySummaryScreen() {
           <PaymentRow icon="payments" iconColor={theme.colors.primary} label="Dinheiro" value={formatPrice(summary?.byPaymentMethod.dinheiro ?? 0)} textColor={theme.colors.primary} />
         </View>
 
-        {/* CTA: Resumo do Mês */}
-        <TouchableOpacity
-          style={ctaButtonStyle}
-          onPress={() => router.push('/summary/monthly')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Resumo do Mês"
-        >
-          <RNText style={ctaTextStyle}>Resumo do Mês</RNText>
-        </TouchableOpacity>
+        {/* Section: Top 10 produtos mais vendidos (com filtro por categoria) */}
+        <TopProductsSection fetchTopProducts={fetchTopProducts} periodKey={dateStr} />
       </ScrollView>
+
+      {/* CTA flutuante: Resumo do Mês */}
+      <FloatingButton
+        label="Resumo do Mês"
+        onPress={() => router.push('/summary/monthly')}
+        accessibilityLabel="Resumo do Mês"
+        accessibilityHint="Navega para o resumo do mês"
+        testID="monthly-summary-button"
+      />
 
       {/* Calendar Modal */}
       <CalendarModal

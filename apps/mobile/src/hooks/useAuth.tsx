@@ -11,6 +11,31 @@ interface AuthUser {
   role?: 'admin' | 'atendente' | 'preparador';
 }
 
+/**
+ * Busca a sessão atual no backend e devolve o usuário (com o papel real
+ * resolvido em `users.role`). Retorna `null` se não houver token válido.
+ *
+ * O papel é a autoridade para exibir/ocultar áreas restritas a admin no app
+ * (ex.: itens de admin no DrawerMenu). Por isso ele vem sempre do backend, em
+ * vez de assumido no cliente.
+ */
+async function fetchSessionUser(): Promise<AuthUser | null> {
+  const token = await tokenStorage.getAccessToken();
+  if (!token) return null;
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+  const res = await fetch(`${apiUrl}/api/auth/session`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return {
+    email: data?.user?.email || '',
+    role: data?.user?.role,
+  };
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   /**
@@ -48,27 +73,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function checkSession() {
       try {
         const hasToken = await tokenStorage.isAuthenticated();
-        if (hasToken) {
-          const token = await tokenStorage.getAccessToken();
-          if (token && !cancelled) {
-            // Validate token with backend
-            const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
-            const res = await fetch(`${apiUrl}/api/auth/session`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-              const data = await res.json();
-              setUser({ email: data?.user?.email || '', role: 'admin' });
-              // Resolve the tenant id so realtime channels can be scoped to
-              // this tenant (R12.7, R12.9).
-              const resolvedTenantId = await fetchTenantId(() => tokenStorage.getAccessToken());
-              if (!cancelled) setTenantId(resolvedTenantId);
-            } else {
-              // Token invalid — clear session
-              await tokenStorage.clear();
-              setUser(null);
-              setTenantId(null);
-            }
+        if (hasToken && !cancelled) {
+          // Valida o token no backend e resolve o usuário (com o papel real).
+          const sessionUser = await fetchSessionUser();
+          if (sessionUser) {
+            if (!cancelled) setUser(sessionUser);
+            // Resolve the tenant id so realtime channels can be scoped to
+            // this tenant (R12.7, R12.9).
+            const resolvedTenantId = await fetchTenantId(() => tokenStorage.getAccessToken());
+            if (!cancelled) setTenantId(resolvedTenantId);
+          } else {
+            // Token invalid — clear session
+            await tokenStorage.clear();
+            setUser(null);
+            setTenantId(null);
           }
         }
       } catch {
@@ -118,8 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, segments, isLoading, router]);
 
   const login = useCallback(async (email: string, password: string) => {
-    await apiClient.login(email, password);
-    setUser({ email, role: 'admin' }); // Default to admin for prototype mode
+    // O endpoint de login já devolve o papel real do usuário (autoridade para
+    // as áreas restritas a admin), então o usamos direto — sem request extra.
+    const { role } = await apiClient.login(email, password);
+    setUser({ email, role });
     // Resolve the tenant id so realtime channels can be scoped to this tenant
     // (R12.7, R12.9).
     const resolvedTenantId = await fetchTenantId(() => tokenStorage.getAccessToken());

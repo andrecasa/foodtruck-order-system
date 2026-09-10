@@ -88,6 +88,7 @@ function ThemedApp() {
               (see Expo Router "Common navigation patterns"). Each screen renders
               its own Header with an onBack, so they don't need the tab bar.
             */}
+            <Stack.Screen name="confirm-order" />
             <Stack.Screen name="payment" />
             <Stack.Screen name="edit-order-items" />
             <Stack.Screen name="menu" />

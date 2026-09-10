@@ -275,7 +275,9 @@ export function DailySummaryScreen() {
 
   return (
     <Screen padding={false}>
-      <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
+      {/* Aba raiz: exibe o menu hambúrguer (sem seta de voltar), padronizando
+          com as demais abas e com os estados de loading/erro acima. */}
+      <Header title={headerTitle} rightElement={calendarRightElement} />
 
       <ScrollView
         contentContainerStyle={contentStyle}

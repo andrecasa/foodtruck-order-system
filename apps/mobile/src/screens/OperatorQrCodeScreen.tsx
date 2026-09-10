@@ -1,6 +1,5 @@
 import React from 'react';
 import { ScrollView, type ViewStyle } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Screen, Header, HomeHero } from '../components';
 import { useTheme } from '../theme';
 
@@ -26,7 +25,6 @@ function orderUrl(slug: string): string {
  */
 export function OperatorQrCodeScreen() {
   const theme = useTheme();
-  const router = useRouter();
 
   const contentStyle: ViewStyle = {
     flexGrow: 1,
@@ -39,10 +37,9 @@ export function OperatorQrCodeScreen() {
 
   return (
     <Screen padding={false}>
-      <Header
-        title={theme.businessName || 'QrCode'}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
+      {/* Aba raiz: exibe o menu hambúrguer (sem seta de voltar), padronizando
+          com as demais abas (Pedidos, Novo Pedido, Resumo). */}
+      <Header title={theme.businessName || 'QrCode'} />
 
       <ScrollView
         style={{ flex: 1 }}

@@ -121,36 +121,46 @@ describe('CreateOrderScreen', () => {
     await findByText('R$ 16,00');
   });
 
-  it('submits order with selected items', async () => {
+  it('does not navigate to confirm when no item is selected (CTA disabled)', async () => {
     mockGetMenu.mockResolvedValue(createMenuItems());
-    mockCreateOrder.mockResolvedValue({ id: 'new-order-1' });
 
     const { findByText, getByTestId } = render(<CreateOrderScreen />);
 
     await findByText('Pastel de Carne');
 
-    // Fill customer name
-    fireEvent.changeText(getByTestId('input-customer-name'), 'João Silva');
+    // With an empty selection the "Revisar Pedido" CTA is disabled, so pressing
+    // it does not navigate to the confirm step.
+    expect(getByTestId('submit-order').props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(getByTestId('submit-order'));
+
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('navigates to confirm with the selected items and origin (name asked later)', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+
+    const { findByText, getByTestId } = render(<CreateOrderScreen />);
+
+    await findByText('Pastel de Carne');
 
     // Add item (shows "Adicionar" at qty 0)
     fireEvent.press(getByTestId('add-item-1'));
 
-    // Submit
+    // Review → navigates to the confirm step. The name is requested there, so
+    // this screen no longer calls createOrder directly.
     fireEvent.press(getByTestId('submit-order'));
 
     await waitFor(() => {
-      expect(mockCreateOrder).toHaveBeenCalledWith({
-        customerName: 'João Silva',
-        origin: 'presencial',
-        items: [{ menuItemId: 'item-1', quantity: 1 }],
+      expect(mockPush).toHaveBeenCalledWith({
+        pathname: '/confirm-order',
+        params: {
+          items: JSON.stringify([{ menuItemId: 'item-1', quantity: 1 }]),
+          origin: 'presencial',
+        },
       });
     });
 
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith({
-        pathname: '/payment',
-        params: { orderId: 'new-order-1' },
-      });
-    });
+    // The order is only created on the confirm screen.
+    expect(mockCreateOrder).not.toHaveBeenCalled();
   });
 });

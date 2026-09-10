@@ -2,15 +2,12 @@ import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   View,
-  Text as RNText,
   type ViewStyle,
-  type TextStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../theme';
-import { Button, Heading, Input, Text, MenuItemsCard, FloatingButton } from '../../components';
-import { formatPrice, formatOrderItemLine } from '../../utils/format';
+import { Button, Heading, Input, Text, MenuItemsCard, FloatingButton, OrderSummaryCard } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { useCart } from '../../hooks/customer/useCart';
@@ -146,54 +143,10 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
     );
   }
 
-  // "Resumo" card: payment-card text (bold name line + compact items block),
-  // framed with a status-colored left stripe (primary), matching the operator
-  // PaymentScreen card. The grand total lives in the Total row below, not here.
-  const resumoFrameStyle: ViewStyle = {
-    flexDirection: 'row',
-    borderRadius: theme.borderRadius.md,
-    overflow: 'hidden',
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.divider,
-  };
-
-  const resumoStripeStyle: ViewStyle = {
-    width: 5,
-    backgroundColor: theme.colors.primary,
-  };
-
-  // Payment-card text styles (operator PaymentScreen): bold name line + a
-  // compact single-block items list.
-  const resumoNameStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text,
-  };
-
-  const resumoItemsStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.text,
-    lineHeight: 18,
-  };
-
-  // Total line inside the Resumo card — bold, matching the operator payment card.
-  const resumoTotalStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text,
-  };
-
   return (
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
-      <CustomerHeader
-        title="Confirmar Pedido"
-        onBack={() => router.replace(menuHref(slug))}
-      />
+      {/* Tela empilhada (push a partir do menu): a seta volta com router.back(). */}
+      <CustomerHeader title="Confirmar Pedido" onBack={() => router.back()} />
 
       <View style={{ flex: 1 }}>
       {/* Fixed name bar — stays visible above the scrollable resumo/items. */}
@@ -224,37 +177,18 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
           <View style={{ marginBottom: theme.spacing.sm }}>
             <Heading level={3}>Resumo</Heading>
           </View>
-          <View style={resumoFrameStyle} testID="checkout-resumo">
-            <View style={resumoStripeStyle} />
-            <View
-              style={{
-                flex: 1,
-                padding: theme.spacing.md,
-                gap: theme.spacing.sm,
-              }}
-              testID="checkout-summary"
-            >
-              {/* Name line — matches the operator payment card (16px / 600). */}
-              {customerName.trim().length > 0 ? (
-                <RNText style={resumoNameStyle}>{customerName.trim()}</RNText>
-              ) : null}
-
-              {/* Items — one text block, "Nx Name (line total)" per line,
-                  identical to the payment card (12px / 400). No total here;
-                  the Total row below owns the grand total. */}
-              <RNText style={resumoItemsStyle}>
-                {cart.items
-                  .map((i) => formatOrderItemLine(i.quantity, i.name, i.priceCents * i.quantity))
-                  .join('\n')}
-              </RNText>
-
-              {/* Total inside the card — bold line, matching the operator
-                  payment card. */}
-              <RNText style={resumoTotalStyle} testID="checkout-total">
-                {formatPrice(cart.total)}
-              </RNText>
-            </View>
-          </View>
+          <OrderSummaryCard
+            customerName={customerName}
+            items={cart.items.map((i) => ({
+              name: i.name,
+              quantity: i.quantity,
+              priceCents: i.priceCents,
+            }))}
+            totalCents={cart.total}
+            testID="checkout-resumo"
+            contentTestID="checkout-summary"
+            totalTestID="checkout-total"
+          />
         </View>
 
         {/* Editable items — standardized with the "Novo Pedido" card: shared

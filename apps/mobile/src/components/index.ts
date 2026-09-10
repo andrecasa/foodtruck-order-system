@@ -36,6 +36,8 @@ export { OriginBadge } from './OriginBadge';
 export type { OriginBadgeProps } from './OriginBadge';
 export { MenuItemsCard } from './MenuItemsCard';
 export type { MenuItemsCardProps, MenuItemsCardItem } from './MenuItemsCard';
+export { OrderSummaryCard } from './OrderSummaryCard';
+export type { OrderSummaryCardProps, OrderSummaryItem } from './OrderSummaryCard';
 export { TotalRow } from './TotalRow';
 export type { TotalRowProps } from './TotalRow';
 export { DailyOrdersMap } from './DailyOrdersMap';

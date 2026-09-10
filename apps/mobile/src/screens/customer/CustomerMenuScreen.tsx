@@ -170,10 +170,9 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
 
   return (
     <SafeAreaView style={safeAreaStyle} edges={['top', 'left', 'right']}>
-      <CustomerHeader
-        title={businessName ?? 'Novo Pedido'}
-        onBack={() => router.replace(ordersHref(slug))}
-      />
+      {/* Tela raiz da bottom nav: sem seta de voltar. A navegação entre raízes
+          (Pedidos / Novo / QrCode) é feita pela bottom nav. */}
+      <CustomerHeader title={businessName ?? 'Novo Pedido'} />
 
       <View style={{ flex: 1 }}>
       <ScrollView

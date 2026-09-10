@@ -1,8 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text as RNText,
-  type TextInput,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
@@ -10,13 +9,11 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { FormScreen } from '../components/FormScreen';
 import { Text } from '../components/Typography';
-import { Input } from '../components/Input';
 import { FloatingButton } from '../components/FloatingButton';
 import { MenuItemsCard } from '../components/MenuItemsCard';
 import { TotalRow } from '../components/TotalRow';
 import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
-import { getCurrentCoordinates } from '../services/geolocation';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
 
 /** Map of menuItemId → quantity for selected items */
@@ -37,47 +34,36 @@ function groupByCategory(items: MenuItem[]): Record<string, MenuItem[]> {
 }
 
 /**
- * Novo Pedido (Create Order) Screen — pixel-perfect match to Penpot design.
+ * Novo Pedido (Create Order) Screen — etapa de seleção de itens do operador.
+ *
+ * Espelha o fluxo do PWA do cliente: aqui o operador escolhe a origem e os
+ * itens; o nome do cliente e a confirmação ficam na etapa "Confirmar Pedido"
+ * (`ConfirmOrderScreen`, rota `/confirm-order`). O CTA "Revisar Pedido" navega
+ * para a confirmação carregando os itens selecionados e a origem via params.
  *
  * Penpot specs (Pastel das Meninas palette):
- * - AppBar: bg white, shadow 0 1px 3px rgba(0,0,0,0.06), height 56px, title "Novo Pedido" 18px weight 400, color text (#3D2020)
+ * - AppBar: bg white, height 56px, title 18px weight 400, color text (#3D2020)
  * - Content: padding 16px, gap 20px
  * - Origin label: "Origem do Pedido" 14px weight 400, color text (#3D2020)
- * - Origin Selector: height 40px, radius 20px, border 1px divider (#E8DDD5), bg white
- *   - Active tab: bg primary (#7B2D2D), text white 13px weight 400, radius 18px
- *   - Inactive tab: bg transparent, text textSecondary (#8B6B5A) 13px weight 400
+ * - Origin Selector: height 40px, radius 20px, border 1px divider, bg white
  * - Section title "Itens do Pedido": 14px weight 400, color text (#3D2020)
- * - Category label: 13px weight 400, color text (#3D2020)
- * - Items Card: bg white, radius 12px, shadow 0 1px 3px rgba(0,0,0,0.04), padding 10px 14px, gap 10px
- * - Item row: height 40px, flex row space-between
- *   - Name: 14px weight 400, color text (#3D2020)
- *   - Price: 12px weight 400, color text (#3D2020)
- *   - Stepper circle 28px: minus (bg background, border 1px divider, text divider when 0), plus (bg primary, text white)
- *   - Quantity: 14px weight 400, color text (#3D2020)
+ * - Items Card: bg white, radius 12px, padding 10px 14px, gap 10px
  * - Total row: bg rgba(123,45,45,0.06), radius 8px, height 48px, padding 0 16px
- *   - "Total" text: 14px weight 400, color text (#3D2020)
- *   - Amount: 20px weight 400, color primary (#7B2D2D)
- * - Button "Criar Pedido": height 44px, radius 22px, bg primary (#7B2D2D), text 14px weight 400
+ * - Button: height 44px, radius 22px, bg primary, text 14px weight 400
  */
 export function CreateOrderScreen() {
   const theme = useTheme();
   const router = useRouter();
 
   // Form state
-  const [customerName, setCustomerName] = useState('');
   const [origin, setOrigin] = useState<OrderOrigin>('presencial');
   const [selectedItems, setSelectedItems] = useState<SelectedItems>({});
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   // UI state
-  const [loading, setLoading] = useState(false);
   const [menuLoading, setMenuLoading] = useState(true);
-  const [customerNameError, setCustomerNameError] = useState('');
   const [itemsError, setItemsError] = useState('');
   const [apiError, setApiError] = useState('');
-
-  // Refs for focus management
-  const customerNameRef = useRef<TextInput>(null);
 
   // Load menu items when screen gains focus (e.g., after editing menu)
   useFocusEffect(
@@ -121,13 +107,12 @@ export function CreateOrderScreen() {
     return sum;
   }, [selectedItems, menuItems]);
 
-  // CTA is enabled only when a customer name is filled AND at least one item
-  // is selected. Otherwise it stays inactive.
-  const canSubmit = useMemo(() => {
-    const hasName = customerName.trim().length > 0;
-    const hasItems = Object.values(selectedItems).some((qty) => qty > 0);
-    return hasName && hasItems;
-  }, [customerName, selectedItems]);
+  // O CTA "Revisar Pedido" é habilitado quando há ao menos um item selecionado.
+  // O nome do cliente é solicitado na etapa de confirmação (padrão do PWA).
+  const canReview = useMemo(
+    () => Object.values(selectedItems).some((qty) => qty > 0),
+    [selectedItems],
+  );
 
   // Item quantity management
   const incrementItem = useCallback((id: string) => {
@@ -152,66 +137,26 @@ export function CreateOrderScreen() {
     });
   }, []);
 
-  // Validation
-  const validate = (): boolean => {
-    let isValid = true;
-    let firstErrorField: 'customerName' | 'items' | null = null;
-
-    if (!customerName.trim()) {
-      setCustomerNameError('Informe o nome do cliente');
-      isValid = false;
-      if (!firstErrorField) firstErrorField = 'customerName';
-    } else {
-      setCustomerNameError('');
-    }
-
+  // Vai para a etapa de confirmação com os itens selecionados e a origem.
+  // Os itens seguem serializados como JSON (params do expo-router são strings);
+  // a tela de confirmação recarrega o cardápio para resolver nomes e preços.
+  const handleReview = () => {
+    setApiError('');
     const hasItems = Object.values(selectedItems).some((qty) => qty > 0);
     if (!hasItems) {
       setItemsError('Adicione ao menos um item ao pedido');
-      isValid = false;
-      if (!firstErrorField) firstErrorField = 'items';
-    } else {
-      setItemsError('');
+      return;
     }
-
-    // Focus on the first field with error
-    if (firstErrorField === 'customerName') {
-      customerNameRef.current?.focus();
-    }
-
-    return isValid;
-  };
-
-  // Submit order
-  const handleSubmit = async () => {
-    setApiError('');
-    if (!validate()) return;
+    setItemsError('');
 
     const items = Object.entries(selectedItems)
       .filter(([, qty]) => qty > 0)
       .map(([menuItemId, quantity]) => ({ menuItemId, quantity }));
 
-    try {
-      setLoading(true);
-      // Captura opcional da localização; ausente se a permissão for negada.
-      const coords = await getCurrentCoordinates();
-      const order = await apiClient.createOrder({
-        customerName: customerName.trim(),
-        origin,
-        items,
-        ...(coords ?? {}),
-      });
-      // Reset form and navigate directly to payment
-      setCustomerName('');
-      setOrigin('presencial');
-      setSelectedItems({});
-      router.push({ pathname: '/payment', params: { orderId: order.id } });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao criar pedido';
-      setApiError(message);
-    } finally {
-      setLoading(false);
-    }
+    router.push({
+      pathname: '/confirm-order',
+      params: { items: JSON.stringify(items), origin },
+    });
   };
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
@@ -219,19 +164,10 @@ export function CreateOrderScreen() {
   const contentStyle: ViewStyle = {
     flexGrow: 1,
     paddingHorizontal: 16,
-    // Top padding handled by the fixed name bar above.
-    paddingTop: 8,
+    paddingTop: 16,
     gap: 20,
     // Room so the last content clears the floating Total (48) + CTA (44) stack.
     paddingBottom: 16 + 44 + 8 + 48 + 16,
-  };
-
-  // Fixed name bar below the header (matches content horizontal padding).
-  const nameBarStyle: ViewStyle = {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    backgroundColor: theme.colors.background,
   };
 
   // Floating Total container — pinned just above the CTA (bottom:16, height 44),
@@ -247,8 +183,7 @@ export function CreateOrderScreen() {
   };
 
   // Full-width solid panel behind the floating Total + CTA so no scrolled
-  // content shows through the gaps. Uses the screen background, matching the
-  // fixed name bar.
+  // content shows through the gaps. Uses the screen background.
   const floatingBackdropStyle: ViewStyle = {
     position: 'absolute',
     left: 0,
@@ -286,28 +221,8 @@ export function CreateOrderScreen() {
   return (
     <FormScreen
       title="Pedido"
-      onBack={() => router.back()}
       contentContainerStyle={contentStyle}
       hideFooterOnKeyboard={false}
-      stickyHeader={
-        <View style={nameBarStyle}>
-          {/* Customer Name — fixed above the scrollable item list. */}
-          <Input
-            accessibilityLabel="Nome do Cliente"
-            value={customerName}
-            onChangeText={(text) => {
-              setCustomerName(text.slice(0, 100));
-              if (customerNameError) setCustomerNameError('');
-            }}
-            placeholder="Nome do cliente..."
-            icon="person"
-            iconColor={theme.colors.textSecondary}
-            error={customerNameError}
-            testID="input-customer-name"
-            inputRef={customerNameRef}
-          />
-        </View>
-      }
       footer={
         <>
           {/* Solid backing panel behind the floating Total + CTA. */}
@@ -317,9 +232,9 @@ export function CreateOrderScreen() {
             <TotalRow totalCents={total} />
           </View>
           <FloatingButton
-            label="Criar Pedido"
-            onPress={handleSubmit}
-            disabled={loading || !canSubmit}
+            label="Revisar Pedido"
+            onPress={handleReview}
+            disabled={!canReview}
             bottomOffset={16}
             testID="submit-order"
           />

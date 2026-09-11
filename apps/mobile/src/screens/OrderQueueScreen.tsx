@@ -645,7 +645,8 @@ export function OrderQueueScreen() {
   }
 
   return (
-    <Screen padding={false}>
+    // Aba dentro do navegador de abas: bottom nav já reserva insets.bottom.
+    <Screen padding={false} edges={['top']}>
       <Header
         title={headerTitle}
         icon="receipt_long"

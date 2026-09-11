@@ -274,7 +274,10 @@ export function DailySummaryScreen() {
   const totalRevenue = (summary?.paidTotal ?? 0) + (summary?.pendingTotal ?? 0);
 
   return (
-    <Screen padding={false}>
+    // Aba dentro do navegador de abas: a bottom nav já reserva insets.bottom,
+    // então o container não aplica o inset inferior (evita o espaço entre o
+    // último item e a barra de abas que só aparece no device).
+    <Screen padding={false} edges={['top']}>
       {/* Aba raiz: exibe o menu hambúrguer (sem seta de voltar), padronizando
           com as demais abas e com os estados de loading/erro acima. */}
       <Header title={headerTitle} rightElement={calendarRightElement} />

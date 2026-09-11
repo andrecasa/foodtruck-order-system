@@ -224,7 +224,8 @@ export function MonthlySummaryScreen() {
   const totals = monthlySummary?.totals;
 
   return (
-    <Screen padding={false}>
+    // Aba dentro do navegador de abas: bottom nav já reserva insets.bottom.
+    <Screen padding={false} edges={['top']}>
       <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
 
       <ScrollView

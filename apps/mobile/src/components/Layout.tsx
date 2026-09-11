@@ -8,7 +8,7 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { DrawerMenu } from './DrawerMenu';
 import { ConnectionBanner } from './ConnectionBanner';
@@ -22,6 +22,19 @@ export interface ScreenProps {
   children: React.ReactNode;
   /** Applies horizontal/vertical padding using theme.spacing.md. Defaults to true. */
   padding?: boolean;
+  /**
+   * Bordas em que o safe-area inset é aplicado. Padrão: todas as bordas
+   * (comportamento das telas de stack, que não têm bottom nav e precisam do
+   * inset inferior para o conteúdo/CTA flutuante não colidir com o home
+   * indicator do device).
+   *
+   * Telas renderizadas dentro do navegador de abas devem passar `['top']`: a
+   * própria barra de abas já reserva `insets.bottom` (ver `app/(tabs)/_layout`),
+   * então aplicar o inset inferior aqui também o duplicaria — criando um espaço
+   * entre o último item/CTA da tela e a bottom nav que só aparece no device
+   * (onde `insets.bottom > 0`).
+   */
+  edges?: readonly Edge[];
 }
 
 /**
@@ -30,7 +43,7 @@ export interface ScreenProps {
  * When offline, shows ConnectionBanner + OfflineIllustration in the content area.
  * Header and navigation remain visible.
  */
-export function Screen({ children, padding = true }: ScreenProps) {
+export function Screen({ children, padding = true, edges }: ScreenProps) {
   const theme = useTheme();
   const { isOffline } = useNetworkStatus();
 
@@ -52,7 +65,7 @@ export function Screen({ children, padding = true }: ScreenProps) {
     const header = childArray.length > 0 ? childArray[0] : null;
 
     return (
-      <SafeAreaView style={safeAreaStyle}>
+      <SafeAreaView style={safeAreaStyle} edges={edges}>
         <ConnectionBanner />
         <View style={innerStyle}>
           {header}
@@ -63,7 +76,7 @@ export function Screen({ children, padding = true }: ScreenProps) {
   }
 
   return (
-    <SafeAreaView style={safeAreaStyle}>
+    <SafeAreaView style={safeAreaStyle} edges={edges}>
       <View style={innerStyle}>
         {children}
       </View>

@@ -14,6 +14,12 @@ import { MenuItemsCard } from '../components/MenuItemsCard';
 import { TotalRow } from '../components/TotalRow';
 import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
+import {
+  FLOATING_CTA_BOTTOM_OFFSET,
+  FLOATING_STACK_CONTENT_INSET,
+  floatingBackdropStyle,
+  floatingTotalStyle,
+} from '../utils/floating-footer';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
 
 /** Map of menuItemId → quantity for selected items */
@@ -166,31 +172,8 @@ export function CreateOrderScreen() {
     paddingHorizontal: 16,
     paddingTop: 16,
     gap: 20,
-    // Room so the last content clears the floating Total (48) + CTA (44) stack.
-    paddingBottom: 16 + 44 + 8 + 48 + 16,
-  };
-
-  // Floating Total container — pinned just above the CTA (bottom:16, height 44),
-  // so the total floats at 16 + 44 + 8. Uses the opaque `surfacePrimary` tint
-  // (matches the TotalRow look) so scrolled content does not bleed through.
-  const floatingTotalStyle: ViewStyle = {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16 + 44 + 8,
-    backgroundColor: theme.colors.surfacePrimary,
-    borderRadius: 8,
-  };
-
-  // Full-width solid panel behind the floating Total + CTA so no scrolled
-  // content shows through the gaps. Uses the screen background.
-  const floatingBackdropStyle: ViewStyle = {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 16 + 44 + 8 + 48 + 8,
-    backgroundColor: theme.colors.background,
+    // Reserva espaço para o conteúdo não ficar sob o rodapé flutuante (Total + CTA).
+    paddingBottom: FLOATING_STACK_CONTENT_INSET,
   };
 
   const originLabelStyle: TextStyle = {
@@ -223,19 +206,23 @@ export function CreateOrderScreen() {
       title="Pedido"
       contentContainerStyle={contentStyle}
       hideFooterOnKeyboard={false}
+      // Aba dentro do navegador de abas: a bottom nav já reserva insets.bottom,
+      // então o container não aplica o inset inferior (evita o espaço entre o
+      // total/CTA flutuante e a barra de abas que só aparece no device).
+      edges={['top']}
       footer={
         <>
           {/* Solid backing panel behind the floating Total + CTA. */}
-          <View style={[floatingBackdropStyle, { pointerEvents: 'none' }]} />
+          <View style={[floatingBackdropStyle(theme.colors.background), { pointerEvents: 'none' }]} />
           {/* Floating Total — pinned just above the CTA. */}
-          <View style={floatingTotalStyle}>
+          <View style={floatingTotalStyle(theme.colors.surfacePrimary)}>
             <TotalRow totalCents={total} />
           </View>
           <FloatingButton
             label="Revisar Pedido"
             onPress={handleReview}
             disabled={!canReview}
-            bottomOffset={16}
+            bottomOffset={FLOATING_CTA_BOTTOM_OFFSET}
             testID="submit-order"
           />
         </>

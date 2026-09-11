@@ -477,7 +477,8 @@ export function OrderQueueScreen() {
 
   if (loading) {
     return (
-      <Screen>
+      // Aba dentro do navegador de abas: bottom nav já reserva insets.bottom.
+      <Screen edges={['top']}>
       <Header
         title={headerTitle}
         icon="receipt_long"
@@ -500,7 +501,7 @@ export function OrderQueueScreen() {
 
   if (orders.length === 0 && !loading) {
     return (
-      <Screen padding={false}>
+      <Screen padding={false} edges={['top']}>
       <Header
         title={headerTitle}
         icon="receipt_long"

@@ -200,7 +200,7 @@ export function MonthlySummaryScreen() {
 
   if (loading && !monthlySummary) {
     return (
-      <Screen padding={false}>
+      <Screen padding={false} edges={['top']}>
         <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
         <View style={loadingContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
@@ -214,7 +214,7 @@ export function MonthlySummaryScreen() {
 
   if (error && !monthlySummary) {
     return (
-      <Screen padding={false}>
+      <Screen padding={false} edges={['top']}>
         <Header title={headerTitle} onBack={() => router.back()} rightElement={calendarRightElement} />
         <ErrorState message={error} onRetry={handleRetry} />
       </Screen>

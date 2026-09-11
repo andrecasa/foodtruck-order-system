@@ -17,6 +17,12 @@ import { TotalRow } from '../components/TotalRow';
 import { FloatingButton } from '../components/FloatingButton';
 import { apiClient } from '../services/api-client';
 import { SwipeableOriginSelector, type OriginOption } from '../components/SwipeableOriginSelector';
+import {
+  FLOATING_CTA_BOTTOM_OFFSET,
+  FLOATING_STACK_CONTENT_INSET,
+  floatingBackdropStyle,
+  floatingTotalStyle,
+} from '../utils/floating-footer';
 import type { MenuItem, Order, OrderOrigin } from '@order-system/shared';
 
 /** Map of menuItemId → quantity for selected items */
@@ -204,38 +210,16 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
 
   // ─── Styles ─────────────────────────────────────────────────────────────────
 
-  // The bottom tab bar is now provided by the (tabs) navigator (outside this
-  // screen), so the floating Total + CTA stack mirrors CreateOrderScreen exactly:
-  // CTA at bottom:16 (height 44), Total just above it, backdrop behind both.
+  // O rodapé flutuante (Total + CTA) espelha o CreateOrderScreen — as medidas
+  // vêm de `utils/floating-footer` (fonte única). A barra de abas é provida pelo
+  // navegador (tabs), fora desta tela.
   const contentStyle: ViewStyle = {
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
     gap: 20,
-    // Room so the last content clears the floating Total (48) + CTA (44) stack.
-    paddingBottom: 16 + 44 + 8 + 48 + 16,
-  };
-
-  // Full-width solid panel behind the floating Total + CTA so no scrolled
-  // content shows through the gaps. Uses the screen background.
-  const floatingBackdropStyle: ViewStyle = {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 16 + 44 + 8 + 48 + 8,
-    backgroundColor: theme.colors.background,
-  };
-
-  // Floating Total — pinned just above the CTA. Opaque tint so scrolled
-  // content does not bleed through.
-  const floatingTotalStyle: ViewStyle = {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16 + 44 + 8,
-    backgroundColor: theme.colors.surfacePrimary,
-    borderRadius: 8,
+    // Reserva espaço para o conteúdo não ficar sob o rodapé flutuante (Total + CTA).
+    paddingBottom: FLOATING_STACK_CONTENT_INSET,
   };
 
   const sectionTitleStyle: TextStyle = {
@@ -308,16 +292,16 @@ export function EditOrderItemsScreen({ orderId, order }: EditOrderItemsScreenPro
       footer={
         <>
           {/* Solid backing panel behind the floating Total + CTA. */}
-          <View style={[floatingBackdropStyle, { pointerEvents: 'none' }]} />
+          <View style={[floatingBackdropStyle(theme.colors.background), { pointerEvents: 'none' }]} />
           {/* Floating Total — pinned just above the CTA. Mirrors CreateOrderScreen. */}
-          <View style={floatingTotalStyle}>
+          <View style={floatingTotalStyle(theme.colors.surfacePrimary)}>
             <TotalRow totalCents={total} testID="total-amount" />
           </View>
           <FloatingButton
             label="Salvar Alterações"
             onPress={handleSubmit}
             disabled={loading || !canSubmit}
-            bottomOffset={16}
+            bottomOffset={FLOATING_CTA_BOTTOM_OFFSET}
             testID="submit-edit-order"
           />
         </>

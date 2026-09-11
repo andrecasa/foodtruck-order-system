@@ -250,7 +250,7 @@ export function DailySummaryScreen() {
 
   if (loading && !summary) {
     return (
-      <Screen padding={false}>
+      <Screen padding={false} edges={['top']}>
         <Header title={headerTitle} rightElement={calendarRightElement} />
         <View style={loadingContainerStyle}>
           <ActivityIndicator size="large" color={theme.colors.primary} testID="loading-indicator" />
@@ -264,7 +264,7 @@ export function DailySummaryScreen() {
 
   if (error && !summary) {
     return (
-      <Screen padding={false}>
+      <Screen padding={false} edges={['top']}>
         <Header title={headerTitle} rightElement={calendarRightElement} />
         <ErrorState message={error} onRetry={handleRetry} />
       </Screen>

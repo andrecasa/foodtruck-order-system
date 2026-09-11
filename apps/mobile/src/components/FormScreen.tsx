@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, KeyboardAvoidingView, Keyboard, Platform, type StyleProp, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { Header } from './Layout';
 
@@ -28,6 +28,17 @@ export interface FormScreenProps {
    * while typing.
    */
   hideFooterOnKeyboard?: boolean;
+  /**
+   * Bordas em que o safe-area inset é aplicado. Padrão: `['top', 'bottom']`
+   * (telas de stack, sem bottom nav, que precisam do inset inferior para o CTA
+   * flutuante não colidir com o home indicator do device).
+   *
+   * Telas dentro do navegador de abas devem passar `['top']`: a barra de abas já
+   * reserva `insets.bottom` (ver `app/(tabs)/_layout`); aplicar o inset inferior
+   * aqui também o duplicaria, criando um espaço entre o CTA/total flutuante e a
+   * bottom nav que só aparece no device (onde `insets.bottom > 0`).
+   */
+  edges?: readonly Edge[];
 }
 
 /**
@@ -70,7 +81,7 @@ function useKeyboardVisible(): boolean {
  * The footer is hidden while the keyboard is open so it doesn't overlap the
  * focused field.
  */
-export function FormScreen({ title, onBack, children, contentContainerStyle, footer, stickyHeader, hideFooterOnKeyboard = true }: FormScreenProps) {
+export function FormScreen({ title, onBack, children, contentContainerStyle, footer, stickyHeader, hideFooterOnKeyboard = true, edges = ['top', 'bottom'] }: FormScreenProps) {
   const theme = useTheme();
   const keyboardVisible = useKeyboardVisible();
   // Hide the footer only when requested AND the keyboard is actually open.
@@ -79,7 +90,7 @@ export function FormScreen({ title, onBack, children, contentContainerStyle, foo
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: theme.colors.background }}
-      edges={['top', 'bottom']}
+      edges={edges}
     >
       <Header title={title} onBack={onBack} />
 

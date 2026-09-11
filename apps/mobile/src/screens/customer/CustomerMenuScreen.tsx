@@ -11,6 +11,12 @@ import { useRouter } from 'expo-router';
 import type { PublicMenuItem } from '@order-system/shared';
 import { useTheme } from '../../theme';
 import { Button, Text, MenuItemsCard, TotalRow, FloatingButton } from '../../components';
+import {
+  FLOATING_CTA_BOTTOM_OFFSET,
+  FLOATING_STACK_CONTENT_INSET,
+  floatingBackdropStyle,
+  floatingTotalStyle,
+} from '../../utils/floating-footer';
 import { usePublicMenu } from '../../hooks/customer/usePublicMenu';
 import { useCart } from '../../hooks/customer/useCart';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
@@ -98,33 +104,9 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.md,
     gap: theme.spacing.lg,
-    // Room so the last content clears the floating Total (48) + CTA (44) stack.
-    paddingBottom: 16 + 44 + 8 + 48 + 16,
-  };
-
-  // Full-width solid panel behind the floating Total + CTA so no scrolled
-  // content shows through the gaps. Uses the screen background, matching the
-  // operator CreateOrderScreen.
-  const floatingBackdropStyle: ViewStyle = {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 16 + 44 + 8 + 48 + 8,
-    backgroundColor: theme.colors.background,
-  };
-
-  // Floating Total container — pinned just above the CTA (which sits at
-  // bottom:16, height 44), so the total floats at 16 + 44 + 8. Uses the opaque
-  // `surfacePrimary` tint (matches the TotalRow look) so scrolled content does
-  // not bleed through the translucent row.
-  const floatingTotalStyle: ViewStyle = {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16 + 44 + 8,
-    backgroundColor: theme.colors.surfacePrimary,
-    borderRadius: 8,
+    // Reserva espaço para o conteúdo não ficar sob o rodapé flutuante (Total + CTA).
+    // Medidas em `utils/floating-footer` — mesmo layout do operador CreateOrderScreen.
+    paddingBottom: FLOATING_STACK_CONTENT_INSET,
   };
 
   // "Itens do Pedido" section title — matches operator Novo Pedido
@@ -212,10 +194,10 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
       </ScrollView>
 
       {/* Solid backing panel behind the floating Total + CTA. */}
-      <View style={[floatingBackdropStyle, { pointerEvents: 'none' }]} />
+      <View style={[floatingBackdropStyle(theme.colors.background), { pointerEvents: 'none' }]} />
 
       {/* Floating Total — pinned just above the CTA. */}
-      <View style={floatingTotalStyle}>
+      <View style={floatingTotalStyle(theme.colors.surfacePrimary)}>
         <TotalRow totalCents={cart.total} testID="menu-total-row" />
       </View>
 
@@ -224,7 +206,7 @@ export function CustomerMenuScreen({ slug, businessName }: CustomerMenuScreenPro
         label="Criar Pedido"
         onPress={handleCreateOrder}
         disabled={cart.count === 0}
-        bottomOffset={16}
+        bottomOffset={FLOATING_CTA_BOTTOM_OFFSET}
         testID="menu-create-order-button"
       />
       </View>

@@ -36,7 +36,10 @@ export function OperatorQrCodeScreen() {
   };
 
   return (
-    <Screen padding={false}>
+    // Aba dentro do navegador de abas: a bottom nav já reserva insets.bottom,
+    // então o container não aplica o inset inferior (evita padding extra no fim
+    // do scroll que só aparece no device).
+    <Screen padding={false} edges={['top']}>
       {/* Aba raiz: exibe o menu hambúrguer (sem seta de voltar), padronizando
           com as demais abas (Pedidos, Novo Pedido, Resumo). */}
       <Header title={theme.businessName || 'QrCode'} />

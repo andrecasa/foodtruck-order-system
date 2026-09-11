@@ -22,6 +22,7 @@ import type pg from 'pg';
 import { pool } from '../config/database.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { provisionEvolutionInstance } from '../bot/evolution-api.client.js';
+import { RESERVED_SLUGS } from '../validation/signup-slug.util.js';
 import type { ThemeConfig } from '@order-system/shared';
 
 // --- Types ---
@@ -82,6 +83,24 @@ export interface ProvisionTenantInput {
   admin: ProvisionAdminInput;
   /** Parameterized initial menu (R9.2, R9.6). */
   menuPreset: OnboardingPreset;
+  /**
+   * Contato_Comercial: nome e telefone/WhatsApp do responsável comercial,
+   * distinto do administrador. Persistido em `contact_name`/`contact_phone`
+   * APENAS na criação de tenant novo (R11.2). Opcional/nulável para manter a
+   * assinatura retrocompatível — omitido ⇒ colunas ficam `NULL`.
+   */
+  contact?: { name: string; phone: string } | null;
+  /**
+   * Trial_Ends_At: instante de expiração do teste gratuito (R11.1). Persistido
+   * em `trial_ends_at` APENAS na criação. Omitido/`null` ⇒ tenant sem trial
+   * (coluna `NULL`), preservando o comportamento de tenants legados.
+   */
+  trialEndsAt?: Date | string | null;
+  /**
+   * Indicador de conversão (R11.2). Persistido em `subscription_status` apenas
+   * na criação. Omitido ⇒ default do schema (migration 015): `'trial'`.
+   */
+  subscriptionStatus?: 'trial' | 'active' | 'canceled';
 }
 
 /** Result of a successful (or idempotent) provisioning. */
@@ -204,21 +223,10 @@ function validateInput(input: ProvisionTenantInput): void {
  */
 const SLUG_FORMAT = /^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/;
 
-/**
- * Reserved words that collide with platform/public route prefixes and therefore
- * cannot be used as a tenant slug (customer-ordering R1.2).
- */
-const RESERVED_SLUGS = new Set([
-  'api',
-  'admin',
-  'health',
-  'webhook',
-  'static',
-  'assets',
-  'public',
-  'login',
-  'queue',
-]);
+// Reserved words that collide with platform/public route prefixes and therefore
+// cannot be used as a tenant slug (customer-ordering R1.2 / landing-onboarding
+// R4.5). O conjunto é a fonte única da verdade em `validation/signup-slug.util.ts`
+// e é reutilizado aqui para evitar duplicação — mesmo conjunto de palavras.
 
 /**
  * Validates that `provisioningKey` is a well-formed, non-reserved public slug.
@@ -310,10 +318,18 @@ export async function provisionTenant(
     validateSlugFormat(input.provisioningKey);
 
     // 3. Insert the tenant (branding, theme, timezone, evolution instance).
+    //    Os campos de trial/conversão/contato (R11) entram AQUI — somente na
+    //    criação de tenant novo, dentro da mesma transação. No caminho
+    //    idempotente (acima) nada é atualizado, preservando `trial_ends_at`,
+    //    `subscription_status` e o contato já registrados (R10.4, R11.3).
+    //    Campos omitidos caem nos defaults do schema (migration 015):
+    //    `subscription_status` default 'trial'; demais colunas nuláveis.
     const tenantRes = await client.query(
       `INSERT INTO tenants
-         (business_name, logo_url, theme, evolution_instance_name, whatsapp_config, timezone, status, provisioning_key)
-       VALUES ($1, $2, $3, $4, $5, $6, 'ativo', $7)
+         (business_name, logo_url, theme, evolution_instance_name, whatsapp_config, timezone, status, provisioning_key,
+          trial_ends_at, subscription_status, contact_name, contact_phone)
+       VALUES ($1, $2, $3, $4, $5, $6, 'ativo', $7,
+          $8, COALESCE($9, 'trial'), $10, $11)
        RETURNING id, business_name, status`,
       [
         input.businessName.trim(),
@@ -323,6 +339,10 @@ export async function provisionTenant(
         input.whatsappConfig ? JSON.stringify(input.whatsappConfig) : null,
         timezone,
         input.provisioningKey,
+        input.trialEndsAt ?? null,
+        input.subscriptionStatus ?? null,
+        input.contact?.name ?? null,
+        input.contact?.phone ?? null,
       ],
     );
     const tenant = tenantRes.rows[0];

@@ -241,6 +241,16 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-false}
+      # Assets S3 (logomarcas dos tenants) — R14. Upload autenticado pelo IAM
+      # role da EC2 (sem credenciais em env); estas são apenas config pública.
+      ASSETS_S3_BUCKET: ${ASSETS_S3_BUCKET:-}
+      ASSETS_PUBLIC_BASE_URL: ${ASSETS_PUBLIC_BASE_URL:-}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      # Credenciais AWS — SOMENTE para desenvolvimento local (fora da EC2 não
+      # há IAM role). Em produção deixe VAZIAS: o SDK usa o IAM role da
+      # instância. Nunca versione valores reais (ficam no .env, git-ignored).
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
     depends_on:
       db:
         condition: service_healthy

@@ -368,14 +368,105 @@ EVOLUTION_SERVER_URL=http://SEU_IP:8080
 
 # Quando tiver domínio + HTTPS, troque para:
 # API_EXTERNAL_URL=https://api.foodtruck.app.br
-# SITE_URL=https://web.foodtruck.app.br
+# SITE_URL=https://foodtruck.app.br
 # EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
+
+# ══════ ASSETS S3 (logomarcas dos tenants) ════════════════════
+# Bucket com leitura pública onde as logos são gravadas (tenant-assets/{slug}/logo.{ext}).
+# Em PRODUÇÃO o upload é autenticado pelo IAM role da EC2 — NÃO defina
+# AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY aqui (o SDK usa o role da instância).
+ASSETS_S3_BUCKET=order-system-assets
+ASSETS_PUBLIC_BASE_URL=https://order-system-assets-<accountId>.s3.us-east-1.amazonaws.com
+AWS_REGION=us-east-1
 
 # NÃO edite manualmente (gerados pelo generate-keys.sh no Passo 9):
 #   JWT_SECRET, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 ```
 
 Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
+
+> 🔑 **Upload de logo — produção vs. desenvolvimento.** Na EC2, o upload da
+> logo para o S3 usa o **IAM role da instância** (a policy precisa permitir
+> `s3:PutObject` no bucket de assets). Não coloque credenciais AWS no `.env` de
+> produção. **Apenas em desenvolvimento local** (rodando fora da AWS, sem role),
+> defina `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no seu `.env` — o backend
+> as repassa ao container e o SDK resolve as credenciais por elas. Use uma IAM
+> user de dev com permissão mínima (`s3:PutObject` restrito a
+> `arn:aws:s3:::SEU_BUCKET/tenant-assets/*`) e nunca versione o `.env`.
+
+---
+
+### Buckets de assets (logomarcas dos tenants)
+
+Convenção de dois buckets na mesma conta AWS (o Terraform gerencia **apenas
+produção**; o bucket de dev é criado fora do IaC, via AWS CLI):
+
+| Ambiente | Bucket | Como é criado | Leitura das imagens | Upload |
+|----------|--------|---------------|---------------------|--------|
+| Produção | `order-system-assets-<accountId>` | Terraform (`infra/s3.tf`) — **leitura pública** | Direto do S3 (`https://<bucket>.s3.<region>.amazonaws.com`) | IAM role da EC2 |
+| Dev | `order-system-assets-<accountId>-dev` | AWS CLI (manual) — **leitura pública** | Direto do S3 (`https://<bucket>-dev.s3.<region>.amazonaws.com`) | IAM user dedicado de dev |
+
+> ℹ️ Ambos já estão criados e funcionais. Os comandos abaixo ficam registrados
+> para reprodutibilidade (ex.: recriar o bucket de dev noutra conta).
+> Descubra o accountId com `aws sts get-caller-identity --query Account --output text`.
+
+> 🔒 **Por que leitura pública é a postura correta aqui.** Este bucket é
+> **dedicado a assets de tenants** (logomarcas) que são feitos para aparecer no
+> PWA do cliente — uma página pública. Portanto não há dado confidencial a
+> proteger na leitura: expor os objetos é o comportamento desejado. A segurança
+> se concentra na **escrita**, que permanece fechada — `s3:PutObject` é
+> concedido apenas ao IAM role da EC2 (produção) ou a um IAM user dedicado
+> (dev), nunca a `Principal: "*"`. Além disso, a política concede apenas
+> `s3:GetObject` (não `s3:ListBucket`), então ninguém consegue **enumerar** o
+> conteúdo do bucket: só acessa quem já conhece a URL do objeto
+> (`tenant-assets/{slug}/logo.{ext}`), que é pública por natureza.
+
+**Bucket de dev (fora do Terraform):**
+
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+BUCKET=order-system-assets-$ACCOUNT_ID-dev
+
+# 1. Criar o bucket
+aws s3 mb s3://$BUCKET --region us-east-1
+
+# 2. Permitir política pública (necessário para leitura direta do S3 em dev)
+aws s3api put-public-access-block \
+  --bucket $BUCKET \
+  --public-access-block-configuration \
+  BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false
+
+# 3. Leitura pública APENAS em tenant-assets/* (menor exposição).
+#    Troque <BUCKET> pelo nome real (o shell não expande dentro de aspas simples).
+aws s3api put-bucket-policy --bucket $BUCKET --policy '{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "PublicReadTenantAssets",
+    "Effect": "Allow",
+    "Principal": "*",
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::<BUCKET>/tenant-assets/*"
+  }]
+}'
+```
+
+**IAM user de dev (upload):** crie um usuário dedicado (ex.:
+`order-system-dev-assets`) com policy restrita a `s3:PutObject` em
+`arn:aws:s3:::order-system-assets-<accountId>-dev/tenant-assets/*` e use as
+chaves dele em `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` no `.env` local.
+Nunca use chaves de admin.
+
+**Produção:** o bucket e sua permissão de `s3:PutObject` para o IAM role da EC2
+são provisionados pelo Terraform (`infra/s3.tf`), que também aplica a política de
+**leitura pública** (`s3:GetObject`). A leitura das imagens é feita DIRETO do S3
+(`https://order-system-assets-<accountId>.s3.<region>.amazonaws.com`), então
+`ASSETS_PUBLIC_BASE_URL` deve apontar para essa URL.
+
+> ℹ️ O `nginx.conf` inclui um bloco `location /tenant-assets/` que faz proxy para
+> o S3. Com o bucket já público, esse proxy é **opcional** (útil só se você quiser
+> servir as imagens sob `foodtruck.app.br` com cache/domínio próprio); nesse caso,
+> aponte `ASSETS_PUBLIC_BASE_URL=https://foodtruck.app.br`. Por padrão, use a URL
+> direta do S3 acima.
 
 ---
 
@@ -508,7 +599,7 @@ O build gera arquivos em `apps/web/dist/`. O Nginx já está configurado para se
 
 > ⚠️ Sempre que mudar uma variável `VITE_*`, precisa **rebuildar** — elas são embutidas em tempo de compilação, não lidas em runtime.
 
-**Testar:** Abra `https://web.foodtruck.app.br` no navegador. Deve carregar o painel.
+**Testar:** Abra `https://foodtruck.app.br` no navegador. Deve carregar a landing.
 
 Se aparecer **500 Internal Server Error** com `rewrite or internal redirection cycle` no log do Nginx, significa que a pasta `dist` está vazia (build não rodou). Confirme:
 
@@ -667,7 +758,6 @@ versão publicada — o próximo carregamento já traz o bundle novo.
 ```
 foodtruck.app.br            A    SEU_IP
 api.foodtruck.app.br        A    SEU_IP
-web.foodtruck.app.br        A    SEU_IP
 order.foodtruck.app.br      A    SEU_IP
 ```
 
@@ -681,7 +771,6 @@ order.foodtruck.app.br      A    SEU_IP
 ```bash
 dig +short foodtruck.app.br
 dig +short api.foodtruck.app.br
-dig +short web.foodtruck.app.br
 dig +short order.foodtruck.app.br
 # Todos devem retornar: SEU_IP
 ```
@@ -695,13 +784,19 @@ Na EC2, crie a configuração do Nginx:
 ```bash
 sudo bash -c 'cat > /etc/nginx/conf.d/foodtruck.app.br.conf << '\''EOF'\''
 # ─────────────────────────────────────────────────────────────
-# web.foodtruck.app.br — Painel Web (arquivos estáticos)
+# foodtruck.app.br — Landing_Page (apps/web, arquivos estáticos)
 # ─────────────────────────────────────────────────────────────
+# O apps/web serve APENAS rotas públicas (landing + onboarding); o painel do
+# operador foi movido para order.foodtruck.app.br, então o antigo
+# server_name web.foodtruck.app.br foi removido (R14.4).
 server {
     listen 80;
-    server_name web.foodtruck.app.br foodtruck.app.br;
+    server_name foodtruck.app.br;
 
-    # Imagens dos tenants (proxy para S3)
+    # Imagens dos tenants (proxy OPCIONAL para o S3). O bucket de assets tem
+    # leitura pública (infra/s3.tf), então por padrão a Logo_Public_Url aponta
+    # direto para o S3 e este bloco não é necessário; use-o só se quiser servir
+    # as imagens sob foodtruck.app.br (ASSETS_PUBLIC_BASE_URL=https://foodtruck.app.br).
     # NOTA: usa /tenant-assets/ e NÃO /assets/. O build do Vite gera os bundles
     # do painel (JS/CSS) em /assets/*; um proxy em /assets/ sequestraria esses
     # arquivos e o S3 responderia 403 (XML), quebrando o painel web.
@@ -804,7 +899,7 @@ sudo systemctl reload nginx
 Após os subdomínios estarem propagados (`dig` retornando o IP):
 
 ```bash
-sudo certbot --nginx -d foodtruck.app.br -d web.foodtruck.app.br -d api.foodtruck.app.br -d order.foodtruck.app.br
+sudo certbot --nginx -d foodtruck.app.br -d api.foodtruck.app.br -d order.foodtruck.app.br
 ```
 
 O Certbot vai pedir:
@@ -829,7 +924,7 @@ Altere para:
 
 ```env
 API_EXTERNAL_URL=https://api.foodtruck.app.br
-SITE_URL=https://web.foodtruck.app.br
+SITE_URL=https://foodtruck.app.br
 EVOLUTION_SERVER_URL=https://api.foodtruck.app.br/evolution
 ```
 
@@ -855,9 +950,8 @@ EXPO_PUBLIC_SUPABASE_URL=https://api.foodtruck.app.br
 # Backend
 curl https://api.foodtruck.app.br/api/health
 
-# Painel web — abrir no navegador:
-# https://web.foodtruck.app.br
-# https://foodtruck.app.br (mesmo conteúdo)
+# Landing (apps/web) — abrir no navegador:
+# https://foodtruck.app.br
 ```
 
 ---
@@ -998,8 +1092,8 @@ aws s3 ls s3://order-system-backups-$(aws sts get-caller-identity --query Accoun
 # 6. Nginx proxy funcionando (acesso externo)
 curl https://api.foodtruck.app.br/api/health
 
-# 7. Painel web carregando
-Abra no navegador: https://web.foodtruck.app.br
+# 7. Landing (apps/web) carregando
+Abra no navegador: https://foodtruck.app.br
 ```
 
 ---
@@ -1229,6 +1323,39 @@ grep VITE_ /opt/order-system/.env
 cd /opt/order-system && pnpm --filter @order-system/web build
 ```
 
+### Upload de logo falha (S3)
+
+Erros no log do backend ao cadastrar com logo:
+
+- **`Variáveis de ambiente ausentes: ASSETS_S3_BUCKET, ASSETS_PUBLIC_BASE_URL`**
+  → as variáveis não chegaram ao processo. Confirme que estão no `.env` e que o
+  serviço `backend` do `docker-compose.yml` as repassa em `environment:`
+  (`ASSETS_S3_BUCKET`, `ASSETS_PUBLIC_BASE_URL`, `AWS_REGION`). Depois **recrie**
+  o container (variáveis são fixadas na criação, não no restart):
+
+  ```bash
+  docker compose up -d backend
+  ```
+
+- **`CredentialsProviderError: Could not load credentials from any providers`**
+  → o SDK da AWS não encontrou credenciais.
+  - **Na EC2 (produção):** a instância não tem IAM role com permissão de
+    `s3:PutObject` no bucket, ou o container não alcança o metadata endpoint
+    (IMDSv2). Anexe/ajuste o IAM role e garanta o hop limit do IMDS:
+
+    ```bash
+    aws ec2 modify-instance-metadata-options \
+      --instance-id i-SEU_ID \
+      --http-put-response-hop-limit 2 \
+      --http-tokens required \
+      --region us-east-1
+    ```
+
+  - **Em desenvolvimento local:** fora da AWS não há IAM role. Defina
+    `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` no `.env` (IAM user de dev com
+    permissão mínima) e recrie o backend. Alternativa sem AWS: cadastre **sem**
+    logo — o upload só roda quando há arquivo.
+
 ### APK não aponta para a API pública
 
 O EAS Build não lê o `.env` local. As variáveis `EXPO_PUBLIC_*` precisam estar no bloco `env` do perfil em `apps/mobile/eas.json`. Depois rebuilde o APK.
@@ -1324,7 +1451,9 @@ curl http://localhost:8080/instance/connect/order-system \
 - **SSH fechado por padrão** — se `ssh_allowed_cidrs` está vazio, porta 22 fica bloqueada
 - **Acesso SSM** — permite conectar na EC2 sem SSH (mais seguro)
 - **EBS encriptado** — dados em repouso são criptografados
-- **S3 privado** — bucket de backups bloqueado para acesso público
+- **S3 de backups privado** — bucket de backups bloqueado para acesso público
+  (o bucket de *assets de tenant* é público na LEITURA de propósito — são
+  logos exibidas no PWA do cliente; a escrita continua restrita ao IAM role)
 - **Headers de segurança no Nginx** — HSTS, X-Frame-Options, etc.
 
 ### Checklist obrigatório antes de usar em produção
@@ -1336,6 +1465,7 @@ curl http://localhost:8080/instance/connect/order-system \
 - [ ] Ativar HTTPS com Certbot
 - [ ] Confirmar que `.env` e `terraform.tfvars` estão no `.gitignore`
 - [ ] Definir `DISABLE_SIGNUP=true` no GoTrue (apenas admin cria usuários)
+- [ ] Garantir que o upload de logo usa o **IAM role da EC2** (`s3:PutObject` no bucket de assets) e que **não** há `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` no `.env` de produção
 
 ### Acessar sem SSH (via SSM)
 

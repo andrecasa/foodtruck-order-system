@@ -30,6 +30,8 @@ export type {
 
 export type { ThemeConfig } from './theme';
 
+export type { ColorPreset } from './color-preset';
+
 export type {
   CategoryStatus,
   Category,

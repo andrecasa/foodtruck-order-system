@@ -51,6 +51,11 @@ const NOT_YET_REFACTORED = new Set<string>([]);
  */
 const PLATFORM_SERVICES = new Set<string>([
   'tenant-provision.service.ts',
+  // Signup_Service: orquestra o onboarding self-service (CRIA tenants). Como o
+  // provisionamento, opera FORA de escopo de tenant e usa o pool diretamente
+  // (via injeção de dependência) para detectar conflitos de e-mail/slug e
+  // preservar o trial em reenvios idempotentes (landing-onboarding R3.7/R5.4/R11.3).
+  'signup.service.ts',
 ]);
 
 const DB_IMPORT_RE = /import\s+[^;]*from\s+['"][^'"]*config\/database\.js['"]/;

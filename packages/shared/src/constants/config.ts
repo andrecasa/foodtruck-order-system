@@ -9,3 +9,11 @@ export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 export const SESSION_DURATION_HOURS = 8;
 export const WHATSAPP_SESSION_TIMEOUT_MS = 10 * 60 * 1000;
 export const REALTIME_RECONNECT_INTERVAL_MS = 5000;
+
+/**
+ * Limite de dias restantes do Trial_Period para exibir o Trial_Warning (R13.1/R13.2).
+ * Quando os dias restantes forem menores ou iguais a este valor, o aviso é
+ * exibido; caso contrário, permanece oculto. Compartilhado entre backend e
+ * `apps/web` para manter uma única fonte da verdade.
+ */
+export const TRIAL_WARNING_DAYS = 7;

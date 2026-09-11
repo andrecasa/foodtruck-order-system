@@ -1,0 +1,30 @@
+{
+  "id": "classico",
+  "label": "Clássico",
+  "colors": {
+    "primary": "#8B2E2E",
+    "secondary": "#7A6A55",
+    "background": "#FBF7F1",
+    "text": "#2A2320",
+    "success": "#3E8E5A",
+    "warning": "#C08A2E",
+    "error": "#B03A3A",
+    "aguardando": "#C08A2E",
+    "preparando": "#3B6EA5",
+    "pronto": "#3E8E5A",
+    "entregue": "#6B7280",
+    "textSecondary": "#6E6459",
+    "surface": "#FFFFFF",
+    "divider": "#E7DFD4",
+    "border": "#E7DFD4",
+    "surfaceDisabled": "#EDE6DB",
+    "textDisabled": "#A79B8C",
+    "received": "#3E8E5A",
+    "pending": "#B03A3A",
+    "revenue": "#C08A2E",
+    "surfacePrimary": "#F4E7E7",
+    "surfaceRevenue": "#F7F1E6",
+    "surfaceReceived": "#EDF5EF",
+    "surfacePending": "#F7ECEC"
+  }
+}

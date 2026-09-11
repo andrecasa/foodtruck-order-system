@@ -6,7 +6,8 @@ import {
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import * as authService from '../services/auth.service.js';
 import { getClientIp } from '../http/client-ip.js';
-import { findUserRoleById } from '../db/user-repository.js';
+import { findUserRoleById, findTenantTrialByUserId } from '../db/user-repository.js';
+import { isTrialBlocked, TRIAL_EXPIRED } from '../services/trial-guard.js';
 
 // O mapeamento HTTP de erros é feito centralmente pelo errorHandler
 // (src/http/error-handler.js): estes handlers lançam ServiceError e as rotas os
@@ -39,6 +40,28 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 
   resetRateLimit(ip);
+
+  // Trial_Guard no login (R12.1): resolve o tenant do usuário e aplica o mesmo
+  // predicado puro antes de emitir a sessão. Um tenant com teste expirado e não
+  // convertido tem o login negado com 403 TRIAL_EXPIRED; trial vigente, tenant
+  // convertido ou legado sem `trial_ends_at` seguem normalmente (R12.4). Roda
+  // aqui, e não no `tenantMiddleware`, porque o login é público e antecede a
+  // resolução de tenant.
+  const trial = await findTenantTrialByUserId(result.user.id);
+  if (
+    trial &&
+    isTrialBlocked({
+      trialEndsAt: trial.trialEndsAt,
+      subscriptionStatus: trial.subscriptionStatus,
+      now: new Date(),
+    })
+  ) {
+    throw new authService.ServiceError(
+      TRIAL_EXPIRED.message,
+      TRIAL_EXPIRED.statusCode,
+      TRIAL_EXPIRED.code,
+    );
+  }
 
   // O login autentica via Supabase, que não conhece o papel do usuário. O papel
   // vive na tabela `users` (autoridade para as áreas restritas a admin no

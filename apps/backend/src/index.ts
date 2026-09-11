@@ -11,6 +11,7 @@ import categoryRoutes from './routes/category.routes.js';
 import tenantRoutes from './routes/tenant.routes.js';
 import platformRoutes from './routes/platform.routes.js';
 import publicRoutes from './routes/public.routes.js';
+import signupRoutes from './routes/signup.routes.js';
 import { errorHandler } from './http/error-handler.js';
 
 const app = express();
@@ -36,6 +37,10 @@ app.use('/api/platform', platformRoutes);
 // Public customer-ordering routes: NO auth. Tenant resolved from :slug, with
 // router-local hardening (rate limit + 10kb body parser) — see public.routes.ts (R11).
 app.use('/api/public', publicRoutes);
+// Public onboarding routes (landing-onboarding): platform-level signup, WITHOUT
+// auth and WITHOUT tenantMiddleware. Rate limit + multipart parser are applied
+// router-locally (only on POST) — see signup.routes.ts (R9.1).
+app.use('/api/signup', signupRoutes);
 
 // Error-handling middleware — registrado por ÚLTIMO, depois de todas as rotas.
 // Mapeia ServiceError → envelope { statusCode, error, message } e qualquer

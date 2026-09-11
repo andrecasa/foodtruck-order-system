@@ -5,9 +5,11 @@ import { type Response } from 'express';
  * Unit tests for the tenant resolution middleware (Tenant_Resolution_Middleware).
  *
  * Covers the 401 / 403 / 403 rejection paths and the successful propagation of
- * `req.tenantId` / `req.tenantContext` to downstream layers.
+ * `req.tenantId` / `req.tenantContext` to downstream layers. Inclui também o
+ * bloqueio do Trial_Guard aplicado após a checagem de `status` (R12.2/R12.3) e
+ * a permissão para trial vigente / tenant convertido / legado (R12.4).
  *
- * **Validates: Requirements 4.2, 4.4, 4.5, 4.7**
+ * **Validates: Requirements 4.2, 4.4, 4.5, 4.7, 12.2, 12.3, 12.4**
  */
 
 // Mock the shared pool so we control the tenant-resolution query result.
@@ -197,5 +199,115 @@ describe('Tenant Middleware', () => {
     expect(nextCalled).toBe(false);
     expect(res.statusCode).toBe(401);
     expect(res.body.error).toBe('TENANT_RESOLUTION_FAILED');
+  });
+
+  // --- 403: Trial_Guard bloqueia teste expirado e não convertido (R12.2/R12.3) ---
+
+  it('returns 403 TRIAL_EXPIRED when the trial is expired and the tenant is not converted (R12.2, R12.3)', async () => {
+    const expired = new Date(Date.now() - 60_000).toISOString();
+    vi.mocked(pool.query).mockResolvedValueOnce(
+      queryResult([
+        {
+          tenant_id: TENANT,
+          status: 'ativo',
+          timezone: 'America/Sao_Paulo',
+          trial_ends_at: expired,
+          subscription_status: 'trial',
+        },
+      ]),
+    );
+
+    const req = mockRequest({ id: 'user-1', email: 'a@b.com' });
+    const res = mockResponse();
+    let nextCalled = false;
+
+    await tenantMiddleware(req as AuthenticatedRequest, res as unknown as Response, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(false);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe('TRIAL_EXPIRED');
+    expect((req as AuthenticatedRequest).tenantId).toBeUndefined();
+  });
+
+  it('allows access when the trial is still active (R12.4)', async () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    vi.mocked(pool.query).mockResolvedValueOnce(
+      queryResult([
+        {
+          tenant_id: TENANT,
+          status: 'ativo',
+          timezone: 'America/Sao_Paulo',
+          trial_ends_at: future,
+          subscription_status: 'trial',
+        },
+      ]),
+    );
+
+    const req = mockRequest({ id: 'user-1', email: 'a@b.com' });
+    const res = mockResponse();
+    let nextCalled = false;
+
+    await tenantMiddleware(req as AuthenticatedRequest, res as unknown as Response, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(0);
+    expect((req as AuthenticatedRequest).tenantId).toBe(TENANT);
+  });
+
+  it('allows access when the tenant is converted even if the trial ended (R12.4)', async () => {
+    const expired = new Date(Date.now() - 60_000).toISOString();
+    vi.mocked(pool.query).mockResolvedValueOnce(
+      queryResult([
+        {
+          tenant_id: TENANT,
+          status: 'ativo',
+          timezone: 'America/Sao_Paulo',
+          trial_ends_at: expired,
+          subscription_status: 'active',
+        },
+      ]),
+    );
+
+    const req = mockRequest({ id: 'user-1', email: 'a@b.com' });
+    const res = mockResponse();
+    let nextCalled = false;
+
+    await tenantMiddleware(req as AuthenticatedRequest, res as unknown as Response, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(0);
+    expect((req as AuthenticatedRequest).tenantId).toBe(TENANT);
+  });
+
+  it('allows a legacy tenant without trial_ends_at (R12.4)', async () => {
+    vi.mocked(pool.query).mockResolvedValueOnce(
+      queryResult([
+        {
+          tenant_id: TENANT,
+          status: 'ativo',
+          timezone: 'America/Sao_Paulo',
+          trial_ends_at: null,
+          subscription_status: 'trial',
+        },
+      ]),
+    );
+
+    const req = mockRequest({ id: 'user-1', email: 'a@b.com' });
+    const res = mockResponse();
+    let nextCalled = false;
+
+    await tenantMiddleware(req as AuthenticatedRequest, res as unknown as Response, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(0);
+    expect((req as AuthenticatedRequest).tenantId).toBe(TENANT);
   });
 });

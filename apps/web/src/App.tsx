@@ -1,32 +1,32 @@
-import { AuthProvider, useAuth } from './hooks';
-import { LoginPage } from './pages/LoginPage';
-import { QueuePage } from './pages/QueuePage';
+import type { RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
+import { LandingPage } from './pages/LandingPage';
+import { SignupPage } from './pages/SignupPage';
 
 /**
- * Inner component that reads auth state and renders the appropriate page.
+ * Configuração de rotas do Web_Router público (R2.1/R2.3).
+ *
+ * O `apps/web` serve apenas rotas públicas — não há mais roteamento por estado
+ * de autenticação (`useAuth`). As rotas são:
+ * - `/` → Landing_Page (divulgação)
+ * - `/signup` → Signup_Form (onboarding self-service)
+ * - `*` (catch-all) → redireciona para `/`, direcionando qualquer rota não
+ *   pública (incluindo as antigas telas autenticadas) para a Landing_Page (R2.3).
+ *
+ * Exportado como fonte única da verdade das rotas para que os testes possam
+ * montar um roteador equivalente (`createMemoryRouter`) sem duplicar a config.
  */
-function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+export const routes: RouteObject[] = [
+  { path: '/', element: <LandingPage /> },
+  { path: '/signup', element: <SignupPage /> },
+  { path: '*', element: <Navigate to="/" replace /> },
+];
 
-  if (isLoading) {
-    return null; // Brief flash while checking sessionStorage
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
-  return <QueuePage />;
-}
+const router = createBrowserRouter(routes);
 
 /**
- * Root App component wrapped with AuthProvider.
- * Uses useAuth hook for state-based routing between Login and Queue pages.
+ * Componente raiz do `apps/web`: monta o Web_Router público.
  */
 export function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+  return <RouterProvider router={router} />;
 }

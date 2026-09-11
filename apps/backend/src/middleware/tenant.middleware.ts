@@ -1,6 +1,7 @@
 import { type Response, type NextFunction } from 'express';
 import { pool } from '../config/database.js';
 import type { AuthenticatedRequest as BaseAuthenticatedRequest } from './auth.middleware.js';
+import { isTrialBlocked, TRIAL_EXPIRED } from '../services/trial-guard.js';
 
 /**
  * Tenant resolution middleware (Tenant_Resolution_Middleware).
@@ -38,6 +39,8 @@ interface TenantResolutionRow {
   tenant_id: string | null;
   status: 'ativo' | 'inativo' | null;
   timezone: string | null;
+  trial_ends_at: string | null;
+  subscription_status: string | null;
 }
 
 export async function tenantMiddleware(
@@ -60,7 +63,8 @@ export async function tenantMiddleware(
 
   try {
     const result = await pool.query(
-      `SELECT u.tenant_id, t.status, t.timezone
+      `SELECT u.tenant_id, t.status, t.timezone,
+              t.trial_ends_at, t.subscription_status
          FROM users u
          JOIN tenants t ON t.id = u.tenant_id
         WHERE u.id = $1`,
@@ -99,6 +103,26 @@ export async function tenantMiddleware(
         statusCode: 403,
         error: 'TENANT_INACTIVE',
         message: 'O tenant está inativo.',
+      });
+      return;
+    }
+
+    // Trial_Guard: um tenant em teste permanece `status = 'ativo'` (R12.6), então
+    // o bloqueio por teste expirado é aplicado APÓS a checagem de `status`. Nega
+    // toda requisição autenticada ao painel/app quando o teste expirou e o tenant
+    // não converteu (R12.2/R12.3), preservando o comportamento para trial vigente,
+    // tenant convertido ou legado sem `trial_ends_at` (R12.4).
+    if (
+      isTrialBlocked({
+        trialEndsAt: row.trial_ends_at,
+        subscriptionStatus: row.subscription_status,
+        now: new Date(),
+      })
+    ) {
+      res.status(TRIAL_EXPIRED.statusCode).json({
+        statusCode: TRIAL_EXPIRED.statusCode,
+        error: TRIAL_EXPIRED.code,
+        message: TRIAL_EXPIRED.message,
       });
       return;
     }

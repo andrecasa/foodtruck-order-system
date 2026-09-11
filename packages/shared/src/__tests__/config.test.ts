@@ -9,6 +9,7 @@ import {
   SESSION_DURATION_HOURS,
   WHATSAPP_SESSION_TIMEOUT_MS,
   REALTIME_RECONNECT_INTERVAL_MS,
+  TRIAL_WARNING_DAYS,
 } from '../constants/config';
 
 describe('config constants', () => {
@@ -46,5 +47,10 @@ describe('config constants', () => {
 
   it('REALTIME_RECONNECT_INTERVAL_MS is 5 seconds', () => {
     expect(REALTIME_RECONNECT_INTERVAL_MS).toBe(5000);
+  });
+
+  // Limite de dias para exibir o Trial_Warning (R13.1/R13.2).
+  it('TRIAL_WARNING_DAYS is 7', () => {
+    expect(TRIAL_WARNING_DAYS).toBe(7);
   });
 });

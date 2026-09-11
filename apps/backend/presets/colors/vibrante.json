@@ -1,0 +1,30 @@
+{
+  "id": "vibrante",
+  "label": "Vibrante",
+  "colors": {
+    "primary": "#E63946",
+    "secondary": "#F77F00",
+    "background": "#FFFDF7",
+    "text": "#1D1B22",
+    "success": "#2A9D8F",
+    "warning": "#F4A62A",
+    "error": "#D62828",
+    "aguardando": "#F4A62A",
+    "preparando": "#4361EE",
+    "pronto": "#2A9D8F",
+    "entregue": "#6B7280",
+    "textSecondary": "#5A5763",
+    "surface": "#FFFFFF",
+    "divider": "#F0E6D8",
+    "border": "#F0E6D8",
+    "surfaceDisabled": "#F1ECE3",
+    "textDisabled": "#A8A2AE",
+    "received": "#2A9D8F",
+    "pending": "#D62828",
+    "revenue": "#F77F00",
+    "surfacePrimary": "#FDE5E7",
+    "surfaceRevenue": "#FEEEDD",
+    "surfaceReceived": "#E4F4F1",
+    "surfacePending": "#FBE3E3"
+  }
+}

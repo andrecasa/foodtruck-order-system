@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from 'express';
 import { pool } from '../config/database.js';
+import { isTrialBlocked, ESTABLISHMENT_UNAVAILABLE } from '../services/trial-guard.js';
 
 /**
  * Public tenant resolution middleware (customer-ordering R1–R5).
@@ -19,7 +20,11 @@ import { pool } from '../config/database.js';
  *      only applies to well-formed-but-missing slugs).
  *   2. Look up an active tenant by `provisioning_key`. A missing/inactive tenant
  *      yields 404 `TENANT_NOT_FOUND`.
- *   3. On success, attach `req.tenantId` / `req.tenantSlug` and call `next()`.
+ *   3. Trial_Guard: aplica `isTrialBlocked` sobre o `trial_ends_at`/
+ *      `subscription_status` do tenant resolvido. Se o teste estiver expirado e
+ *      o tenant não estiver convertido, bloqueia com 403 `ESTABLISHMENT_UNAVAILABLE`
+ *      (R12.7); trial vigente/convertido/legado sem trial passa (R12.8).
+ *   4. On success, attach `req.tenantId` / `req.tenantSlug` and call `next()`.
  *
  * Design: `.kiro/specs/customer-ordering/design.md`
  *   → "Middleware de resolução por slug".
@@ -44,6 +49,8 @@ export interface PublicTenantRequest extends Request {
 
 interface PublicTenantRow {
   id: string;
+  trial_ends_at: string | null;
+  subscription_status: string | null;
 }
 
 export async function publicTenantMiddleware(
@@ -64,7 +71,7 @@ export async function publicTenantMiddleware(
 
   try {
     const result = await pool.query(
-      `SELECT id FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'`,
+      `SELECT id, trial_ends_at, subscription_status FROM tenants WHERE provisioning_key = $1 AND status = 'ativo'`,
       [slug],
     );
 
@@ -80,7 +87,24 @@ export async function publicTenantMiddleware(
       return;
     }
 
-    // 3. Success: expose the resolved tenant to the public controllers.
+    // 3. Trial_Guard (R12.7/R12.8): teste expirado e tenant não convertido ⇒
+    //    estabelecimento indisponível para o cliente final. Segue a mesma
+    //    convenção de erro inline deste middleware (`{ error, message }`).
+    if (
+      isTrialBlocked({
+        trialEndsAt: row.trial_ends_at,
+        subscriptionStatus: row.subscription_status,
+        now: new Date(),
+      })
+    ) {
+      res.status(ESTABLISHMENT_UNAVAILABLE.statusCode).json({
+        error: ESTABLISHMENT_UNAVAILABLE.code,
+        message: ESTABLISHMENT_UNAVAILABLE.message,
+      });
+      return;
+    }
+
+    // 4. Success: expose the resolved tenant to the public controllers.
     req.tenantId = row.id;
     req.tenantSlug = slug;
 

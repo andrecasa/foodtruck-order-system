@@ -21,6 +21,7 @@ export type {
   TopProduct,
   TopProductsResponse,
   ThemeConfig,
+  ColorPreset,
   CategoryStatus,
   Category,
   CreateCategoryRequest,
@@ -88,6 +89,7 @@ export {
   SESSION_DURATION_HOURS,
   WHATSAPP_SESSION_TIMEOUT_MS,
   REALTIME_RECONNECT_INTERVAL_MS,
+  TRIAL_WARNING_DAYS,
 } from './constants/config';
 
 export {

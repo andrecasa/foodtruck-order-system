@@ -1,0 +1,1003 @@
+{
+  "pbtResults": {
+    "4.4 Property test — todo Color_Preset tem paleta completa e sem businessName": {
+      "status": "passed",
+      "lastRunTimestamp": 1789079733797
+    },
+    "5.3 Property test — derivação da URL pública da logo": {
+      "status": "passed",
+      "lastRunTimestamp": 1789079769007
+    },
+    "3.3 Property test — atomicidade do provisionamento estendido": {
+      "status": "passed",
+      "lastRunTimestamp": 1789079979035
+    },
+    "3.2 Property test — idempotência preserva o trial e o contato": {
+      "status": "passed",
+      "lastRunTimestamp": 1789079987723
+    },
+    "12.3 Property test — rota não pública direciona para a Landing_Page": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080008055
+    },
+    "6.5 Property test — logo maior que o limite é rejeitada": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080195948
+    },
+    "6.4 Property test — validação de formato do slug": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080217674
+    },
+    "6.3 Property test — validação de campos rejeita entradas inválidas": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080223022
+    },
+    "13.3 Property test — `slugify` sempre produz slug bem-formado ou vazio": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080233899
+    },
+    "7.3 Property test — montagem do tema preserva paleta e businessName": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080714418
+    },
+    "7.2 Property test — e-mail comparado case-insensitive": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080715138
+    },
+    "7.4 Property test — preset de cores inexistente é rejeitado": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080719187
+    },
+    "7.5 Property test — extensão/chave da logo derivam do tipo do arquivo": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080745059
+    },
+    "7.6 Property test — cálculo do fim do teste (trial_ends_at = now + 30d)": {
+      "status": "passed",
+      "lastRunTimestamp": 1789080752168
+    },
+    "15.4 Property test — visibilidade do Trial_Warning": {
+      "status": "passed",
+      "lastRunTimestamp": 1789081529860
+    },
+    "10.4 Property test — bloqueio do Trial_Guard": {
+      "status": "passed",
+      "lastRunTimestamp": 1789081914938
+    }
+  },
+  "executionHistory": {
+    "1. Migration 015: colunas de trial, conversão e contato em `tenants`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976387
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078988995
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079125927
+      }
+    ],
+    "2.1 Exportar `TRIAL_WARNING_DAYS` e tipos de trial/preset no shared": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976463
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078992775
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079126956
+      }
+    ],
+    "2.2 Testes unitários das constantes/tipos compartilhados": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976515
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079254349
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079491153
+      }
+    ],
+    "3.1 Adicionar campos opcionais ao `provisionTenant` (INSERT só na criação)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976598
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079255889
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079490119
+      }
+    ],
+    "3.2 Property test — idempotência preserva o trial e o contato": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976643
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080079495
+      }
+    ],
+    "3.3 Property test — atomicidade do provisionamento estendido": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976693
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080078621
+      }
+    ],
+    "4.1 Criar `presets/generic-menu.{json,ts}` (Onboarding_Preset único)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976748
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078994182
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079128213
+      }
+    ],
+    "4.2 Criar loader `services/color-presets.ts` + primeiro preset de cores": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976801
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079256711
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079493619
+      }
+    ],
+    "4.3 Presets de cores adicionais (opcional além do caminho feliz)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976848
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080080478
+      }
+    ],
+    "4.4 Property test — todo Color_Preset tem paleta completa e sem businessName": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976898
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079653515
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079833939
+      }
+    ],
+    "5.1 Adicionar dependência `@aws-sdk/client-s3` ao `apps/backend`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078976950
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078995083
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079129673
+      }
+    ],
+    "5.2 Implementar `services/s3-logo-upload.ts`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977008
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079257790
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079492489
+      }
+    ],
+    "5.3 Property test — derivação da URL pública da logo": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977052
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079654468
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079832956
+      }
+    ],
+    "5.4 Testes example-based do upload (cliente S3 mockado)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977097
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079655248
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079831934
+      }
+    ],
+    "6.1 Criar `validation/signup.validation.ts` (`signupSchema`)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977163
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079651115
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079830599
+      }
+    ],
+    "6.2 Criar util de slug reservado / normalização de telefone": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977231
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079652120
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079829175
+      }
+    ],
+    "6.3 Property test — validação de campos rejeita entradas inválidas": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977276
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080086428
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080504639
+      }
+    ],
+    "6.4 Property test — validação de formato do slug": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977324
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080087384
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080505523
+      }
+    ],
+    "6.5 Property test — logo maior que o limite é rejeitada": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977361
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080088780
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080506661
+      }
+    ],
+    "7.1 Orquestrar o cadastro (platform-level)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977398
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080085519
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080503689
+      }
+    ],
+    "7.2 Property test — e-mail comparado case-insensitive": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977443
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080625338
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080803258
+      }
+    ],
+    "7.3 Property test — montagem do tema preserva paleta e businessName": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977482
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080626660
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080804408
+      }
+    ],
+    "7.4 Property test — preset de cores inexistente é rejeitado": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977527
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080627605
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080805596
+      }
+    ],
+    "7.5 Property test — extensão/chave da logo derivam do tipo do arquivo": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977579
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080629009
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080806643
+      }
+    ],
+    "7.6 Property test — cálculo do fim do teste (trial_ends_at = now + 30d)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977661
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080629855
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080807758
+      }
+    ],
+    "8. Checkpoint — garantir que os testes do backend passam": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977709
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080825737
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080837071
+      }
+    ],
+    "9.1 Adicionar parser multipart ao `apps/backend`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977758
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078996125
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079130596
+      }
+    ],
+    "9.2 Criar `middleware/signup-rate-limit.middleware.ts`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977799
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079258603
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079490689
+      }
+    ],
+    "9.3 Criar `controllers/signup.controller.ts`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977848
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080827163
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081098234
+      }
+    ],
+    "9.4 Criar `routes/signup.routes.ts` e registrar em `index.ts`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977895
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081108706
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081416091
+      }
+    ],
+    "9.5 Testes example-based do endpoint (via invoke-handler)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977944
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081419358
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081709655
+      }
+    ],
+    "10.1 Criar `services/trial-guard.ts` (`isTrialBlocked`)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078977995
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081110007
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081247669
+      }
+    ],
+    "10.2 Estender `tenant.middleware.ts` e login autenticado": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978043
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081417009
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081711801
+      }
+    ],
+    "10.3 Estender `public-tenant.middleware.ts` (customer-ordering)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978094
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081418041
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081708772
+      }
+    ],
+    "10.4 Property test — bloqueio do Trial_Guard": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978147
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081718617
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081943702
+      }
+    ],
+    "11. Checkpoint — garantir que typecheck/test/lint do backend passam": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978209
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789082107277
+      }
+    ],
+    "12.1 Adicionar `react-router` ao `apps/web`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978258
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079131596
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079249571
+      }
+    ],
+    "12.2 Montar `Web_Router` em `main.tsx`/`App.tsx`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978310
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079494880
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079643917
+      }
+    ],
+    "12.3 Property test — rota não pública direciona para a Landing_Page": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978359
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080077141
+      }
+    ],
+    "13.1 Criar `apps/web/src/utils/slugify.ts`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978413
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079495715
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079644653
+      }
+    ],
+    "13.2 Criar `apps/web/src/services/signup-api.ts`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978462
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080075806
+      }
+    ],
+    "13.3 Property test — `slugify` sempre produz slug bem-formado ou vazio": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978514
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080089703
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080502387
+      }
+    ],
+    "14.1 Criar `pages/LandingPage.tsx`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978575
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080517006
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080624330
+      }
+    ],
+    "14.2 Testes Testing Library da LandingPage": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978642
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080828986
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081100545
+      }
+    ],
+    "14.3 Refinamentos de UI da landing (opcional)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978684
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080830027
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081099654
+      }
+    ],
+    "15.1 Criar `pages/SignupPage.tsx`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978746
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080828039
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081101352
+      }
+    ],
+    "15.2 Implementar `Trial_Warning` no `apps/web`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978796
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081110721
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081250319
+      }
+    ],
+    "15.3 Testes Testing Library do Signup_Form": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978863
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081420305
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081707308
+      }
+    ],
+    "15.4 Property test — visibilidade do Trial_Warning": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978918
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081421351
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081711087
+      }
+    ],
+    "16. Frontend: remoção segura das telas/hooks autenticados": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078978980
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081719260
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081944546
+      }
+    ],
+    "17. Checkpoint — garantir que typecheck/test/lint do apps/web passam": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078979033
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789082108274
+      }
+    ],
+    "18. Infra/documentação: `.env.example` e bloco Nginx": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789078979082
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081953705
+      },
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789082105834
+      }
+    ],
+    "2. Constantes e tipos compartilhados em `@order-system/shared`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079491213
+      }
+    ],
+    "5. Util de upload da logo ao S3 (`s3-logo-upload`)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789079833066
+      }
+    ],
+    "12. Frontend: introduzir react-router e Web_Router público": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080077216
+      }
+    ],
+    "3. Estender `provisionTenant` com `contact`, `trialEndsAt` e `subscriptionStatus`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080079575
+      }
+    ],
+    "4. Loader de Color_Presets e preset de cardápio genérico": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080080524
+      }
+    ],
+    "13. Frontend: `utils/slugify.ts` e serviço `signup-api`": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080502457
+      }
+    ],
+    "6. Validação Zod do signup e util de slugify (backend)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080506733
+      }
+    ],
+    "7. Implementar `services/signup.service.ts` (Signup_Service)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789080807809
+      }
+    ],
+    "14. Frontend: `LandingPage` e CTA": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081100607
+      }
+    ],
+    "9. Endpoint de signup: rate-limit, parser multipart, controller e rotas": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081709713
+      }
+    ],
+    "15. Frontend: `SignupPage` (Signup_Form)": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081711196
+      }
+    ],
+    "10. Trial_Guard: predicado puro e extensão dos pontos de acesso": [
+      {
+        "executionId": "851b5bea-3c29-4189-ba17-879fe5d183d9",
+        "chatSessionId": "sess_90bb0385-612b-4f0b-a025-7dd4c66c38e1",
+        "timestamp": 1789081943762
+      }
+    ]
+  }
+}

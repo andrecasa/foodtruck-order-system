@@ -1,0 +1,30 @@
+{
+  "id": "noturno",
+  "label": "Noturno",
+  "colors": {
+    "primary": "#7C9CF5",
+    "secondary": "#B0A0E0",
+    "background": "#12141C",
+    "text": "#ECEDF2",
+    "success": "#4ADE80",
+    "warning": "#FBBF57",
+    "error": "#F87171",
+    "aguardando": "#FBBF57",
+    "preparando": "#7C9CF5",
+    "pronto": "#4ADE80",
+    "entregue": "#8A93A6",
+    "textSecondary": "#A8AFC0",
+    "surface": "#1B1E28",
+    "divider": "#2C303C",
+    "border": "#2C303C",
+    "surfaceDisabled": "#252935",
+    "textDisabled": "#5E6474",
+    "received": "#4ADE80",
+    "pending": "#F87171",
+    "revenue": "#FBBF57",
+    "surfacePrimary": "#232A44",
+    "surfaceRevenue": "#33301E",
+    "surfaceReceived": "#1D3327",
+    "surfacePending": "#332223"
+  }
+}

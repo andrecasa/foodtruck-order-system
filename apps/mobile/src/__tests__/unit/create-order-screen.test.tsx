@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { CreateOrderScreen } from '../../screens/CreateOrderScreen';
 import type { MenuItem } from '@order-system/shared';
 
@@ -9,13 +9,39 @@ const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
 
+// Guarda o estado do `useFocusEffect` para podermos simular um novo foco da tela
+// (retorno do fluxo de confirmação/pagamento), já que a instância continua
+// montada por baixo das telas empilhadas. `mockRefocus()` re-executa o efeito.
+// Nomes prefixados com `mock` são permitidos dentro do factory do `jest.mock`.
+const mockFocusState: {
+  cb: (() => void | (() => void)) | null;
+  cleanup: void | (() => void);
+} = { cb: null, cleanup: undefined };
+
+function mockRefocus(): void {
+  if (typeof mockFocusState.cleanup === 'function') mockFocusState.cleanup();
+  mockFocusState.cleanup = mockFocusState.cb?.();
+}
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: mockPush,
     back: mockBack,
     replace: mockReplace,
   }),
-  useFocusEffect: require('../helpers/mockExpoRouter').useMockFocusEffect,
+  // Mock local (em vez do helper compartilhado) para permitir re-disparar o
+  // foco via `mockRefocus()` e validar o reset do carrinho ao retornar à tela.
+  useFocusEffect: (cb: () => void | (() => void)) => {
+    const { useEffect } = require('react');
+    mockFocusState.cb = cb;
+    useEffect(() => {
+      mockFocusState.cleanup = cb();
+      return () => {
+        if (typeof mockFocusState.cleanup === 'function') mockFocusState.cleanup();
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+  },
 }));
 
 jest.mock('../../hooks/useRealtime', () => ({
@@ -73,6 +99,8 @@ function createMenuItems(): MenuItem[] {
 describe('CreateOrderScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFocusState.cb = null;
+    mockFocusState.cleanup = undefined;
   });
 
   it('renders with origin selector and menu items', async () => {
@@ -162,5 +190,56 @@ describe('CreateOrderScreen', () => {
 
     // The order is only created on the confirm screen.
     expect(mockCreateOrder).not.toHaveBeenCalled();
+  });
+
+  it('reseta o carrinho ao reganhar foco após enviar o pedido para revisão', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+
+    const { findByText, getByTestId, queryByText } = render(<CreateOrderScreen />);
+
+    await findByText('Pastel de Carne');
+
+    // Seleciona 2 unidades do item → total R$ 16,00.
+    fireEvent.press(getByTestId('add-item-1'));
+    fireEvent.press(getByTestId('increment-item-1'));
+    await findByText('R$ 16,00');
+
+    // Envia para revisão (marca reviewInProgress internamente).
+    fireEvent.press(getByTestId('submit-order'));
+    await waitFor(() => expect(mockPush).toHaveBeenCalled());
+
+    // Simula o retorno à tela (AppBar/Confirmar/Pular) reganhando o foco.
+    await act(async () => {
+      mockRefocus();
+    });
+
+    // O carrinho foi zerado: total volta a R$ 0,00 e o CTA fica desabilitado,
+    // ou seja, o próximo "Novo Pedido" não herda os itens anteriores.
+    await waitFor(() => {
+      expect(queryByText('R$ 16,00')).toBeNull();
+    });
+    await findByText('R$ 0,00');
+    expect(getByTestId('submit-order').props.accessibilityState.disabled).toBe(true);
+  });
+
+  it('mantém o carrinho ao reganhar foco sem ter ido para revisão', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+
+    const { findByText, getByTestId } = render(<CreateOrderScreen />);
+
+    await findByText('Pastel de Carne');
+
+    // Seleciona um item mas NÃO envia para revisão.
+    fireEvent.press(getByTestId('add-item-1'));
+    fireEvent.press(getByTestId('increment-item-1'));
+    await findByText('R$ 16,00');
+
+    // Reganhar foco (ex.: após editar cardápio) não deve limpar o carrinho.
+    await act(async () => {
+      mockRefocus();
+    });
+
+    await findByText('R$ 16,00');
+    expect(getByTestId('submit-order').props.accessibilityState.disabled).toBe(false);
   });
 });

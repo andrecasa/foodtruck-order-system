@@ -86,6 +86,18 @@ Esqueça a planilha e a calculadora no fim do dia. Seu faturamento aparece pront
 
 ---
 
+## Top 10 produtos mais vendidos - saiba o que faz sucesso no seu balcão
+
+Todo cardápio tem os campeões de venda e os que só ocupam espaço. Descubra quais são os seus e transforme isso em mais lucro.
+
+- **Seu ranking de campeões** - Os 10 itens que mais saem, ordenados do mais vendido para o menos, prontos para você ver.
+- **Filtre por categoria** - Veja o ranking do cardápio inteiro ou foque em uma categoria específica para comparar o que vende melhor em cada grupo.
+- **Aposte no que vende** - Destaque os favoritos, crie combos e monte promoções em cima do que o cliente já ama.
+- **Corte o que não gira** - Identifique os itens parados e enxugue o cardápio para focar no que dá resultado.
+- **Compre certo, desperdice menos** - Antecipe o estoque dos queridinhos e evite sobra do que quase não sai.
+
+---
+
 ## Geolocalização dos pedidos - descubra onde você fatura mais
 
 Food truck que se preza muda de ponto. Com a captura de localização, você fica sabendo aonde cada pedido feito - isso vira inteligência de negócio.

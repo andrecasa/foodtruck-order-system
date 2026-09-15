@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text as RNText,
@@ -13,6 +13,7 @@ import { FloatingButton } from '../components/FloatingButton';
 import { MenuItemsCard } from '../components/MenuItemsCard';
 import { TotalRow } from '../components/TotalRow';
 import { apiClient } from '../services/api-client';
+import { consumeOrderCreated } from '../services/order-flow-signal';
 import { SwipeableOriginSelector } from '../components/SwipeableOriginSelector';
 import {
   FLOATING_CTA_BOTTOM_OFFSET,
@@ -71,23 +72,18 @@ export function CreateOrderScreen() {
   const [itemsError, setItemsError] = useState('');
   const [apiError, setApiError] = useState('');
 
-  // Marca que o pedido atual foi enviado para revisão. Como as telas de
-  // confirmação/pagamento ficam empilhadas ACIMA desta aba (ver `_layout.tsx`),
-  // esta instância permanece montada e seu carrinho sobreviveria ao retorno por
-  // qualquer caminho (AppBar, "Confirmar Pagamento" ou "Pular Pagamento"). Ao
-  // reganhar foco após uma revisão, zeramos o carrinho para que o próximo pedido
-  // comece limpo. (R: consistência de "Novo Pedido" após confirmação.)
-  const reviewInProgress = useRef(false);
-
   // Recarrega o cardápio ao ganhar foco (ex.: após editar o cardápio) e reseta
-  // o carrinho quando o foco volta depois de um pedido ter sido enviado para
-  // revisão, evitando herdar itens do pedido anterior.
+  // o carrinho SOMENTE quando o foco volta após um pedido ter sido efetivamente
+  // criado (sinal `consumeOrderCreated`). Como as telas de confirmação/pagamento
+  // ficam empilhadas ACIMA desta aba (ver `_layout.tsx`), esta instância
+  // permanece montada e seu carrinho sobreviveria ao retorno. Voltar da
+  // confirmação SEM confirmar preserva os itens; só limpamos quando o pedido
+  // realmente foi criado. (R: consistência de "Novo Pedido" após confirmação.)
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
 
-      if (reviewInProgress.current) {
-        reviewInProgress.current = false;
+      if (consumeOrderCreated()) {
         setSelectedItems({});
         setOrigin('presencial');
         setItemsError('');
@@ -177,11 +173,6 @@ export function CreateOrderScreen() {
     const items = Object.entries(selectedItems)
       .filter(([, qty]) => qty > 0)
       .map(([menuItemId, quantity]) => ({ menuItemId, quantity }));
-
-    // Sinaliza que, ao reganhar foco (venha o retorno pela AppBar, por
-    // "Confirmar Pagamento" ou por "Pular Pagamento"), o carrinho deve ser
-    // limpo para não herdar os itens deste pedido no próximo "Novo Pedido".
-    reviewInProgress.current = true;
 
     router.push({
       pathname: '/confirm-order',

@@ -13,7 +13,15 @@ import { Input } from '../components/Input';
 import { FloatingButton } from '../components/FloatingButton';
 import { MenuItemsCard } from '../components/MenuItemsCard';
 import { OrderSummaryCard } from '../components/OrderSummaryCard';
+import { OriginBadge } from '../components/OriginBadge';
+import { Badge } from '../components/Badge';
 import { apiClient } from '../services/api-client';
+import {
+  markOrderCreated,
+  getDraftCustomerName,
+  setDraftCustomerName,
+  clearDraftCustomerName,
+} from '../services/order-flow-signal';
 import { getCurrentCoordinates } from '../services/geolocation';
 import type { MenuItem, OrderOrigin } from '@order-system/shared';
 
@@ -61,7 +69,9 @@ export function ConfirmOrderScreen({ initialItems, origin }: ConfirmOrderScreenP
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
 
-  const [customerName, setCustomerName] = useState('');
+  // Semeia o nome a partir do rascunho em memória, para preservá-lo quando o
+  // operador volta da confirmação e revisa o pedido de novo (a tela é remontada).
+  const [customerName, setCustomerName] = useState(() => getDraftCustomerName());
   const [nameError, setNameError] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
@@ -165,8 +175,18 @@ export function ConfirmOrderScreen({ initialItems, origin }: ConfirmOrderScreenP
         items,
         ...(coords ?? {}),
       });
+      // Pedido criado: sinaliza para que a aba "Novo" zere o carrinho ao reganhar
+      // foco e descarta o rascunho do nome. Voltar da confirmação sem confirmar
+      // não sinaliza — itens e nome ficam preservados para nova revisão.
+      markOrderCreated();
+      clearDraftCustomerName();
       // Substitui a rota atual para que a confirmação não fique na pilha de volta.
-      router.replace({ pathname: '/payment', params: { orderId: order.id } });
+      // `fromNewOrder` sinaliza ao pagamento que, ao concluir/pular, deve ir para
+      // a fila de Pedidos (e não voltar para a aba "Novo" por baixo da pilha).
+      router.replace({
+        pathname: '/payment',
+        params: { orderId: order.id, fromNewOrder: '1' },
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar pedido';
       setApiError(message);
@@ -218,7 +238,10 @@ export function ConfirmOrderScreen({ initialItems, origin }: ConfirmOrderScreenP
             accessibilityLabel="Nome do Cliente"
             value={customerName}
             onChangeText={(text) => {
-              setCustomerName(text.slice(0, MAX_NAME_LENGTH));
+              const next = text.slice(0, MAX_NAME_LENGTH);
+              setCustomerName(next);
+              // Mantém o rascunho para sobreviver a Revisar → voltar → Revisar.
+              setDraftCustomerName(next);
               if (nameError) setNameError('');
             }}
             placeholder="Nome do cliente..."
@@ -256,6 +279,27 @@ export function ConfirmOrderScreen({ initialItems, origin }: ConfirmOrderScreenP
             testID="confirm-resumo"
             contentTestID="confirm-summary"
             totalTestID="confirm-total"
+            // Strip no padrão do card de pedidos: cor do status "Aguardando"
+            // (o pedido ainda não existe nesta etapa).
+            stripeColor={theme.colors.aguardando}
+            header={
+              /* Mesma fileira de badges do card da fila/pagamento:
+                 Pagamento | Origem | Status. O pedido ainda não existe, então o
+                 pagamento é "Pendente" e o status "Aguardando". */
+              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <Badge
+                  icon="currency_exchange"
+                  label="Pendente"
+                  color={theme.colors.error}
+                />
+                <OriginBadge origin={origin} testID="confirm-origin-badge" />
+                <Badge
+                  icon="schedule"
+                  label="Aguardando"
+                  color={theme.colors.aguardando}
+                />
+              </View>
+            }
           />
         </View>
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../theme';
-import { Button, Heading, Input, Text, MenuItemsCard, FloatingButton, OrderSummaryCard } from '../../components';
+import { Button, Heading, Input, Text, MenuItemsCard, FloatingButton, OrderSummaryCard, Badge, OriginBadge } from '../../components';
 import { CustomerHeader } from '../../components/customer/CustomerHeader';
 import { CustomerBottomNav } from '../../components/customer/CustomerBottomNav';
 import { useCart } from '../../hooks/customer/useCart';
@@ -43,10 +43,20 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
   const { submit, isSubmitting, error, reset } = useCreateOrder(slug);
   const { addOrder } = useSessionOrders(slug);
 
-  const [customerName, setCustomerName] = useState(
-    typeof params.name === 'string' ? params.name : '',
-  );
+  // Nome vem do carrinho (persistido por slug), para sobreviver a
+  // checkout → voltar ao cardápio → checkout. Semeia a partir do param `name`
+  // (compat) apenas quando o carrinho ainda não tem nome.
+  const customerName = cart.customerName;
+  const setCustomerName = cart.setCustomerName;
   const [nameError, setNameError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (customerName.length === 0 && typeof params.name === 'string' && params.name.length > 0) {
+      setCustomerName(params.name);
+    }
+    // Semeadura única a partir do param; não re-executa quando o usuário edita.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isEmpty = cart.items.length === 0;
 
@@ -157,7 +167,7 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
           placeholder="Como devemos chamar você?"
           value={customerName}
           onChangeText={(text) => {
-            setCustomerName(text);
+            setCustomerName(text.slice(0, 100));
             if (nameError) setNameError(null);
           }}
           error={nameError ?? undefined}
@@ -188,6 +198,27 @@ export function CustomerCheckoutScreen({ slug }: CustomerCheckoutScreenProps) {
             testID="checkout-resumo"
             contentTestID="checkout-summary"
             totalTestID="checkout-total"
+            // Strip no padrão do card de pedidos: cor do status "Aguardando"
+            // (o pedido do cliente nasce aguardando e sem pagamento).
+            stripeColor={theme.colors.aguardando}
+            header={
+              /* Mesma fileira do operador: Pagamento | Origem | Status. O pedido
+                 do cliente é sempre origem "web" (QrCode), pagamento "Pendente"
+                 e status "Aguardando" no momento da criação. */
+              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <Badge
+                  icon="currency_exchange"
+                  label="Pendente"
+                  color={theme.colors.error}
+                />
+                <OriginBadge origin="web" testID="checkout-origin-badge" />
+                <Badge
+                  icon="schedule"
+                  label="Aguardando"
+                  color={theme.colors.aguardando}
+                />
+              </View>
+            }
           />
         </View>
 

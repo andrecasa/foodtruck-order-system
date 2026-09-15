@@ -1,6 +1,10 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { CreateOrderScreen } from '../../screens/CreateOrderScreen';
+import {
+  markOrderCreated,
+  resetOrderFlowState,
+} from '../../services/order-flow-signal';
 import type { MenuItem } from '@order-system/shared';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
@@ -101,6 +105,7 @@ describe('CreateOrderScreen', () => {
     jest.clearAllMocks();
     mockFocusState.cb = null;
     mockFocusState.cleanup = undefined;
+    resetOrderFlowState();
   });
 
   it('renders with origin selector and menu items', async () => {
@@ -192,7 +197,7 @@ describe('CreateOrderScreen', () => {
     expect(mockCreateOrder).not.toHaveBeenCalled();
   });
 
-  it('reseta o carrinho ao reganhar foco após enviar o pedido para revisão', async () => {
+  it('zera o carrinho ao reganhar foco APÓS o pedido ter sido criado', async () => {
     mockGetMenu.mockResolvedValue(createMenuItems());
 
     const { findByText, getByTestId, queryByText } = render(<CreateOrderScreen />);
@@ -204,22 +209,47 @@ describe('CreateOrderScreen', () => {
     fireEvent.press(getByTestId('increment-item-1'));
     await findByText('R$ 16,00');
 
-    // Envia para revisão (marca reviewInProgress internamente).
     fireEvent.press(getByTestId('submit-order'));
     await waitFor(() => expect(mockPush).toHaveBeenCalled());
 
-    // Simula o retorno à tela (AppBar/Confirmar/Pular) reganhando o foco.
+    // Simula a ConfirmOrderScreen tendo criado o pedido (sinal de fluxo) e o
+    // retorno à aba "Novo" reganhando o foco (AppBar/Confirmar/Pular).
     await act(async () => {
+      markOrderCreated();
       mockRefocus();
     });
 
-    // O carrinho foi zerado: total volta a R$ 0,00 e o CTA fica desabilitado,
-    // ou seja, o próximo "Novo Pedido" não herda os itens anteriores.
+    // O carrinho foi zerado: total volta a R$ 0,00 e o CTA fica desabilitado.
     await waitFor(() => {
       expect(queryByText('R$ 16,00')).toBeNull();
     });
     await findByText('R$ 0,00');
     expect(getByTestId('submit-order').props.accessibilityState.disabled).toBe(true);
+  });
+
+  it('mantém o carrinho ao voltar da confirmação SEM confirmar o pedido', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+
+    const { findByText, getByTestId } = render(<CreateOrderScreen />);
+
+    await findByText('Pastel de Carne');
+
+    // Seleciona 2 unidades e vai para a revisão.
+    fireEvent.press(getByTestId('add-item-1'));
+    fireEvent.press(getByTestId('increment-item-1'));
+    await findByText('R$ 16,00');
+
+    fireEvent.press(getByTestId('submit-order'));
+    await waitFor(() => expect(mockPush).toHaveBeenCalled());
+
+    // Volta da confirmação SEM confirmar: nenhum pedido criado, logo nenhum
+    // sinal. O carrinho deve ser preservado ao reganhar o foco.
+    await act(async () => {
+      mockRefocus();
+    });
+
+    await findByText('R$ 16,00');
+    expect(getByTestId('submit-order').props.accessibilityState.disabled).toBe(false);
   });
 
   it('mantém o carrinho ao reganhar foco sem ter ido para revisão', async () => {

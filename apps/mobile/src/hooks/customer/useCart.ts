@@ -18,12 +18,19 @@ export interface UseCartResult {
   removeItem: (menuItemId: string) => void;
   /** Sets the quantity of a line; qty <= 0 removes it. */
   updateQuantity: (menuItemId: string, qty: number) => void;
-  /** Empties the cart. */
+  /** Empties the cart (itens + nome do cliente). */
   clear: () => void;
   /** Total price in centavos. */
   total: number;
   /** Total number of individual units across all lines. */
   count: number;
+  /**
+   * Nome do cliente digitado no checkout, persistido junto ao carrinho (mesma
+   * chave por slug), para sobreviver a ir ao cardápio e voltar ao checkout.
+   */
+  customerName: string;
+  /** Atualiza o nome do cliente (persistido enquanto o pedido não é criado). */
+  setCustomerName: (name: string) => void;
 }
 
 /**
@@ -62,6 +69,18 @@ function storageKey(slug: string | undefined): string {
   return `cart:${slug ?? 'unknown'}`;
 }
 
+function nameStorageKey(slug: string | undefined): string {
+  return `cart-name:${slug ?? 'unknown'}`;
+}
+
+function readPersistedName(slug: string | undefined): string {
+  try {
+    return getStorage().getItem(nameStorageKey(slug)) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 function readPersistedItems(slug: string | undefined): CartItem[] {
   try {
     const raw = getStorage().getItem(storageKey(slug));
@@ -90,6 +109,11 @@ function readPersistedItems(slug: string | undefined): CartItem[] {
  */
 export function useCart(slug: string | undefined): UseCartResult {
   const [items, setItems] = useState<CartItem[]>(() => readPersistedItems(slug));
+  // Nome do cliente, persistido junto ao carrinho para sobreviver a
+  // checkout → voltar ao cardápio → checkout (mesma chave por slug).
+  const [customerName, setCustomerNameState] = useState<string>(() =>
+    readPersistedName(slug),
+  );
 
   // Re-hydrate when the slug changes (e.g. navigating between establishments).
   const slugRef = useRef(slug);
@@ -97,6 +121,7 @@ export function useCart(slug: string | undefined): UseCartResult {
     if (slugRef.current !== slug) {
       slugRef.current = slug;
       setItems(readPersistedItems(slug));
+      setCustomerNameState(readPersistedName(slug));
     }
   }, [slug]);
 
@@ -113,6 +138,20 @@ export function useCart(slug: string | undefined): UseCartResult {
       // Storage unavailable (private mode, quota) — cart still works in memory.
     }
   }, [items, slug]);
+
+  // Persist whenever the customer name changes.
+  useEffect(() => {
+    try {
+      const key = nameStorageKey(slug);
+      if (customerName.length === 0) {
+        getStorage().removeItem(key);
+      } else {
+        getStorage().setItem(key, customerName);
+      }
+    } catch {
+      // Storage unavailable — name still works in memory for this session.
+    }
+  }, [customerName, slug]);
 
   const addItem = useCallback((item: PublicMenuItem, qty = 1) => {
     if (qty <= 0) return;
@@ -148,8 +187,13 @@ export function useCart(slug: string | undefined): UseCartResult {
     });
   }, []);
 
+  const setCustomerName = useCallback((name: string) => {
+    setCustomerNameState(name);
+  }, []);
+
   const clear = useCallback(() => {
     setItems([]);
+    setCustomerNameState('');
   }, []);
 
   const total = useMemo(
@@ -159,5 +203,15 @@ export function useCart(slug: string | undefined): UseCartResult {
 
   const count = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
 
-  return { items, addItem, removeItem, updateQuantity, clear, total, count };
+  return {
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clear,
+    total,
+    count,
+    customerName,
+    setCustomerName,
+  };
 }

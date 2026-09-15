@@ -12,12 +12,27 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
 }));
 
-// Cart mock — controlled per test via mockCart.
+// Cart mock — controlled per test via mockCart. O nome é reativo (useState),
+// espelhando o hook real: `setCustomerName` re-renderiza a tela e persiste o
+// valor, para que digitar → submeter leia o nome atualizado.
 let mockCart: UseCartResult;
 const clearSpy = jest.fn();
-jest.mock('../../hooks/customer/useCart', () => ({
-  useCart: () => mockCart,
-}));
+jest.mock('../../hooks/customer/useCart', () => {
+  const { useState } = require('react');
+  return {
+    useCart: () => {
+      const [name, setName] = useState(mockCart.customerName);
+      return {
+        ...mockCart,
+        customerName: name,
+        setCustomerName: (value: string) => {
+          mockCart.setCustomerName(value);
+          setName(value);
+        },
+      };
+    },
+  };
+});
 
 // createPublicOrder mock (via public-client).
 const mockCreatePublicOrder = jest.fn();
@@ -42,7 +57,9 @@ jest.mock('../../theme/ThemeProvider', () => require('../helpers/mockTheme').the
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function makeCart(items: CartItem[]): UseCartResult {
+const setCustomerNameSpy = jest.fn();
+
+function makeCart(items: CartItem[], customerName = ''): UseCartResult {
   const total = items.reduce((s, i) => s + i.priceCents * i.quantity, 0);
   const count = items.reduce((s, i) => s + i.quantity, 0);
   return {
@@ -53,6 +70,9 @@ function makeCart(items: CartItem[]): UseCartResult {
     clear: clearSpy,
     total,
     count,
+    customerName,
+    // Registra a chamada; a reatividade do nome fica no wrapper do mock de useCart.
+    setCustomerName: setCustomerNameSpy,
   };
 }
 
@@ -99,6 +119,18 @@ describe('CustomerCheckoutScreen', () => {
     // Total: 800*2 + 500 = 2100 → R$ 21,00
     expect(getByText('R$ 21,00')).toBeTruthy();
     expect(queryByTestId('checkout-total-row')).toBeNull();
+  });
+
+  it('mostra a fileira de badges no resumo (Pendente | QrCode | Aguardando)', () => {
+    const { getByTestId, getByText } = render(<CustomerCheckoutScreen slug="pastel" />);
+
+    // Origem do cliente é sempre 'web' → badge "QrCode" (identificado por testID
+    // para não colidir com o item "QrCode" da navegação inferior).
+    const originBadge = getByTestId('checkout-origin-badge');
+    expect(originBadge).toBeTruthy();
+    expect(originBadge.props.accessibilityLabel).toBe('QrCode');
+    expect(getByText('Pendente')).toBeTruthy();
+    expect(getByText('Aguardando')).toBeTruthy();
   });
 
   it('shows a validation error when the name is empty and does not submit', () => {
@@ -152,5 +184,22 @@ describe('CustomerCheckoutScreen', () => {
     const { getByTestId, queryByTestId } = render(<CustomerCheckoutScreen slug="pastel" />);
     expect(getByTestId('checkout-empty')).toBeTruthy();
     expect(queryByTestId('checkout-confirm-button')).toBeNull();
+  });
+
+  it('preenche o nome a partir do carrinho persistido (sobrevive a voltar/rever)', () => {
+    // Carrinho já traz o nome (persistido por slug), como após checkout → voltar
+    // ao cardápio → checkout: o campo deve reaparecer preenchido.
+    mockCart = makeCart(sampleItems, 'Roberta');
+    const { getByDisplayValue } = render(<CustomerCheckoutScreen slug="pastel" />);
+
+    expect(getByDisplayValue('Roberta')).toBeTruthy();
+  });
+
+  it('persiste o nome digitado no carrinho (via setCustomerName)', () => {
+    const { getByTestId } = render(<CustomerCheckoutScreen slug="pastel" />);
+
+    fireEvent.changeText(getByTestId('checkout-name-input'), 'Fernanda');
+
+    expect(setCustomerNameSpy).toHaveBeenCalledWith('Fernanda');
   });
 });

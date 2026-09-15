@@ -1,7 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { ConfirmOrderScreen } from '../../screens/ConfirmOrderScreen';
-import type { MenuItem } from '@order-system/shared';
+import {
+  consumeOrderCreated,
+  getDraftCustomerName,
+  setDraftCustomerName,
+  resetOrderFlowState,
+} from '../../services/order-flow-signal';
+import type { MenuItem, OrderOrigin } from '@order-system/shared';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -69,14 +75,14 @@ function createMenuItems(): MenuItem[] {
   ];
 }
 
-function renderScreen() {
+function renderScreen(origin: OrderOrigin = 'presencial') {
   return render(
     <ConfirmOrderScreen
       initialItems={[
         { menuItemId: 'item-1', quantity: 2 },
         { menuItemId: 'item-2', quantity: 1 },
       ]}
-      origin="presencial"
+      origin={origin}
     />,
   );
 }
@@ -86,6 +92,7 @@ function renderScreen() {
 describe('ConfirmOrderScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetOrderFlowState();
   });
 
   it('renders the resumo with items and the total resolved from the menu', async () => {
@@ -101,6 +108,32 @@ describe('ConfirmOrderScreen', () => {
     // Total inside the resumo card: 800*2 + 600 = 2200 → R$ 22,00.
     expect(getByTestId('confirm-total')).toBeTruthy();
     await findByText('R$ 22,00');
+  });
+
+  it('mostra o badge de origem escolhida no resumo (presencial)', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+
+    const { findByText, getByTestId } = renderScreen('presencial');
+
+    await findByText(/2x\u200E? Pastel de Carne \(R\$ 16,00\)/);
+
+    expect(getByTestId('confirm-origin-badge')).toBeTruthy();
+    // Mesma fileira do card de pedidos: Pagamento | Origem | Status. O pedido
+    // ainda não existe, então "Pendente" e "Aguardando".
+    await findByText('Pendente');
+    await findByText('Presencial');
+    await findByText('Aguardando');
+  });
+
+  it('reflete a origem recebida no badge (web → QrCode)', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+
+    const { findByText, getByTestId } = renderScreen('web');
+
+    await findByText(/2x\u200E? Pastel de Carne \(R\$ 16,00\)/);
+
+    expect(getByTestId('confirm-origin-badge')).toBeTruthy();
+    await findByText('QrCode');
   });
 
   it('shows a validation error when the name is empty and does not create the order', async () => {
@@ -141,9 +174,12 @@ describe('ConfirmOrderScreen', () => {
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
         pathname: '/payment',
-        params: { orderId: 'new-order-1' },
+        params: { orderId: 'new-order-1', fromNewOrder: '1' },
       });
     });
+
+    // Sinaliza que o pedido foi criado, para que a aba "Novo" zere o carrinho.
+    expect(consumeOrderCreated()).toBe(true);
   });
 
   it('keeps the screen and shows an error when order creation fails', async () => {
@@ -159,6 +195,9 @@ describe('ConfirmOrderScreen', () => {
 
     await findByText('Falha na rede');
     expect(mockReplace).not.toHaveBeenCalled();
+
+    // Falha ao criar não deve sinalizar limpeza do carrinho.
+    expect(consumeOrderCreated()).toBe(false);
   });
 
   it('lets the operator edit quantities before confirming', async () => {
@@ -182,5 +221,48 @@ describe('ConfirmOrderScreen', () => {
         items: [{ menuItemId: 'item-1', quantity: 2 }],
       });
     });
+  });
+
+  it('semeia o nome do cliente a partir do rascunho em memória', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+    // Simula o operador tendo digitado o nome numa revisão anterior.
+    setDraftCustomerName('Carlos');
+
+    const { findByText, findByDisplayValue } = renderScreen();
+
+    await findByText(/2x\u200E? Pastel de Carne \(R\$ 16,00\)/);
+
+    // Ao remontar a tela (Revisar → voltar → Revisar), o nome é restaurado.
+    await findByDisplayValue('Carlos');
+  });
+
+  it('persiste o nome digitado no rascunho para sobreviver ao voltar', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+
+    const { findByText, getByTestId } = renderScreen();
+
+    await findByText(/2x\u200E? Pastel de Carne \(R\$ 16,00\)/);
+
+    fireEvent.changeText(getByTestId('confirm-name-input'), 'Beatriz');
+
+    // O rascunho acompanha a digitação, então uma nova revisão o recupera.
+    expect(getDraftCustomerName()).toBe('Beatriz');
+  });
+
+  it('descarta o rascunho do nome quando o pedido é criado', async () => {
+    mockGetMenu.mockResolvedValue(createMenuItems());
+    mockCreateOrder.mockResolvedValue({ id: 'new-order-3' });
+
+    const { findByText, getByTestId } = renderScreen();
+
+    await findByText(/2x\u200E? Pastel de Carne \(R\$ 16,00\)/);
+
+    fireEvent.changeText(getByTestId('confirm-name-input'), 'Diego');
+    fireEvent.press(getByTestId('confirm-order-button'));
+
+    await waitFor(() => expect(mockCreateOrder).toHaveBeenCalled());
+
+    // Pedido criado: rascunho limpo, o próximo pedido começa sem nome herdado.
+    await waitFor(() => expect(getDraftCustomerName()).toBe(''));
   });
 });

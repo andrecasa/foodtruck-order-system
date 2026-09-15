@@ -26,6 +26,18 @@ export interface OrderSummaryCardProps {
   contentTestID?: string;
   /** testID da linha de total. */
   totalTestID?: string;
+  /**
+   * Conteúdo opcional renderizado no topo do card, acima do nome (ex.: a fileira
+   * de badges Pagamento | Origem | Status, como no card da fila de pedidos).
+   * O checkout do cliente não usa; mantém o card compartilhado sem divergir.
+   */
+  header?: React.ReactNode;
+  /**
+   * Cor da faixa lateral (e da borda, com 25% de opacidade), no mesmo padrão do
+   * card da fila de pedidos, onde a strip reflete o status. Default: `primary`
+   * (usado pelo checkout do cliente, que não passa esta prop).
+   */
+  stripeColor?: string;
 }
 
 /**
@@ -45,8 +57,14 @@ export function OrderSummaryCard({
   testID,
   contentTestID,
   totalTestID,
+  header,
+  stripeColor,
 }: OrderSummaryCardProps) {
   const theme = useTheme();
+
+  // Cor da strip/borda: quando informada, segue o padrão do card de pedidos
+  // (borda = cor + '40' ≈ 25% de opacidade); senão, o default primary/divider.
+  const resolvedStripeColor = stripeColor ?? theme.colors.primary;
 
   const frameStyle: ViewStyle = {
     flexDirection: 'row',
@@ -54,12 +72,12 @@ export function OrderSummaryCard({
     overflow: 'hidden',
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.divider,
+    borderColor: stripeColor ? stripeColor + '40' : theme.colors.divider,
   };
 
   const stripeStyle: ViewStyle = {
     width: 5,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: resolvedStripeColor,
   };
 
   const nameStyle: TextStyle = {
@@ -97,6 +115,9 @@ export function OrderSummaryCard({
         }}
         testID={contentTestID}
       >
+        {/* Cabeçalho opcional — fileira de badges (Pagamento | Origem | Status). */}
+        {header}
+
         {/* Linha do nome — só aparece quando preenchida (16px/600). */}
         {trimmedName.length > 0 ? (
           <RNText style={nameStyle}>{trimmedName}</RNText>

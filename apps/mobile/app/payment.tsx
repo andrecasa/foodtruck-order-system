@@ -17,7 +17,10 @@ import type { Order } from '@order-system/shared';
 export default function PaymentRoute() {
   const theme = useTheme();
   const router = useRouter();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, fromNewOrder } = useLocalSearchParams<{
+    orderId: string;
+    fromNewOrder?: string;
+  }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +83,14 @@ export default function PaymentRoute() {
     <PaymentScreen
       order={order}
       onPaymentSuccess={() => {
-        router.back();
+        // Vindo da criação de um novo pedido, a pilha é [Novo, pagamento]:
+        // voltar cairia na aba "Novo". Leva à fila de Pedidos, como o "Pular
+        // Pagamento". Vindo da fila, `back()` retorna à própria fila.
+        if (fromNewOrder === '1') {
+          router.replace('/(tabs)');
+        } else {
+          router.back();
+        }
       }}
     />
   );

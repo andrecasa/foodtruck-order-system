@@ -36,8 +36,8 @@ export { SINGLE_LOCATION_ZOOM };
 export const HEAT_OPTIONS = {
   radius: 25,
   blur: 15,
-  max: 0.6,
-  minOpacity: 0.4,
+  max: 0.45, //valor antigo 0.6
+  minOpacity: 0.6, //valor antigo 0.4
   gradient: {
     0.3: '#2E8B57', // verde nas intensidades baixas
     0.55: '#F2D22E', // amarelo

@@ -4,4 +4,8 @@ export { TrialWarning } from './TrialWarning';
 export type { TrialWarningProps } from './TrialWarning';
 export { FeatureCarousel } from './FeatureCarousel';
 export type { FeatureCarouselProps, FeatureSlide } from './FeatureCarousel';
+export { ImageCarousel } from './ImageCarousel';
+export type { ImageCarouselProps, ImageCarouselSlide } from './ImageCarousel';
+export { NavDrawer } from './NavDrawer';
+export type { NavDrawerProps, NavDrawerLink } from './NavDrawer';
 export { FeatureModal } from './FeatureModal';

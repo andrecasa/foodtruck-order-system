@@ -6,7 +6,7 @@ Tudo com a sua marca, suas cores e sua logo.
 
 ---
 
-## App do Operador - o comando do seu negócio na palma da mão
+## Central de Pedidos - o comando do seu negócio na palma da mão
 
 Cada pessoa do seu time no lugar certo, com a ferramenta certa. O atendente comanda o balcão pelo celular, o preparador acompanha a cozinha na tela que preferir - tablet, computador ou o próprio celular - e os dois trabalham na mesma fila, atualizada em tempo real. Nada se perde entre o pedido e o prato.
 
@@ -75,7 +75,11 @@ Todo pedido nasce identificado pela origem, para você saber exatamente por onde
 
 ---
 
-## Resumo financeiro diário e mensal - o pulso do seu negócio em um piscar de olhos
+## Controle Financeiro - o pulso do seu negócio em um piscar de olhos
+
+Você sabe quanto vendeu hoje e o que mais saiu do balcão? Aqui o dinheiro e os campeões de venda ficam na ponta do dedo: acompanhe o faturamento do dia ao mês e descubra quais produtos puxam o seu resultado - tudo pronto, sem planilha e sem adivinhação.
+
+### Resumo financeiro diário e mensal - o pulso do seu negócio em um piscar de olhos
 
 Esqueça a planilha e a calculadora no fim do dia. Seu faturamento aparece pronto, atualizado e sempre à mão - do movimento de hoje ao fechamento do mês.
 
@@ -100,12 +104,12 @@ Todo cardápio tem os campeões de venda e os que só ocupam espaço. Descubra q
 
 ## Geolocalização dos pedidos - descubra onde você fatura mais
 
-Food truck que se preza muda de ponto. Com a captura de localização, você fica sabendo aonde cada pedido feito - isso vira inteligência de negócio.
+Seu ponto de hoje foi melhor que o da semana passada? Pare de decidir no achismo. Cada pedido marca no mapa de onde veio e o sistema mostra onde você realmente vende mais - para você estacionar nos lugares certos e faturar mais em cada parada.
 
 - **Localização por pedido** - Cada pedido guarda as coordenadas de onde foi realizado.
 - **Estatísticas por local** - Descubra em quais pontos você vende mais e fatura melhor.
 - **Decida onde estacionar** - Escolha os melhores lugares com base em dados reais, não no achismo.
-- **Totalmente opcional** - Se a localização não estiver disponível, o pedido é criado normalmente. Nada trava a operação.
+- **Descubra novos pontos de ouro** - Enxergue no mapa as regiões com mais procura e abra novas praças antes da concorrência.
 
 ---
 

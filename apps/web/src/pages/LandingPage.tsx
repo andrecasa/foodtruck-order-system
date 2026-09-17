@@ -728,7 +728,7 @@ export function LandingPage() {
         <main style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           <section style={heroStyle} data-testid="landing-hero" aria-labelledby="landing-hero-title">
             <h1 id="landing-hero-title" style={heroTitleStyle}>
-              Coloque seu negócio para rodar
+              Seu negócio de um jeito fácil
             </h1>
             <p style={heroSubtitleStyle}>
               Seu time opera pelo celular, seus clientes pedem sozinhos pelo QR

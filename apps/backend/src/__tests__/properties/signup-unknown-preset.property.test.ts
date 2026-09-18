@@ -47,7 +47,7 @@ const baseInput: SignupInputForService = {
   adminEmail: 'admin@teste.com',
   password: 'senhaForte1',
   slug: 'restaurante-teste',
-  colorPresetId: 'classico',
+  colorPresetId: 'terracota',
 };
 
 /** Ids reais dos presets carregados — excluídos do gerador (fonte da verdade). */

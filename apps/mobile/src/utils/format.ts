@@ -8,6 +8,31 @@ export function formatPrice(priceInCentavos: number): string {
   });
 }
 
+/**
+ * Formata uma string de dígitos crus como moeda brasileira "R$ X,XX".
+ * Usada em campos de entrada mascarados (ex.: preço de item do cardápio),
+ * onde o valor é digitado dígito a dígito. Retorna '' quando não há dígitos.
+ */
+export function formatCurrencyDigits(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  const padded = digits.padStart(3, '0');
+  const integerPart = padded.slice(0, padded.length - 2);
+  const decimalPart = padded.slice(padded.length - 2);
+  const trimmedInteger = integerPart.replace(/^0+/, '') || '0';
+  return `R$ ${trimmedInteger},${decimalPart}`;
+}
+
+/**
+ * Converte uma string de moeda formatada (ex.: "R$ 8,00" ou "8,00") para
+ * centavos (inteiro). Retorna 0 quando vazia ou inválida.
+ */
+export function parseCurrencyToCentavos(formatted: string): number {
+  const digits = formatted.replace(/\D/g, '');
+  if (digits.length === 0) return 0;
+  return parseInt(digits, 10);
+}
+
 /** Computes total revenue (paid + pending) from a DailySummary */
 export function computeTotalRevenue(summary: DailySummary): number {
   return summary.paidTotal + summary.pendingTotal;

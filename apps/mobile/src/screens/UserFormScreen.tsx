@@ -2,10 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text as RNText,
-  TextInput,
-  TouchableOpacity,
-  Pressable,
   ActivityIndicator,
+  type TextInput,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
@@ -13,6 +11,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../theme';
 import { Screen, Header } from '../components/Layout';
 import { FormScreen } from '../components/FormScreen';
+import { Input } from '../components/Input';
+import { Button } from '../components/Button';
+import { Select } from '../components/Select';
 import { ErrorState } from '../components/ErrorState';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
@@ -61,10 +62,6 @@ export function UserFormScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole | ''>('');
   const [showRolePicker, setShowRolePicker] = useState(false);
-
-  // Visibility toggles for password fields
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Refs for focus management
   const nameRef = useRef<TextInput>(null);
@@ -264,117 +261,12 @@ export function UserFormScreen() {
     gap: 20,
   };
 
-  const fieldContainerStyle: ViewStyle = {
-    flexDirection: 'column',
-    gap: 8,
-  };
-
-  const labelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const inputContainerStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 24,
-    height: 48,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  };
-
-  const inputStyle: TextStyle = {
-    flex: 1,
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    paddingVertical: 0,
-    height: 48,
-  };
-
-  const visibilityIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 20,
-    color: theme.colors.textSecondary,
-  };
-
-  const arrowIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 20,
-    color: theme.colors.textSecondary,
-  };
-
-  const confirmButtonStyle: ViewStyle = {
-    width: '100%',
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const confirmButtonTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.surface,
-  };
-
-  const cancelButtonStyle: ViewStyle = {
-    width: '100%',
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  };
-
-  const cancelButtonTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.error,
-  };
-
-  const deleteIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 18,
-    color: theme.colors.error,
-  };
-
   const errorTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
     color: theme.colors.error,
     marginTop: 4,
-  };
-
-  const roleDropdownStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginTop: 4,
-    overflow: 'hidden',
-  };
-
-  const roleOptionStyle: ViewStyle = {
-    height: 44,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
   };
 
   const centeredContainerStyle: ViewStyle = {
@@ -427,188 +319,92 @@ export function UserFormScreen() {
       contentContainerStyle={contentStyle}
     >
         {/* Função Field (Role Selector) */}
-        <View style={fieldContainerStyle}>
-          <RNText style={labelStyle}>Função</RNText>
-          <TouchableOpacity
-            style={inputContainerStyle}
-            onPress={() => setShowRolePicker(!showRolePicker)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={role ? ROLE_OPTIONS.find((r) => r.value === role)?.label || '' : 'Selecione uma função'}
-            accessibilityHint="Toque para selecionar a função"
-            testID="select-role"
-          >
-            <RNText
-              style={
-                role
-                  ? { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.text, flex: 1 }
-                  : { fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: '400', color: theme.colors.textSecondary, flex: 1 }
-              }
-            >
-              {role ? ROLE_OPTIONS.find((r) => r.value === role)?.label : 'Selecione...'}
-            </RNText>
-            <RNText style={arrowIconStyle}>expand_more</RNText>
-          </TouchableOpacity>
-          {showRolePicker && (
-            <View style={roleDropdownStyle}>
-              {ROLE_OPTIONS.map((option, index) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    roleOptionStyle,
-                    index === ROLE_OPTIONS.length - 1 && { borderBottomWidth: 0 },
-                  ]}
-                  onPress={() => {
-                    setRole(option.value);
-                    setShowRolePicker(false);
-                    if (errors.role) setErrors((prev) => ({ ...prev, role: undefined }));
-                  }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: role === option.value }}
-                  accessibilityLabel={option.label}
-                  testID={`role-${option.value}`}
-                >
-                  <RNText
-                    style={{
-                      fontFamily: theme.typography.fontFamily,
-                      fontSize: 14,
-                      fontWeight: '400',
-                      color: role === option.value ? theme.colors.primary : theme.colors.text,
-                    }}
-                  >
-                    {option.label}
-                  </RNText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          {errors.role ? (
-            <RNText style={errorTextStyle}>{errors.role}</RNText>
-          ) : null}
-        </View>
+        <Select
+          label="Função"
+          value={role}
+          options={ROLE_OPTIONS}
+          onChange={(value) => {
+            setRole(value);
+            if (errors.role) setErrors((prev) => ({ ...prev, role: undefined }));
+          }}
+          error={errors.role}
+          open={showRolePicker}
+          onOpenChange={setShowRolePicker}
+          testID="select-role"
+          optionTestID={(value) => `role-${value}`}
+          accessibilityHint="Toque para selecionar a função"
+        />
 
         {/* Nome Field */}
-        <View style={fieldContainerStyle}>
-          <RNText style={labelStyle}>Nome</RNText>
-          <View style={inputContainerStyle}>
-            <TextInput
-              ref={nameRef}
-              style={inputStyle}
-              value={name}
-              onChangeText={(text) => {
-                setName(text);
-                if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
-                if (apiError) setApiError('');
-              }}
-              placeholder="Nome completo do usuário"
-              placeholderTextColor={theme.colors.textSecondary}
-              accessibilityLabel="Nome"
-              testID="input-name"
-            />
-          </View>
-          {errors.name ? (
-            <RNText style={errorTextStyle}>{errors.name}</RNText>
-          ) : null}
-        </View>
+        <Input
+          label="Nome"
+          accessibilityLabel="Nome"
+          value={name}
+          onChangeText={(text) => {
+            setName(text);
+            if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+            if (apiError) setApiError('');
+          }}
+          placeholder="Nome completo do usuário"
+          error={errors.name}
+          inputRef={nameRef}
+          testID="input-name"
+        />
 
         {/* E-mail Field */}
-        <View style={fieldContainerStyle}>
-          <RNText style={labelStyle}>E-mail</RNText>
-          <View style={inputContainerStyle}>
-            <TextInput
-              ref={emailRef}
-              style={inputStyle}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
-                if (apiError) setApiError('');
-              }}
-              placeholder="usuario@email.com"
-              placeholderTextColor={theme.colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="E-mail"
-              testID="input-email"
-            />
-          </View>
-          {errors.email ? (
-            <RNText style={errorTextStyle}>{errors.email}</RNText>
-          ) : null}
-        </View>
+        <Input
+          label="E-mail"
+          accessibilityLabel="E-mail"
+          value={email}
+          onChangeText={(text) => {
+            setEmail(text);
+            if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+            if (apiError) setApiError('');
+          }}
+          placeholder="usuario@email.com"
+          error={errors.email}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          inputRef={emailRef}
+          testID="input-email"
+        />
 
         {/* Senha Field */}
-        <View style={fieldContainerStyle}>
-          <RNText style={labelStyle}>Senha</RNText>
-          <View style={inputContainerStyle}>
-            <TextInput
-              ref={passwordRef}
-              style={inputStyle}
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-              }}
-              placeholder="Mínimo 8 caracteres"
-              placeholderTextColor={theme.colors.textSecondary}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="Senha"
-              testID="input-password"
-            />
-            <Pressable
-              onPress={() => setShowPassword(!showPassword)}
-              accessibilityRole="button"
-              accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              testID="toggle-password-visibility"
-            >
-              <RNText style={visibilityIconStyle}>
-                {showPassword ? 'visibility_off' : 'visibility'}
-              </RNText>
-            </Pressable>
-          </View>
-          {errors.password ? (
-            <RNText style={errorTextStyle}>{errors.password}</RNText>
-          ) : null}
-        </View>
+        <Input
+          label="Senha"
+          accessibilityLabel="Senha"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+          }}
+          placeholder="Mínimo 8 caracteres"
+          error={errors.password}
+          showPasswordToggle
+          autoCapitalize="none"
+          autoCorrect={false}
+          inputRef={passwordRef}
+          testID="input-password"
+        />
 
         {/* Confirmar Senha Field */}
-        <View style={fieldContainerStyle}>
-          <RNText style={labelStyle}>Confirmar Senha</RNText>
-          <View style={inputContainerStyle}>
-            <TextInput
-              ref={confirmPasswordRef}
-              style={inputStyle}
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-              }}
-              placeholder="Mínimo 8 caracteres"
-              placeholderTextColor={theme.colors.textSecondary}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="Confirmar Senha"
-              testID="input-confirm-password"
-            />
-            <Pressable
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              accessibilityRole="button"
-              accessibilityLabel={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
-              testID="toggle-confirm-password-visibility"
-            >
-              <RNText style={visibilityIconStyle}>
-                {showConfirmPassword ? 'visibility_off' : 'visibility'}
-              </RNText>
-            </Pressable>
-          </View>
-          {errors.confirmPassword ? (
-            <RNText style={errorTextStyle}>{errors.confirmPassword}</RNText>
-          ) : null}
-        </View>
+        <Input
+          label="Confirmar Senha"
+          accessibilityLabel="Confirmar Senha"
+          value={confirmPassword}
+          onChangeText={(text) => {
+            setConfirmPassword(text);
+            if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+          }}
+          placeholder="Mínimo 8 caracteres"
+          error={errors.confirmPassword}
+          showPasswordToggle
+          autoCapitalize="none"
+          autoCorrect={false}
+          inputRef={confirmPasswordRef}
+          testID="input-confirm-password"
+        />
 
         {/* API Error */}
         {apiError ? (
@@ -616,38 +412,30 @@ export function UserFormScreen() {
         ) : null}
 
         {/* Confirm Button */}
-        <TouchableOpacity
-          style={[confirmButtonStyle, (loading || deleting) && { opacity: 0.7 }]}
+        <Button
+          title="Salvar"
+          variant="primary"
+          size="lg"
+          fullWidth
           onPress={handleSubmit}
+          loading={loading}
           disabled={loading || deleting}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Salvar"
           testID="submit-user"
-        >
-          {loading ? (
-            <ActivityIndicator color={theme.colors.surface} size="small" />
-          ) : (
-            <RNText style={confirmButtonTextStyle}>
-              Salvar
-            </RNText>
-          )}
-        </TouchableOpacity>
+        />
 
         {/* Delete Button — only in edit mode */}
         {isEditMode && (
-          <TouchableOpacity
-            style={cancelButtonStyle}
+          <Button
+            title="Excluir"
+            variant="outline"
+            size="lg"
+            fullWidth
+            color={theme.colors.error}
+            icon="delete"
             onPress={handleDeletePress}
             disabled={deleting || loading}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Excluir"
             testID="delete-user"
-          >
-            <RNText style={deleteIconStyle}>delete</RNText>
-            <RNText style={cancelButtonTextStyle}>Excluir</RNText>
-          </TouchableOpacity>
+          />
         )}
         {/* Delete Confirmation Modal */}
         <Modal

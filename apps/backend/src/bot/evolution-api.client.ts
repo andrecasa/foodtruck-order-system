@@ -115,3 +115,41 @@ export async function provisionEvolutionInstance(options: ProvisionInstanceOptio
     );
   }
 }
+
+/**
+ * Remove (exclui) a instância Evolution de um tenant. Usado na exclusão total de
+ * um tenant (ex.: limpeza de tenants de teste) — operação inversa de
+ * {@link provisionEvolutionInstance}.
+ *
+ * Faz `DELETE {EVOLUTION_API_URL}/instance/delete/{instanceName}`. A Evolution
+ * costuma exigir que a instância esteja desconectada antes de excluir, então
+ * tentamos primeiro o `logout` (best-effort, ignorando falha — a instância pode
+ * já estar desconectada) e depois o `delete`.
+ *
+ * @returns `true` se a instância foi excluída (ou já não existia — 404);
+ *          `false` se a Evolution respondeu com outro erro.
+ * @throws Error apenas em falha de rede (fetch rejeitado), para o chamador decidir.
+ */
+export async function deleteEvolutionInstance(instanceName: string): Promise<boolean> {
+  const headers = { apikey: EVOLUTION_API_KEY, 'Content-Type': 'application/json' };
+
+  // 1. Logout best-effort: desconecta a sessão antes de excluir. Ignoramos o
+  //    resultado — se a instância já estiver desconectada, o delete resolve.
+  try {
+    await fetch(`${EVOLUTION_API_URL}/instance/logout/${instanceName}`, {
+      method: 'DELETE',
+      headers,
+    });
+  } catch {
+    // best-effort — segue para o delete
+  }
+
+  // 2. Delete da instância.
+  const response = await fetch(`${EVOLUTION_API_URL}/instance/delete/${instanceName}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  // 404 = instância inexistente ⇒ tratamos como já removida (idempotente).
+  return response.ok || response.status === 404;
+}

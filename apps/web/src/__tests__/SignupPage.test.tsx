@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ColorPreset } from '@order-system/shared';
 import { NEUTRAL_PLATFORM_THEME, TRIAL_WARNING_DAYS } from '@order-system/shared';
@@ -44,9 +45,9 @@ import { SignupPage } from '../pages/SignupPage';
 import { TrialWarning } from '../components/TrialWarning';
 
 /** Dois presets de cores com paleta completa (reusa a paleta neutra do shared). */
-const PRESET_CLASSICO: ColorPreset = {
-  id: 'classico',
-  label: 'Clássico',
+const PRESET_PADRAO: ColorPreset = {
+  id: 'padrao',
+  label: 'Padrão',
   colors: NEUTRAL_PLATFORM_THEME.colors,
 };
 const PRESET_VIBRANTE: ColorPreset = {
@@ -55,10 +56,18 @@ const PRESET_VIBRANTE: ColorPreset = {
   colors: { ...NEUTRAL_PLATFORM_THEME.colors, primary: '#ff5722' },
 };
 
+/**
+ * Renderiza a `SignupPage` dentro de um roteador de memória (a página usa
+ * `useNavigate` para o Login/CTA do cabeçalho reutilizado — `LandingChrome`).
+ */
 function renderSignup() {
+  const router = createMemoryRouter(
+    [{ path: '/', element: <SignupPage /> }],
+    { initialEntries: ['/'] },
+  );
   return render(
     <ThemeProvider>
-      <SignupPage />
+      <RouterProvider router={router} />
     </ThemeProvider>,
   );
 }
@@ -68,15 +77,17 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByTestId('signup-business-name-input'), 'Pastel da Praça');
   // O slug é sugerido automaticamente a partir do nome; não precisa preencher.
   await user.type(screen.getByTestId('signup-contact-name-input'), 'Maria Silva');
-  await user.type(screen.getByTestId('signup-contact-phone-input'), '+5511999998888');
+  // Celular BR (11 dígitos): a máscara formata para "(11) 99999-8888".
+  await user.type(screen.getByTestId('signup-contact-phone-input'), '11999998888');
   await user.type(screen.getByTestId('signup-admin-name-input'), 'Admin');
   await user.type(screen.getByTestId('signup-admin-email-input'), 'admin@exemplo.com');
   await user.type(screen.getByTestId('signup-password-input'), 'senha1234');
+  await user.type(screen.getByTestId('signup-confirm-password-input'), 'senha1234');
 }
 
 describe('SignupPage (Signup_Form)', () => {
   beforeEach(() => {
-    mockListColorPresets.mockResolvedValue({ presets: [PRESET_CLASSICO, PRESET_VIBRANTE] });
+    mockListColorPresets.mockResolvedValue({ presets: [PRESET_PADRAO, PRESET_VIBRANTE] });
     mockCheckSlugAvailability.mockResolvedValue({
       slug: 'pastel-da-praca',
       valid: true,
@@ -121,7 +132,7 @@ describe('SignupPage (Signup_Form)', () => {
     renderSignup();
 
     // Aguarda o carregamento dos presets (efeito assíncrono).
-    await screen.findByTestId('signup-color-preset-classico');
+    await screen.findByTestId('signup-color-preset-padrao');
 
     // Submete o formulário sem preencher nada.
     await user.click(screen.getByTestId('signup-submit-button'));
@@ -134,11 +145,64 @@ describe('SignupPage (Signup_Form)', () => {
     expect(mockSignup).not.toHaveBeenCalled();
   });
 
+  it('valida o telefone como celular BR: número inválido mostra erro e não envia', async () => {
+    const user = userEvent.setup();
+    renderSignup();
+
+    await screen.findByTestId('signup-color-preset-padrao');
+
+    // Preenche tudo, mas com um telefone fixo (8 dígitos após o DDD) — a máscara
+    // formata para "(11) 3333-4444", que NÃO é celular (nono dígito != 9).
+    await user.type(screen.getByTestId('signup-business-name-input'), 'Pastel da Praça');
+    await user.type(screen.getByTestId('signup-contact-name-input'), 'Maria Silva');
+    await user.type(screen.getByTestId('signup-contact-phone-input'), '1133334444');
+    await user.type(screen.getByTestId('signup-admin-name-input'), 'Admin');
+    await user.type(screen.getByTestId('signup-admin-email-input'), 'admin@exemplo.com');
+    await user.type(screen.getByTestId('signup-password-input'), 'senha1234');
+    await user.type(screen.getByTestId('signup-confirm-password-input'), 'senha1234');
+
+    await user.click(screen.getByTestId('signup-submit-button'));
+
+    // O campo de telefone exibe erro (role="alert") e o cadastro não é enviado.
+    expect(await screen.findByText(/celular válido com DDD/i)).toBeInTheDocument();
+    expect(mockSignup).not.toHaveBeenCalled();
+  });
+
+  it('exige que a confirmação de senha coincida: divergência mostra erro e não envia', async () => {
+    const user = userEvent.setup();
+    renderSignup();
+
+    await screen.findByTestId('signup-color-preset-padrao');
+
+    // Preenche tudo com um celular válido, mas senhas divergentes.
+    await user.type(screen.getByTestId('signup-business-name-input'), 'Pastel da Praça');
+    await user.type(screen.getByTestId('signup-contact-name-input'), 'Maria Silva');
+    await user.type(screen.getByTestId('signup-contact-phone-input'), '11999998888');
+    await user.type(screen.getByTestId('signup-admin-name-input'), 'Admin');
+    await user.type(screen.getByTestId('signup-admin-email-input'), 'admin@exemplo.com');
+    await user.type(screen.getByTestId('signup-password-input'), 'senha1234');
+    await user.type(screen.getByTestId('signup-confirm-password-input'), 'senha9999');
+
+    await user.click(screen.getByTestId('signup-submit-button'));
+
+    expect(await screen.findByText(/as senhas não coincidem/i)).toBeInTheDocument();
+    expect(mockSignup).not.toHaveBeenCalled();
+  });
+
+  it('aplica a máscara de celular BR conforme o usuário digita', async () => {
+    const user = userEvent.setup();
+    renderSignup();
+
+    const phone = screen.getByTestId('signup-contact-phone-input') as HTMLInputElement;
+    await user.type(phone, '11999998888');
+    expect(phone.value).toBe('(11) 99999-8888');
+  });
+
   it('envia o cadastro quando todos os campos obrigatórios estão preenchidos', async () => {
     const user = userEvent.setup();
     renderSignup();
 
-    await screen.findByTestId('signup-color-preset-classico');
+    await screen.findByTestId('signup-color-preset-padrao');
     await fillRequiredFields(user);
 
     await user.click(screen.getByTestId('signup-submit-button'));
@@ -146,7 +210,7 @@ describe('SignupPage (Signup_Form)', () => {
     await waitFor(() => expect(mockSignup).toHaveBeenCalledTimes(1));
     // O preset selecionado por padrão (primeiro) acompanha o envio (R6.2).
     expect(mockSignup).toHaveBeenCalledWith(
-      expect.objectContaining({ colorPresetId: 'classico' }),
+      expect.objectContaining({ colorPresetId: 'padrao' }),
     );
     expect(await screen.findByTestId('signup-success')).toBeInTheDocument();
   });
@@ -157,26 +221,26 @@ describe('SignupPage (Signup_Form)', () => {
       renderSignup();
 
       // Os dois presets mockados são renderizados.
-      const classico = await screen.findByTestId('signup-color-preset-classico');
+      const padrao = await screen.findByTestId('signup-color-preset-padrao');
       const vibrante = await screen.findByTestId('signup-color-preset-vibrante');
-      expect(classico).toBeInTheDocument();
+      expect(padrao).toBeInTheDocument();
       expect(vibrante).toBeInTheDocument();
 
-      const classicoRadio = within(classico).getByTestId(
-        'signup-color-preset-input-classico',
+      const padraoRadio = within(padrao).getByTestId(
+        'signup-color-preset-input-padrao',
       ) as HTMLInputElement;
       const vibranteRadio = within(vibrante).getByTestId(
         'signup-color-preset-input-vibrante',
       ) as HTMLInputElement;
 
       // O primeiro preset é selecionado por padrão (garante "exatamente um").
-      expect(classicoRadio.checked).toBe(true);
+      expect(padraoRadio.checked).toBe(true);
       expect(vibranteRadio.checked).toBe(false);
 
       // Selecionar outro preset transfere a seleção — continua exatamente um.
       await user.click(vibranteRadio);
       expect(vibranteRadio.checked).toBe(true);
-      expect(classicoRadio.checked).toBe(false);
+      expect(padraoRadio.checked).toBe(false);
     });
   });
 });

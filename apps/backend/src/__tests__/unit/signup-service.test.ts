@@ -46,7 +46,7 @@ const baseInput: SignupInputForService = {
   adminEmail: 'admin@teste.com',
   password: 'senhaForte1',
   slug: 'restaurante-teste',
-  colorPresetId: 'classico',
+  colorPresetId: 'terracota',
 };
 
 /** Pool mockado: por padrão, slug livre e e-mail livre (nenhum conflito). */

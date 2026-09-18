@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import { LandingPage } from './pages/LandingPage';
 import { SignupPage } from './pages/SignupPage';
+import { LoginPage } from './pages/LoginPage';
 
 /**
  * Configuração de rotas do Web_Router público (R2.1/R2.3).
@@ -10,6 +11,7 @@ import { SignupPage } from './pages/SignupPage';
  * de autenticação (`useAuth`). As rotas são:
  * - `/` → Landing_Page (divulgação)
  * - `/signup` → Signup_Form (onboarding self-service)
+ * - `/login` → Login_Form (por ora apenas a interface; sem integração de auth)
  * - `*` (catch-all) → redireciona para `/`, direcionando qualquer rota não
  *   pública (incluindo as antigas telas autenticadas) para a Landing_Page (R2.3).
  *
@@ -19,6 +21,7 @@ import { SignupPage } from './pages/SignupPage';
 export const routes: RouteObject[] = [
   { path: '/', element: <LandingPage /> },
   { path: '/signup', element: <SignupPage /> },
+  { path: '/login', element: <LoginPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ];
 

@@ -10,10 +10,10 @@ import { ThemeProvider } from '../../theme';
  * Landing_Page.
  *
  * Para qualquer caminho de URL que não corresponda a uma rota pública conhecida
- * (`/` ou `/signup`), o Web_Router deve renderizar a Landing_Page — nunca o
- * Signup_Form. Isso valida o catch-all (`*` → redireciona para `/`), garantindo
- * que qualquer rota não pública (incluindo as antigas telas autenticadas) caia
- * na landing.
+ * (`/`, `/signup` ou `/login`), o Web_Router deve renderizar a Landing_Page —
+ * nunca o Signup_Form. Isso valida o catch-all (`*` → redireciona para `/`),
+ * garantindo que qualquer rota não pública (incluindo as antigas telas
+ * autenticadas) caia na landing.
  *
  * O teste monta um roteador equivalente ao de produção via `createMemoryRouter`
  * (que possui histórico próprio, ideal para testes) reusando a mesma `routes`
@@ -23,7 +23,7 @@ import { ThemeProvider } from '../../theme';
  */
 
 /** Rotas públicas conhecidas que NÃO devem cair no catch-all. */
-const PUBLIC_PATHS = new Set(['/', '/signup']);
+const PUBLIC_PATHS = new Set(['/', '/signup', '/login']);
 
 /**
  * Renderiza o Web_Router no caminho informado e devolve o resultado do render,
@@ -50,7 +50,7 @@ const PATH_SEGMENT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 /**
  * Gera caminhos de URL absolutos e bem-formados dentro do app: uma barra inicial
  * seguida de 1..4 segmentos compostos por caracteres realistas de rota,
- * excluindo as rotas públicas conhecidas (`/` e `/signup`).
+ * excluindo as rotas públicas conhecidas (`/`, `/signup` e `/login`).
  */
 function nonPublicPathArb(): fc.Arbitrary<string> {
   const segmentArb = fc
@@ -79,7 +79,7 @@ describe('Property 15: Rota não pública direciona para a Landing_Page', () => 
   });
 
   it('exemplos concretos de rotas antigas autenticadas caem na Landing_Page', () => {
-    for (const path of ['/login', '/queue', '/foo/bar', '/signup/extra', '/qualquer']) {
+    for (const path of ['/queue', '/foo/bar', '/signup/extra', '/qualquer']) {
       const { unmount } = renderRouterAt(path);
       expect(screen.getByTestId('landing-page')).toBeInTheDocument();
       expect(screen.queryByTestId('signup-page')).not.toBeInTheDocument();
@@ -95,5 +95,12 @@ describe('Property 15: Rota não pública direciona para a Landing_Page', () => 
     const signup = renderRouterAt('/signup');
     expect(screen.getByTestId('signup-page')).toBeInTheDocument();
     signup.unmount();
+
+    // `/login` é rota pública (por ora apenas a interface): renderiza a
+    // Login_Page, não a Landing_Page nem o Signup_Form.
+    const login = renderRouterAt('/login');
+    expect(screen.getByTestId('login-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('signup-page')).not.toBeInTheDocument();
+    login.unmount();
   });
 });

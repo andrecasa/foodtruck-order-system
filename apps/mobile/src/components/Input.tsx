@@ -38,8 +38,19 @@ export interface InputProps {
   secureTextEntry?: boolean;
   /** Auto-capitalization behavior */
   autoCapitalize?: TextInputProps['autoCapitalize'];
+  /** Auto-correction behavior (forwarded to TextInput; padrão do RN quando omitido). */
+  autoCorrect?: TextInputProps['autoCorrect'];
+  /** Whether the input should be focused automatically on mount. */
+  autoFocus?: boolean;
   /** Maximum number of characters allowed in the input (forwarded to TextInput). */
   maxLength?: number;
+  /** Altura do campo em px (padrão 52, conforme spec do Penpot). */
+  height?: number;
+  /**
+   * Prefixo textual fixo exibido à esquerda do campo (ex.: "R$"). Não faz parte
+   * do `value` — é apenas visual, decorativo para leitores de tela.
+   */
+  prefix?: string;
   /** Optional leading icon name (Material Symbols Outlined) */
   icon?: string;
   /** Optional icon color override (defaults to textSecondary #8B6B5A) */
@@ -112,7 +123,11 @@ export function Input({
   keyboardType,
   secureTextEntry,
   autoCapitalize,
+  autoCorrect,
+  autoFocus,
   maxLength,
+  height = 52,
+  prefix,
   icon,
   iconColor,
   backgroundColor,
@@ -156,8 +171,8 @@ export function Input({
     backgroundColor: backgroundColor ?? theme.colors.surface,
     borderWidth: 1,
     borderColor: error ? theme.colors.error : isFocused ? theme.colors.primary : theme.colors.border,
-    borderRadius: 24,
-    height: 52,
+    borderRadius: theme.borderRadius.md,
+    height,
     paddingHorizontal: 16,
     gap: 10,
     // @ts-expect-error — outlineStyle is web-only, not in RN types
@@ -171,6 +186,13 @@ export function Input({
     color: iconColor ?? theme.colors.textSecondary,
   };
 
+  const prefixStyle: TextStyle = {
+    fontFamily: theme.typography.fontFamily,
+    fontSize: 14,
+    fontWeight: '400',
+    color: theme.colors.text,
+  };
+
   const inputStyle: TextStyle = {
     flex: 1,
     flexShrink: 1,
@@ -180,7 +202,7 @@ export function Input({
     fontWeight: '400',
     color: disabled ? `${theme.colors.text}80` : theme.colors.text,
     paddingVertical: 0,
-    height: 52,
+    height,
   };
 
   const trailingIconStyle: TextStyle = {
@@ -199,7 +221,7 @@ export function Input({
   };
 
   return (
-    <View style={containerStyle} testID={testID}>
+    <View style={containerStyle}>
       {label ? (
         <Text
           style={labelStyle}
@@ -218,8 +240,18 @@ export function Input({
             {icon}
           </Text>
         ) : null}
+        {prefix ? (
+          <Text
+            style={prefixStyle}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          >
+            {prefix}
+          </Text>
+        ) : null}
         <TextInput
           ref={inputRef}
+          testID={testID}
           style={inputStyle}
           value={value}
           onChangeText={handleChangeText}
@@ -229,6 +261,8 @@ export function Input({
           keyboardType={resolvedKeyboardType}
           secureTextEntry={showPasswordToggle ? !passwordVisible : secureTextEntry}
           autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
+          autoFocus={autoFocus}
           maxLength={maxLength}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

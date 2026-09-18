@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import {
-  View,
   Text as RNText,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme';
 import { FormScreen } from '../components/FormScreen';
+import { Input } from '../components/Input';
+import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
 import { apiClient } from '../services/api-client';
@@ -129,84 +127,10 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
     gap: 20,
   };
 
-  const fieldContainerStyle: ViewStyle = {
-    flexDirection: 'column',
-    gap: 8,
-  };
-
-  const labelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.text,
-  };
-
-  const inputStyle: TextStyle = {
-    height: 52,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: fieldError ? theme.colors.error : theme.colors.border,
-    paddingHorizontal: 16,
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surface,
-    // @ts-expect-error — outlineStyle is web-only
-    outlineStyle: 'none',
-  };
-
   const errorTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
     fontWeight: '400',
-    color: theme.colors.error,
-  };
-
-  const submitButtonStyle: ViewStyle = {
-    width: '100%',
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const submitButtonDisabledStyle: ViewStyle = {
-    ...submitButtonStyle,
-    opacity: 0.6,
-  };
-
-  const submitButtonTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: theme.colors.surface,
-  };
-
-  const deleteButtonContainerStyle: ViewStyle = {
-    width: '100%',
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  };
-
-  const deleteButtonTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 16,
-    fontWeight: '400',
-    color: theme.colors.error,
-  };
-
-  const deleteIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 18,
     color: theme.colors.error,
   };
 
@@ -219,29 +143,21 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
       contentContainerStyle={contentStyle}
     >
         {/* Nome Field */}
-        <View style={fieldContainerStyle}>
-          <RNText style={labelStyle}>Nome</RNText>
-          <TextInput
-            style={inputStyle}
-            value={categoryName}
-            onChangeText={(text) => {
-              setCategoryName(text);
-              if (fieldError) setFieldError('');
-              if (apiError) setApiError('');
-            }}
-            placeholder="Nome da categoria"
-            placeholderTextColor={theme.colors.textSecondary}
-            maxLength={101}
-            autoFocus
-            accessibilityLabel="Nome da categoria"
-            testID="input-category-name"
-          />
-          {fieldError ? (
-            <RNText style={errorTextStyle} testID="field-error">
-              {fieldError}
-            </RNText>
-          ) : null}
-        </View>
+        <Input
+          label="Nome"
+          accessibilityLabel="Nome da categoria"
+          value={categoryName}
+          onChangeText={(text) => {
+            setCategoryName(text);
+            if (fieldError) setFieldError('');
+            if (apiError) setApiError('');
+          }}
+          placeholder="Nome da categoria"
+          error={fieldError || undefined}
+          maxLength={101}
+          autoFocus
+          testID="input-category-name"
+        />
 
         {/* API Error */}
         {apiError ? (
@@ -251,36 +167,30 @@ export function CategoryFormScreen({ id, name: initialName }: CategoryFormScreen
         ) : null}
 
         {/* Submit Button */}
-        <TouchableOpacity
-          style={loading || deleting ? submitButtonDisabledStyle : submitButtonStyle}
+        <Button
+          title="Salvar"
+          variant="primary"
+          size="lg"
+          fullWidth
           onPress={handleSubmit}
+          loading={loading}
           disabled={loading || deleting}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Salvar"
           testID="submit-category"
-        >
-          {loading ? (
-            <ActivityIndicator color={theme.colors.surface} size="small" />
-          ) : (
-            <RNText style={submitButtonTextStyle}>Salvar</RNText>
-          )}
-        </TouchableOpacity>
+        />
 
         {/* Delete Button — only in edit mode */}
         {isEditMode && (
-          <TouchableOpacity
-            style={deleteButtonContainerStyle}
+          <Button
+            title="Excluir"
+            variant="outline"
+            size="lg"
+            fullWidth
+            color={theme.colors.error}
+            icon="delete"
             onPress={handleDeletePress}
             disabled={deleting || loading}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Excluir"
             testID="delete-category"
-          >
-            <RNText style={deleteIconStyle}>delete</RNText>
-            <RNText style={deleteButtonTextStyle}>Excluir</RNText>
-          </TouchableOpacity>
+          />
         )}
 
       {/* Delete Confirmation Modal */}

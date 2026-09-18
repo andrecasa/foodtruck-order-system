@@ -14,24 +14,10 @@ import { ErrorState } from '../components/ErrorState';
 import { FilterChips, type FilterChipOption } from '../components/FilterChips';
 import { ToggleSwitch } from '../components/ToggleSwitch';
 import { FloatingButton } from '../components/FloatingButton';
+import { RoleBadge, ROLE_LABELS } from '../components/RoleBadge';
 import { useTheme } from '../theme';
-import { withOpacity } from '../utils/color';
 import { apiClient } from '../services/api-client';
 import type { User, UserRole } from '../types/user';
-
-// ─── Role labels (no colors — stays at module level) ────────────────────────
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  admin: 'Admin',
-  atendente: 'Atendente',
-  preparador: 'Preparador',
-};
-
-const ROLE_ICONS: Record<UserRole, string> = {
-  admin: 'admin_panel_settings',
-  atendente: 'headset_mic',
-  preparador: 'restaurant',
-};
 
 /**
  * Gestão de Usuários — Users List Screen
@@ -57,18 +43,6 @@ export function UsersListScreen() {
     { key: 'atendente', label: 'Atendente', color: theme.colors.preparando, icon: 'headset_mic' },
     { key: 'preparador', label: 'Preparador', color: theme.colors.success, icon: 'restaurant' },
   ];
-
-  const ROLE_BADGE_COLORS: Record<UserRole, string> = {
-    admin: theme.colors.primary,
-    atendente: theme.colors.preparando,
-    preparador: theme.colors.success,
-  };
-
-  const ROLE_BADGE_BG_COLORS: Record<UserRole, string> = {
-    admin: withOpacity(theme.colors.primary, 0.12),
-    atendente: withOpacity(theme.colors.preparando, 0.12),
-    preparador: withOpacity(theme.colors.success, 0.12),
-  };
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +119,7 @@ export function UsersListScreen() {
   // flex row, alignItems center, justifyContent space-between, paddingHorizontal 16
   const userCardStyle: ViewStyle = {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
     height: 90,
@@ -160,19 +134,6 @@ export function UsersListScreen() {
     flexDirection: 'column',
     gap: 2,
     flex: 1,
-  };
-
-  // Role badge: height 18, borderRadius 9, icon + label
-  const roleBadgeBaseStyle: ViewStyle = {
-    borderRadius: 9,
-    paddingHorizontal: 6,
-    paddingRight: 8,
-    height: 18,
-    flexDirection: 'row',
-    gap: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
   };
 
   // User name: Inter 14px weight 500, #3D2020
@@ -228,19 +189,7 @@ export function UsersListScreen() {
       >
         {/* Info: badge + name + email */}
         <View style={userInfoStyle}>
-          <View
-            style={[
-              roleBadgeBaseStyle,
-              { backgroundColor: ROLE_BADGE_BG_COLORS[item.role] },
-            ]}
-          >
-            <RNText style={{ fontFamily: 'Material Symbols Outlined', fontSize: 11, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
-              {ROLE_ICONS[item.role]}
-            </RNText>
-            <RNText style={{ fontFamily: theme.typography.fontFamily, fontSize: 9, fontWeight: '400', color: ROLE_BADGE_COLORS[item.role] }}>
-              {ROLE_LABELS[item.role]}
-            </RNText>
-          </View>
+          <RoleBadge role={item.role} />
           <RNText style={userNameStyle}>{item.name}</RNText>
           <RNText style={userEmailStyle}>{item.email}</RNText>
         </View>

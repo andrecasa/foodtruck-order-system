@@ -1,43 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
   Text as RNText,
-  TouchableOpacity,
-  TextInput,
+  type TextInput,
   type ViewStyle,
   type TextStyle,
-  type TextInputProps,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { FormScreen } from '../components/FormScreen';
 import { Button } from '../components/Button';
+import { Select } from '../components/Select';
+import { Input } from '../components/Input';
 import { Modal } from '../components/Modal';
 import { Text } from '../components/Typography';
+import { formatCurrencyDigits, parseCurrencyToCentavos } from '../utils/format';
 import { apiClient } from '../services/api-client';
-
-/**
- * Parses a formatted currency string (R$ X,XX) to centavos (integer).
- * Returns 0 if the string is empty or invalid.
- */
-function parseCurrencyToCentavos(formatted: string): number {
-  const digits = formatted.replace(/\D/g, '');
-  if (digits.length === 0) return 0;
-  return parseInt(digits, 10);
-}
-
-/**
- * Formats a raw digit string as Brazilian Real currency (R$ X,XX).
- */
-function formatCurrency(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length === 0) return '';
-  const padded = digits.padStart(3, '0');
-  const integerPart = padded.slice(0, padded.length - 2);
-  const decimalPart = padded.slice(padded.length - 2);
-  const trimmedInteger = integerPart.replace(/^0+/, '') || '0';
-  return `R$ ${trimmedInteger},${decimalPart}`;
-}
 
 export interface EditMenuItemScreenProps {
   id: string;
@@ -72,7 +49,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
 
   // Form state — pre-filled with existing item data
   const [name, setName] = useState(initialName);
-  const [price, setPrice] = useState(formatCurrency(String(initialPrice)));
+  const [price, setPrice] = useState(formatCurrencyDigits(String(initialPrice)));
   const [category, setCategory] = useState<string>(initialCategory);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
@@ -108,7 +85,7 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     if (digits.length === 0) {
       setPrice('');
     } else {
-      setPrice(formatCurrency(digits));
+      setPrice(formatCurrencyDigits(digits));
     }
     if (priceError) setPriceError('');
   };
@@ -238,86 +215,6 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     gap: 20,
   };
 
-  const labelStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 12,
-    fontWeight: '400',
-    color: theme.colors.text,
-    marginBottom: 8,
-  };
-
-  const inputContainerStyle: ViewStyle = {
-    height: 52,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  };
-
-  const inputContainerErrorStyle: ViewStyle = {
-    ...inputContainerStyle,
-    borderColor: theme.colors.error,
-  };
-
-  const placeholderTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.textSecondary,
-    flex: 1,
-  };
-
-  const inputValueStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    flex: 1,
-  };
-
-  const prefixStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.text,
-    marginRight: 8,
-  };
-
-  const arrowIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 20,
-    fontWeight: '400',
-    color: theme.colors.textSecondary,
-  };
-
-  const deleteButtonStyle: ViewStyle = {
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  };
-
-  const deleteButtonTextStyle: TextStyle = {
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.error,
-  };
-
-  const deleteIconStyle: TextStyle = {
-    fontFamily: 'Material Symbols Outlined',
-    fontSize: 18,
-    color: theme.colors.error,
-  };
-
   const errorTextStyle: TextStyle = {
     fontFamily: theme.typography.fontFamily,
     fontSize: 12,
@@ -325,30 +222,6 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     color: theme.colors.error,
     marginTop: 4,
   };
-
-  const categoryDropdownStyle: ViewStyle = {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginTop: 4,
-    overflow: 'hidden',
-  };
-
-  const categoryOptionStyle: ViewStyle = {
-    height: 44,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
-  };
-
-  const categoryOptionTextStyle = (selected: boolean): TextStyle => ({
-    fontFamily: theme.typography.fontFamily,
-    fontSize: 14,
-    fontWeight: '400',
-    color: selected ? theme.colors.primary : theme.colors.text,
-  });
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -359,100 +232,52 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
       contentContainerStyle={contentStyle}
     >
         {/* 1. Categoria Field (first per Penpot order) */}
-        <View>
-          <RNText style={labelStyle}>Categoria</RNText>
-          <TouchableOpacity
-            style={categoryError ? inputContainerErrorStyle : inputContainerStyle}
-            onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={category || 'Selecione uma categoria'}
-            accessibilityHint="Toque para selecionar a categoria"
-            testID="select-category"
-          >
-            <RNText style={category ? inputValueStyle : placeholderTextStyle}>
-              {category || 'Selecione...'}
-            </RNText>
-            <RNText style={arrowIconStyle}>expand_more</RNText>
-          </TouchableOpacity>
-          {showCategoryPicker && (
-            <View style={categoryDropdownStyle}>
-              {categoryNames.map((cat, index) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    categoryOptionStyle,
-                    index === categoryNames.length - 1 && { borderBottomWidth: 0 },
-                  ]}
-                  onPress={() => {
-                    setCategory(cat);
-                    setShowCategoryPicker(false);
-                    if (categoryError) setCategoryError('');
-                  }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: category === cat }}
-                  accessibilityLabel={cat}
-                  testID={`category-${cat.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  <RNText style={categoryOptionTextStyle(category === cat)}>
-                    {cat}
-                  </RNText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          {categoryError ? (
-            <RNText style={errorTextStyle}>{categoryError}</RNText>
-          ) : null}
-        </View>
+        <Select
+          label="Categoria"
+          value={category}
+          options={categoryNames.map((cat) => ({ value: cat, label: cat }))}
+          onChange={(value) => {
+            setCategory(value);
+            if (categoryError) setCategoryError('');
+          }}
+          error={categoryError || undefined}
+          open={showCategoryPicker}
+          onOpenChange={setShowCategoryPicker}
+          testID="select-category"
+          optionTestID={(value) => `category-${value.toLowerCase().replace(/\s+/g, '-')}`}
+          accessibilityHint="Toque para selecionar a categoria"
+        />
 
         {/* 2. Nome Field */}
-        <View>
-          <RNText style={labelStyle}>Nome do item</RNText>
-          <View style={nameError ? inputContainerErrorStyle : inputContainerStyle}>
-            <InputInline
-              ref={nameRef}
-              value={name}
-              onChangeText={(text) => {
-                setName(text.slice(0, 100));
-                if (nameError) setNameError('');
-                if (apiError) setApiError('');
-              }}
-              placeholder="Ex: Pastel de Frango"
-              testID="input-item-name"
-              accessibilityLabel="Nome do item"
-              color={theme.colors.text}
-              placeholderColor={theme.colors.textSecondary}
-              fontFamily={theme.typography.fontFamily}
-            />
-          </View>
-          {nameError ? (
-            <RNText style={errorTextStyle}>{nameError}</RNText>
-          ) : null}
-        </View>
+        <Input
+          label="Nome do item"
+          accessibilityLabel="Nome do item"
+          value={name}
+          onChangeText={(text) => {
+            setName(text.slice(0, 100));
+            if (nameError) setNameError('');
+            if (apiError) setApiError('');
+          }}
+          placeholder="Ex: Pastel de Frango"
+          error={nameError || undefined}
+          maxLength={100}
+          inputRef={nameRef}
+          testID="input-item-name"
+        />
 
         {/* 3. Preço Field */}
-        <View>
-          <RNText style={labelStyle}>Preço</RNText>
-          <View style={priceError ? inputContainerErrorStyle : inputContainerStyle}>
-            <RNText style={prefixStyle}>R$</RNText>
-            <InputInline
-              ref={priceRef}
-              value={price ? price.replace('R$ ', '') : ''}
-              onChangeText={handlePriceChange}
-              placeholder="0,00"
-              keyboardType="numeric"
-              testID="input-item-price"
-              accessibilityLabel="Preço"
-              color={theme.colors.text}
-              placeholderColor={theme.colors.textSecondary}
-              fontFamily={theme.typography.fontFamily}
-            />
-          </View>
-          {priceError ? (
-            <RNText style={errorTextStyle}>{priceError}</RNText>
-          ) : null}
-        </View>
+        <Input
+          label="Preço"
+          accessibilityLabel="Preço"
+          value={price ? price.replace('R$ ', '') : ''}
+          onChangeText={handlePriceChange}
+          placeholder="0,00"
+          error={priceError || undefined}
+          prefix="R$"
+          keyboardType="numeric"
+          inputRef={priceRef}
+          testID="input-item-price"
+        />
 
         {/* API Error */}
         {apiError ? (
@@ -472,18 +297,17 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
         />
 
         {/* Delete Button */}
-        <TouchableOpacity
-          style={deleteButtonStyle}
+        <Button
+          title="Excluir"
+          variant="outline"
+          size="lg"
+          fullWidth
+          color={theme.colors.error}
+          icon="delete"
           onPress={handleDeletePress}
-          activeOpacity={0.7}
           disabled={deleting || loading}
-          accessibilityRole="button"
-          accessibilityLabel="Excluir"
           testID="delete-menu-item"
-        >
-          <RNText style={deleteIconStyle}>delete</RNText>
-          <RNText style={deleteButtonTextStyle}>Excluir</RNText>
-        </TouchableOpacity>
+        />
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -510,52 +334,3 @@ export function EditMenuItemScreen({ id, name: initialName, price: initialPrice,
     </FormScreen>
   );
 }
-
-// ─── InputInline ──────────────────────────────────────────────────────────────
-
-interface InputInlineProps {
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-  keyboardType?: TextInputProps['keyboardType'];
-  testID?: string;
-  accessibilityLabel?: string;
-  color: string;
-  placeholderColor: string;
-  fontFamily: string;
-}
-
-/**
- * Minimal inline TextInput that matches Penpot field specs:
- * - No extra wrapper/padding (parent container handles it)
- * - Inter 14px weight 400, color #3D2020
- * - Placeholder color from theme.colors.textSecondary
- */
-const InputInline = React.forwardRef<TextInput, InputInlineProps>(
-  function InputInline(
-    { value, onChangeText, placeholder, keyboardType = 'default', testID, accessibilityLabel, color, placeholderColor, fontFamily },
-    ref,
-  ) {
-    return (
-      <TextInput
-        ref={ref}
-        style={{
-          flex: 1,
-          fontFamily,
-          fontSize: 14,
-          fontWeight: '400',
-          color: color,
-          paddingVertical: 0,
-          height: 52,
-        }}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={placeholderColor}
-        keyboardType={keyboardType}
-        testID={testID}
-        accessibilityLabel={accessibilityLabel}
-      />
-    );
-  },
-);

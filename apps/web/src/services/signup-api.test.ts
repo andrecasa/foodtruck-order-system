@@ -39,7 +39,7 @@ function makeInput(overrides: Partial<SignupInput> = {}): SignupInput {
     adminEmail: 'maria@example.com',
     password: 'senhaSegura1',
     slug: 'pastel-da-praca',
-    colorPresetId: 'classico',
+    colorPresetId: 'terracota',
     ...overrides,
   };
 }
@@ -73,7 +73,7 @@ describe('signup — POST /api/signup (R9.1)', () => {
     expect(body.get('adminEmail')).toBe('maria@example.com');
     expect(body.get('password')).toBe('senhaSegura1');
     expect(body.get('slug')).toBe('pastel-da-praca');
-    expect(body.get('colorPresetId')).toBe('classico');
+    expect(body.get('colorPresetId')).toBe('terracota');
     // Sem logo: o campo não deve ser anexado.
     expect(body.has('logo')).toBe(false);
   });
@@ -129,8 +129,8 @@ describe('listColorPresets — GET /api/signup/color-presets (R6.1)', () => {
   it('retorna a lista de presets do backend', async () => {
     const presets: ColorPreset[] = [
       {
-        id: 'classico',
-        label: 'Clássico',
+        id: 'padrao',
+        label: 'Padrão',
         colors: { primary: '#111' } as unknown as ColorPreset['colors'],
       },
     ];

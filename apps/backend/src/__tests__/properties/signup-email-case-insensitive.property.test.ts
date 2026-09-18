@@ -48,7 +48,7 @@ const baseInput: SignupInputForService = {
   adminEmail: 'placeholder@teste.com',
   password: 'senhaForte1',
   slug: 'restaurante-teste',
-  colorPresetId: 'classico',
+  colorPresetId: 'terracota',
 };
 
 /**

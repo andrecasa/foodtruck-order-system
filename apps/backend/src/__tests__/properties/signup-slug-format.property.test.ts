@@ -25,7 +25,7 @@ const VALID_BASE = {
   adminName: 'Admin Teste',
   adminEmail: 'admin@example.com',
   password: 'senha1234',
-  colorPresetId: 'classico',
+  colorPresetId: 'terracota',
 } as const;
 
 /** Valida apenas o campo `slug` através do `signupSchema` completo. */

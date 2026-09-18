@@ -275,8 +275,8 @@ para separá-los das credenciais de autenticação.
 
 ```jsonc
 {
-  "id": "classico",
-  "label": "Clássico",
+  "id": "padrão",
+  "label": "Padrão",
   "colors": { /* TODOS os tokens de ThemeConfig.colors (R6.4), sem businessName (R6.5) */ }
 }
 ```

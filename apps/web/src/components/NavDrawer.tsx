@@ -16,6 +16,10 @@ export interface NavDrawerProps {
   onLogin: () => void;
   /** Rótulo do item de login. */
   loginLabel?: string;
+  /** Ação do CTA primário ("Começar grátis"). Quando ausente, o CTA não aparece. */
+  onPrimaryCta?: () => void;
+  /** Rótulo do CTA primário. */
+  primaryCtaLabel?: string;
 }
 
 /**
@@ -60,7 +64,13 @@ function MaterialIcon({
  * A decisão de exibir este componente (mobile) ou a navbar inline (desktop) é do
  * chamador, tipicamente via `useMediaQuery`.
  */
-export function NavDrawer({ links, onLogin, loginLabel = 'Login' }: NavDrawerProps) {
+export function NavDrawer({
+  links,
+  onLogin,
+  loginLabel = 'Login',
+  onPrimaryCta,
+  primaryCtaLabel = 'Começar grátis',
+}: NavDrawerProps) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
 
@@ -144,6 +154,22 @@ export function NavDrawer({ links, onLogin, loginLabel = 'Login' }: NavDrawerPro
     padding: `${theme.spacing.sm}px 0`,
   };
 
+  // "Começar grátis" como item de link da lista (mesmo visual dos demais links),
+  // sem aparência de botão. É um <button> por ser uma ação (navegação).
+  const linkButtonStyle: React.CSSProperties = {
+    display: 'block',
+    width: '100%',
+    fontFamily,
+    fontSize: `${theme.typography.sizes.lg}px`,
+    fontWeight: theme.typography.weights.medium,
+    color: theme.colors.text,
+    backgroundColor: 'transparent',
+    border: 'none',
+    padding: `${theme.spacing.sm}px 0`,
+    cursor: 'pointer',
+    textAlign: 'left',
+  };
+
   // Login como item de link (mesmo visual dos demais), sem aparência de botão.
   // Continua sendo um `<button>` por ser uma ação (navegação), mas estilizado
   // como link e alinhado à esquerda como os outros itens.
@@ -201,13 +227,28 @@ export function NavDrawer({ links, onLogin, loginLabel = 'Login' }: NavDrawerPro
 
           <nav aria-label="Navegação principal">
             <ul style={linksListStyle}>
+              {/* "Começar grátis" é o primeiro item, como link (não botão). */}
+              {onPrimaryCta ? (
+                <li>
+                  <Dialog.Close asChild>
+                    <button
+                      type="button"
+                      style={linkButtonStyle}
+                      data-testid="landing-drawer-cta"
+                      onClick={onPrimaryCta}
+                    >
+                      {primaryCtaLabel}
+                    </button>
+                  </Dialog.Close>
+                </li>
+              ) : null}
               {links.map((link) => (
                 <li key={link.href}>
                   <Dialog.Close asChild>
                     <a
                       href={link.href}
                       style={linkStyle}
-                      data-testid={`landing-drawer-nav-${link.href.slice(1)}`}
+                      data-testid={`landing-drawer-nav-${link.href.replace(/^\/?#/, '')}`}
                     >
                       {link.label}
                     </a>

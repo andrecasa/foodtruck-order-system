@@ -53,7 +53,7 @@ const validBody = {
   adminEmail: 'admin@teste.com',
   password: 'senhaForte1',
   slug: 'restaurante-teste',
-  colorPresetId: 'classico',
+  colorPresetId: 'terracota',
 };
 
 /** Request multipart mockado (Content-Type multipart + body + file opcional). */
@@ -172,7 +172,7 @@ describe('signupController (POST /api/signup)', () => {
 describe('listColorPresetsController (GET /api/signup/color-presets)', () => {
   it('responde 200 com { presets } do loader (R6.1)', async () => {
     const presets = [
-      { id: 'classico', label: 'Clássico', colors: {} as never },
+      { id: 'padrao', label: 'Padrão', colors: {} as never },
     ];
     vi.mocked(listColorPresets).mockReturnValue(presets as never);
 

@@ -92,7 +92,7 @@ function validSignupBody(logo: { mimetype: string; size: number }): Record<strin
     adminEmail: 'admin@exemplo.com',
     password: 'senhaSegura123',
     slug: 'empresa-teste',
-    colorPresetId: 'classico',
+    colorPresetId: 'terracota',
     logo,
   };
 }

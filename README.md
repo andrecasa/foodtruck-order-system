@@ -176,6 +176,27 @@ O onboarding cria o tenant (branding, tema, timezone, instância WhatsApp), seme
 
 > **"Pastel das Meninas"** é apenas o primeiro tenant, provisionado a partir de um preset de onboarding (`presets/pastel-das-meninas.json`) via `pnpm provision-pastel`, e não mais um seed global de schema.
 
+### Excluir um Tenant (limpeza de testes)
+
+> ⚠️ **Operação destrutiva e irreversível.** Use apenas para remover tenants de teste.
+
+Exclui **completamente** um tenant identificado pela `--slug` (= `provisioning_key`): apaga as linhas no banco (na ordem que respeita as FKs `ON DELETE RESTRICT`: `order_items → orders → password_reset_codes → menu_items → categories → daily_sequences → whatsapp_sessions → users → tenants`), remove os usuários do **Supabase Auth**, exclui a instância na **Evolution API** e apaga a **logo no S3** (se houver).
+
+A partir de `apps/backend`:
+
+```bash
+# Prévia: mostra o que seria removido, sem apagar nada
+pnpm delete-tenant -- --slug=taco-loco --dry-run
+
+# Excluir (pede confirmação: digite o slug)
+pnpm delete-tenant -- --slug=taco-loco
+
+# Excluir sem prompt (CI / não interativo)
+pnpm delete-tenant -- --slug=taco-loco --yes
+```
+
+O banco é apagado em transação (tudo ou nada). Auth, Evolution e S3 são _best-effort_: uma falha ali vira aviso e **não** reverte a exclusão do banco (que já foi commitada) — o aviso indica o recurso pendente de limpeza manual. Requer no `.env`: `DATABASE_URL` (ou `POSTGRES_*`), `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`, `EVOLUTION_API_URL` + `EVOLUTION_API_KEY` e, para a logo, `ASSETS_S3_BUCKET` (+ `AWS_REGION`).
+
 ### Scripts
 
 | Script | Descrição |
@@ -183,6 +204,7 @@ O onboarding cria o tenant (branding, tema, timezone, instância WhatsApp), seme
 | `./scripts/generate-keys.sh` | Gera JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY. Atualiza `.env`, `kong.yml`, `apps/mobile/.env` |
 | `./scripts/seed-first-tenant.sh` | Bootstrap de dev: provisiona o primeiro tenant + admin logável (onboarding idempotente) usando `ADMIN_EMAIL`/`ADMIN_PASSWORD` do `.env` |
 | `pnpm create-tenant` | Provisiona um novo tenant via CLI (onboarding) |
+| `pnpm delete-tenant` | Exclui completamente um tenant (DB + Auth + Evolution + S3). ⚠️ Destrutivo; suporta `--dry-run` |
 | `pnpm provision-pastel` | Provisiona o tenant "Pastel das Meninas" a partir do preset de onboarding |
 
 > **Nota (multi-tenant):** não existe mais um "seed" que cria apenas o usuário no Supabase Auth — no modelo multi-tenant, um usuário sem linha em `users` com `tenant_id` não resolve tenant e é rejeitado com **HTTP 401** (`TENANT_RESOLUTION_FAILED`) pelo `tenantMiddleware`. Todo admin logável deve vir do **onboarding** (auth user + linha em `users` com `tenant_id` e `role='admin'`). Para dev, `./scripts/seed-first-tenant.sh` faz esse bootstrap de ponta a ponta; para clientes reais, use `pnpm create-tenant` ou `POST /api/platform/tenants`.
@@ -280,7 +302,7 @@ Gera uma pasta `coverage/` com um `index.html` que pode ser aberto no navegador 
 │   ├── backend/          # API REST (Express + TypeScript)
 │   │   ├── migrations/   # SQL migrations multi-tenant (executadas na inicialização)
 │   │   ├── presets/      # Presets de onboarding (ex: pastel-das-meninas.json)
-│   │   ├── scripts/      # CLIs de plataforma (create-tenant, provision-pastel)
+│   │   ├── scripts/      # CLIs de plataforma (create-tenant, delete-tenant, provision-pastel)
 │   │   └── src/
 │   │       ├── bot/          # WhatsApp bot (Evolution API) + WebhookRouter por tenant
 │   │       ├── config/       # Database e Supabase config

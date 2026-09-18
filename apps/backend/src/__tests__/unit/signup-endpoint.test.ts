@@ -51,7 +51,7 @@ const validBody = {
   adminEmail: 'admin@teste.com',
   password: 'senhaForte1',
   slug: 'restaurante-teste',
-  colorPresetId: 'classico',
+  colorPresetId: 'terracota',
 };
 
 interface MockResponse extends Partial<Response> {

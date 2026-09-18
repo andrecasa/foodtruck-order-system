@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useNavigate } from 'react-router';
 import { useTheme } from '../theme';
-import { Screen, ImageCarousel, NavDrawer } from '../components';
+import { Screen, ImageCarousel, NavBar } from '../components';
 import type { ImageCarouselSlide } from '../components';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -26,9 +26,6 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
  * `public/assets/landing/` (SVG rotulado) e serão substituídas pelas finais.
  */
 
-/** Logomarca da marca, servida da pasta `public/` do Vite (URL raiz). */
-const LOGO_SRC = '/assets/logo.png';
-
 /** Imagem (placeholder) de fundo do hero, servida da pasta `public/`. */
 const HERO_BACKGROUND_SRC = '/assets/landing/hero/hero.png';
 
@@ -51,20 +48,9 @@ const CAROUSEL_AUTOPLAY_MS = 10_000;
 const CAROUSEL_HEIGHT_PX = 450;
 
 /**
- * Abaixo desta largura a navbar troca os links inline por hambúrguer + drawer,
- * evitando a quebra do menu no mobile.
+ * Abaixo desta largura a página reduz respiros (alinhado ao breakpoint da navbar).
  */
 const NAVBAR_MOBILE_QUERY = '(max-width: 768px)';
-
-/**
- * Links de navegação do topo (marketing). Cada rótulo leva à sua seção
- * correspondente na própria página, via âncora (`#id-da-seção`).
- */
-const NAV_LINKS: ReadonlyArray<{ label: string; href: string }> = [
-  { label: 'Central de Pedidos', href: '#central-pedidos' },
-  { label: 'Resumo Financeiro', href: '#resumo-financeiro' },
-  { label: 'Geolocalização', href: '#geolocalizacao' },
-];
 
 /** Provas rápidas exibidas abaixo dos CTAs do hero (ícone + rótulo). */
 const HERO_PROOFS: ReadonlyArray<{ icon: IconName; label: string }> = [
@@ -314,81 +300,8 @@ export function LandingPage() {
   const badgeSize = isMobile ? 48 : 64;
   const badgeIconSize = blockTitleSize;
 
-  // const goToSignup = () => navigate('/signup');
-   const goToSignup = () => navigate('/');
-
-  // --- Navbar -------------------------------------------------------------
-  const navbarStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: `${theme.spacing.md}px`,
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: `${theme.spacing.md}px ${sidePadding}px`,
-    backgroundColor: theme.colors.surface,
-    borderBottom: `1px solid ${theme.colors.border}`,
-  };
-
-  const navLeftStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: `${theme.spacing.xl}px`,
-  };
-
-  const brandStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: `${theme.spacing.sm}px`,
-  };
-
-  const navLogoStyle: React.CSSProperties = {
-    height: '45px',
-    width: 'auto',
-    objectFit: 'contain',
-  };
-
-  const brandNameStyle: React.CSSProperties = {
-    fontFamily,
-    fontSize: `${theme.typography.sizes.lg}px`,
-    fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
-    margin: 0,
-  };
-
-  const navLinksStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: `${theme.spacing.xl}px`,
-    listStyle: 'none',
-    margin: 0,
-    padding: 0,
-  };
-
-  const navLinkStyle: React.CSSProperties = {
-    fontFamily,
-    fontSize: `${theme.typography.sizes.md}px`,
-    fontWeight: theme.typography.weights.medium,
-    color: theme.colors.text,
-    textDecoration: 'none',
-  };
-
-  const loginButtonStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: `${theme.spacing.xs}px`,
-    fontFamily,
-    fontSize: `${theme.typography.sizes.md}px`,
-    fontWeight: theme.typography.weights.medium,
-    color: theme.colors.text,
-    backgroundColor: 'transparent',
-    border: 'none',
-    padding: 0,
-    cursor: 'pointer',
-  };
+  const goToSignup = () => navigate('/signup');
+  const goToLogin = () => navigate('/login');
 
   // --- Hero ---------------------------------------------------------------
   const heroStyle: React.CSSProperties = {
@@ -688,42 +601,7 @@ export function LandingPage() {
   return (
     <Screen padding={false}>
       <div style={pageStyle} data-testid="landing-page">
-        <header style={navbarStyle} data-testid="landing-navbar">
-          <div style={navLeftStyle}>
-            <div style={brandStyle}>
-              <img src={LOGO_SRC} alt={theme.businessName} style={navLogoStyle} />
-              <span style={brandNameStyle}>{theme.businessName}</span>
-            </div>
-            {!isMobile && (
-              <nav aria-label="Navegação principal">
-                <ul style={navLinksStyle}>
-                  {NAV_LINKS.map((link) => (
-                    <li key={link.href}>
-                      <a href={link.href} style={navLinkStyle} data-testid={`landing-nav-${link.href.slice(1)}`}>
-                        {link.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            )}
-          </div>
-
-          {isMobile ? (
-            <NavDrawer links={NAV_LINKS} onLogin={goToSignup} />
-          ) : (
-            <button
-              type="button"
-              style={loginButtonStyle}
-              data-testid="landing-login"
-              aria-label="Entrar na sua conta"
-              onClick={goToSignup}
-            >
-              <Icon name="login" size={theme.typography.sizes.xl} />
-              Login
-            </button>
-          )}
-        </header>
+        <NavBar onPrimaryCta={goToSignup} onLogin={goToLogin} sidePadding={sidePadding} />
 
         <main style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           <section style={heroStyle} data-testid="landing-hero" aria-labelledby="landing-hero-title">

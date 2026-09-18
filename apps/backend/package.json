@@ -10,6 +10,7 @@
     "migrate": "tsx --env-file=../../.env src/db/run-migrations.ts",
     "migrate:validate": "tsx --env-file=../../.env src/db/validate-schema.ts",
     "create-tenant": "tsx --env-file=../../.env scripts/create-tenant.ts",
+    "delete-tenant": "tsx --env-file=../../.env scripts/delete-tenant.ts",
     "provision-pastel": "tsx --env-file=../../.env scripts/provision-pastel-das-meninas.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json",
     "lint": "eslint src/",

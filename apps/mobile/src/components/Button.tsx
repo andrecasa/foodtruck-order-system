@@ -28,6 +28,8 @@ export interface ButtonProps {
   color?: string;
   /** Whether button should stretch full width (for form CTAs) */
   fullWidth?: boolean;
+  /** Optional leading icon name (Material Symbols Outlined), ex.: 'delete'. Herda a cor do texto. */
+  icon?: string;
   /** Optional test ID for testing */
   testID?: string;
 }
@@ -53,6 +55,7 @@ export function Button({
   loading = false,
   color,
   fullWidth = false,
+  icon,
   testID,
 }: ButtonProps) {
   const theme = useTheme();
@@ -116,6 +119,7 @@ export function Button({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    gap: icon ? 8 : 0,
     height: getHeight(),
     alignSelf: fullWidth ? 'stretch' : 'center', // Penpot: in-card buttons centered, form CTAs full-width
   };
@@ -125,6 +129,12 @@ export function Button({
     fontFamily: theme.typography.fontFamily,
     fontSize: size === 'sm' ? 12 : 14,
     fontWeight: '400', // Penpot: all sizes use weight 400
+  };
+
+  const iconStyle: TextStyle = {
+    fontFamily: 'Material Symbols Outlined',
+    fontSize: size === 'sm' ? 16 : 18,
+    color: getTextColor(),
   };
 
   const spinnerColor = variant === 'outline' ? theme.colors.textSecondary : theme.colors.surface;
@@ -146,6 +156,15 @@ export function Button({
           size="small"
           style={{ marginRight: 6 }}
         />
+      ) : null}
+      {!loading && icon ? (
+        <Text
+          style={iconStyle}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        >
+          {icon}
+        </Text>
       ) : null}
       {!loading && <Text style={textStyle}>{title}</Text>}
     </TouchableOpacity>

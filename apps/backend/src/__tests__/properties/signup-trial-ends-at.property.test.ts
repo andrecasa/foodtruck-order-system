@@ -51,7 +51,7 @@ describe('Property 12: Cálculo do fim do teste (trial_ends_at = now + 30d)', ()
     adminEmail: 'admin@teste.com',
     password: 'senhaForte1',
     slug: 'restaurante-teste',
-    colorPresetId: 'classico',
+    colorPresetId: 'terracota',
   };
 
   beforeEach(() => {

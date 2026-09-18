@@ -33,7 +33,7 @@ const VALID_BASE = {
   adminEmail: 'admin@example.com',
   password: 'senhaSegura123',
   slug: 'empresa-teste',
-  colorPresetId: 'classico',
+  colorPresetId: 'terracota',
 } as const;
 
 // Detecta se ao menos uma mensagem de erro está em pt-BR (contém caractere

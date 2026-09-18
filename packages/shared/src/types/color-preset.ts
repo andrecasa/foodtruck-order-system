@@ -8,7 +8,7 @@ import type { ThemeConfig } from './theme';
  * `apps/web` (seletor de preset), mantendo uma única fonte da verdade da forma.
  */
 export interface ColorPreset {
-  /** Identificador estável do preset (ex.: `classico`). */
+  /** Identificador estável do preset (ex.: `terracota`). */
   id: string;
   /** Rótulo exibido ao usuário no seletor (pt-BR). */
   label: string;

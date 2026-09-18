@@ -14,8 +14,8 @@ import { NEUTRAL_PLATFORM_THEME } from '../theme/platform-theme';
 // A paleta vem do tema neutro, garantindo que `colors` é `ThemeConfig['colors']`
 // completo — todos os tokens presentes — e sem `businessName` (R6.5).
 const preset: ColorPreset = {
-  id: 'classico',
-  label: 'Clássico',
+  id: 'padrao',
+  label: 'Padrão',
   colors: NEUTRAL_PLATFORM_THEME.colors,
 };
 

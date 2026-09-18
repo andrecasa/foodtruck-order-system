@@ -43,13 +43,13 @@ afterEach(() => {
  * - R1.1/R1.3: a landing renderiza o CTA e o conteúdo de divulgação sem exigir
  *   autenticação — não há `AuthProvider`, apenas o `ThemeProvider` (as páginas
  *   dependem de `useTheme`).
- * - CTA: enquanto o Signup_Form está fora de escopo, o CTA aponta para `/`,
- *   mantendo o usuário na Landing_Page (sem navegar para `/signup`).
+ * - R1.2: acionar o CTA navega para o Signup_Form em `/signup`.
  *
- * O comportamento é verificado montando um roteador equivalente ao de produção
- * via `createMemoryRouter` (histórico próprio, ideal para testes) reusando a
- * mesma `routes` exportada por `App.tsx` — fonte única da verdade, sem duplicar
- * a config.
+ * A navegação é verificada montando um roteador equivalente ao de produção via
+ * `createMemoryRouter` (histórico próprio, ideal para testes) reusando a mesma
+ * `routes` exportada por `App.tsx` — fonte única da verdade, sem duplicar a
+ * config. Após clicar no CTA, o Signup_Form (`data-testid="signup-page"`) passa
+ * a ser renderizado, comprovando que a navegação ocorreu.
  */
 
 /**
@@ -78,7 +78,7 @@ describe('LandingPage', () => {
 
     // Conteúdo de marketing renderizado (R1.1): hero e seções do design.
     expect(
-      screen.getByText('Coloque seu negócio para rodar'),
+      screen.getByText('Seu negócio de um jeito fácil'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('landing-section-central-pedidos')).toBeInTheDocument();
     expect(screen.getByTestId('landing-section-resumo-financeiro')).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('LandingPage', () => {
     expect(screen.queryByTestId('signup-page')).not.toBeInTheDocument();
   });
 
-  it('mantém o usuário na landing ao acionar o CTA (Signup fora de escopo)', async () => {
+  it('navega para /signup ao acionar o CTA (R1.2)', async () => {
     const user = userEvent.setup();
     renderRouterAt('/');
 
@@ -96,10 +96,8 @@ describe('LandingPage', () => {
 
     await user.click(screen.getByTestId('landing-cta'));
 
-    // Por ora o CTA aponta para "/" (Signup fora de escopo): segue na landing,
-    // sem renderizar o Signup_Form.
-    expect(screen.getByTestId('landing-page')).toBeInTheDocument();
-    expect(screen.queryByTestId('signup-page')).not.toBeInTheDocument();
+    // A navegação ocorreu: o Signup_Form passou a ser renderizado.
+    expect(screen.getByTestId('signup-page')).toBeInTheDocument();
   });
 
   it('no mobile, troca os links inline pelo hambúrguer (drawer)', () => {
